@@ -1,0 +1,28 @@
+{
+  "projectName": "dtorkon landing",
+  "headline": "Статический стенд для проверки Cloudflare DNS и HTTPS",
+  "environment": "Vite build → Nginx static delivery",
+  "statusItems": [
+    {
+      "label": "DNS route",
+      "value": "Домен должен указывать на сервер с этим контейнером",
+      "tone": "success"
+    },
+    {
+      "label": "TLS mode",
+      "value": "Nginx использует сертификаты из /etc/letsencrypt",
+      "tone": "info"
+    },
+    {
+      "label": "Frontend",
+      "value": "React + MUI + Axios в расширяемой feature-структуре",
+      "tone": "success"
+    }
+  ],
+  "notes": [
+    "Эта страница отдается из production build без backend proxy.",
+    "Axios загружает этот JSON с того же origin, чтобы проверить статическую выдачу.",
+    "После первичного выпуска сертификата certbot renew продолжит обслуживание тома автоматически."
+  ]
+}
+
