@@ -2,37 +2,21 @@ services:
   landing:
     build:
       context: .
-      dockerfile: infra/nginx/Dockerfile
+      dockerfile: infra/caddy/Dockerfile
     container_name: dtorkon-landing
     env_file:
       - .env
     environment:
-      DOMAIN_NAME: ${DOMAIN_NAME:-localhost}
-      CERT_CHECK_INTERVAL: ${CERT_CHECK_INTERVAL:-21600}
+      DOMAIN_NAMES: ${DOMAIN_NAMES:-localhost}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@example.com}
     ports:
       - "80:80"
       - "443:443"
     restart: unless-stopped
     volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-webroot:/var/www/certbot
-      - nginx-ssl:/etc/nginx/ssl
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: dtorkon-certbot
-    env_file:
-      - .env
-    entrypoint:
-      - /bin/sh
-      - /opt/certbot/ensure-certificate.sh
-    restart: unless-stopped
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-webroot:/var/www/certbot
-      - ./infra/certbot/ensure-certificate.sh:/opt/certbot/ensure-certificate.sh:ro
+      - caddy-data:/data
+      - caddy-config:/config
 
 volumes:
-  certbot-etc:
-  certbot-webroot:
-  nginx-ssl:
+  caddy-data:
+  caddy-config:

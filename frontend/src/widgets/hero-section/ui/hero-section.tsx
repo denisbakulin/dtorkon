@@ -26,7 +26,7 @@ export function HeroSection({ host, protocol }: HeroSectionProps) {
             <Chip
               color="secondary"
               icon={<ShieldRoundedIcon />}
-              label="Cloudflare DNS + Nginx static + Docker Compose"
+              label="DNS only + Caddy static + Docker Compose"
               sx={{ alignSelf: 'flex-start' }}
             />
             <Typography variant="h1" sx={{ fontSize: { xs: '2.6rem', md: '4.25rem' } }}>
@@ -34,7 +34,7 @@ export function HeroSection({ host, protocol }: HeroSectionProps) {
             </Typography>
             <Typography color="text.secondary" sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, maxWidth: 640 }}>
               Эта сборка нужна, чтобы быстро увидеть: DNS дошёл до сервера, сертификаты
-              подключены, а Nginx корректно раздаёт статический React build.
+              подключены, а Caddy корректно раздаёт статический React build.
             </Typography>
           </Stack>
 
@@ -75,4 +75,3 @@ export function HeroSection({ host, protocol }: HeroSectionProps) {
     </Paper>
   );
 }
-

@@ -4,9 +4,9 @@ import { Chip, List, ListItem, ListItemIcon, ListItemText, Stack } from '@mui/ma
 import { SectionCard } from '../../../shared/ui/section-card/section-card';
 
 const checklist = [
-  'Скопируйте .env.example в .env и укажите DOMAIN_NAME и LETSENCRYPT_EMAIL.',
-  'Запустите docker compose up -d --build, чтобы собрать фронтенд и поднять Nginx.',
-  'После того как DNS начнет резолвиться на сервер, выполните первичную выдачу сертификата через certbot.',
+  'Скопируйте .env.example в .env и укажите DOMAIN_NAMES и LETSENCRYPT_EMAIL.',
+  'Запустите docker compose up -d --build, чтобы собрать фронтенд и поднять Caddy.',
+  'Убедитесь, что домен уже смотрит на VPS и что порты 80/443 открыты.',
   'Откройте домен в браузере и убедитесь, что страница доступна уже через HTTPS.',
 ];
 
@@ -22,7 +22,7 @@ export function DeploymentChecklist() {
           <Chip label="React + Vite" variant="outlined" />
           <Chip label="MUI" variant="outlined" />
           <Chip label="Axios" variant="outlined" />
-          <Chip label="Nginx + TLS" variant="outlined" />
+          <Chip label="Caddy + TLS" variant="outlined" />
           <Chip label="Docker Compose" variant="outlined" />
         </Stack>
 
@@ -40,4 +40,3 @@ export function DeploymentChecklist() {
     </SectionCard>
   );
 }
-

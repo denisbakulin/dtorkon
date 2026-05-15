@@ -1,7 +1,7 @@
 {
   "projectName": "dtorkon landing",
   "headline": "Статический стенд для проверки Cloudflare DNS и HTTPS",
-  "environment": "Vite build → Nginx static delivery",
+  "environment": "Vite build → Caddy static delivery",
   "statusItems": [
     {
       "label": "DNS route",
@@ -10,7 +10,7 @@
     },
     {
       "label": "TLS mode",
-      "value": "Nginx использует сертификаты из /etc/letsencrypt",
+      "value": "Caddy сам получает и продлевает сертификаты для этого домена",
       "tone": "info"
     },
     {
@@ -22,7 +22,6 @@
   "notes": [
     "Эта страница отдается из production build без backend proxy.",
     "Axios загружает этот JSON с того же origin, чтобы проверить статическую выдачу.",
-    "После первичного выпуска сертификата certbot renew продолжит обслуживание тома автоматически."
+    "После первого успешного выпуска сертификата Caddy сам продолжит его продление."
   ]
 }
-

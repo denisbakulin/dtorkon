@@ -9,7 +9,7 @@ import { SectionCard } from '../../../shared/ui/section-card/section-card';
 const highlights = [
   {
     title: 'Static-first',
-    description: 'Сайт собирается Vite и отдается Nginx напрямую из готового build.',
+    description: 'Сайт собирается Vite и отдается Caddy напрямую из готового build.',
     icon: <RocketLaunchRoundedIcon />,
   },
   {
@@ -19,7 +19,7 @@ const highlights = [
   },
   {
     title: 'TLS ready',
-    description: 'Nginx читает сертификаты из shared volume и подхватывает обновления.',
+    description: 'Caddy сам выпускает и продлевает сертификаты для доменов проекта.',
     icon: <LockClockRoundedIcon />,
   },
   {
@@ -65,4 +65,3 @@ export function PlatformHighlights() {
     </SectionCard>
   );
 }
-

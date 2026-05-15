@@ -1,0 +1,14 @@
+{
+	email {$LETSENCRYPT_EMAIL:admin@example.com}
+}
+
+{$DOMAIN_NAMES:localhost} {
+	root * /srv
+	encode zstd gzip
+
+	@siteConfig path /site-config.json
+	header @siteConfig Cache-Control "no-cache, no-store, must-revalidate"
+
+	try_files {path} /index.html
+	file_server
+}
