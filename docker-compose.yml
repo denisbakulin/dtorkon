@@ -24,7 +24,7 @@ services:
     container_name: dtorkon-certbot
     env_file:
       - .env
-    command:
+    entrypoint:
       - /bin/sh
       - /opt/certbot/ensure-certificate.sh
     restart: unless-stopped
