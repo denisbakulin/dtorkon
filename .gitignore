@@ -9,3 +9,8 @@ backend/data/
 .env
 .env.copy
 npm-debug.log*
+
+.env
+.env.*
+*.env
+.env copy
