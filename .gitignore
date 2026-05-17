@@ -7,4 +7,5 @@ backend/.mypy_cache/
 backend/data/
 *.pyc
 .env
+.env.copy
 npm-debug.log*
