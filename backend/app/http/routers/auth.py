@@ -51,6 +51,7 @@ async def get_session(
 @router.post(
     "/logout",
     status_code=204,
+    response_class=Response,
     summary="Delete the current admin session",
 )
 async def logout(

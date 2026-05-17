@@ -107,6 +107,7 @@ async def update_post(
 @router.delete(
     "/{post_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},

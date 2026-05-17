@@ -388,7 +388,7 @@
           "required": true
         },
         "responses": {
-          "204": {
+          "202": {
             "description": "Successful Response"
           },
           "503": {

@@ -46,6 +46,7 @@ async def presign_upload(
 @router.put(
     "/uploads/{asset_id}/content",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
@@ -121,6 +122,7 @@ async def transcribe_asset(
 @router.delete(
     "/assets/{asset_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},

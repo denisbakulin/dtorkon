@@ -92,6 +92,7 @@ async def set_groq_api_key(
 @router.delete(
     "/settings/transcription/groq-api-key",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
@@ -174,6 +175,7 @@ async def set_telegram_bot_token(
 @router.delete(
     "/settings/telegram/bot-token",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
