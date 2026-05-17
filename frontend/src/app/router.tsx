@@ -12,6 +12,7 @@ const ContactPage = lazy(async () => ({ default: (await import('../pages/contact
 const EditorPage = lazy(async () => ({ default: (await import('../pages/editor/ui/editor-page')).EditorPage }));
 const HomePage = lazy(async () => ({ default: (await import('../pages/home/ui/home-page')).HomePage }));
 const LoginPage = lazy(async () => ({ default: (await import('../pages/login/ui/login-page')).LoginPage }));
+const MediaPage = lazy(async () => ({ default: (await import('../pages/media/ui/media-page')).MediaPage }));
 const NotFoundPage = lazy(async () => ({ default: (await import('../pages/not-found/ui/not-found-page')).NotFoundPage }));
 const PostPage = lazy(async () => ({ default: (await import('../pages/post/ui/post-page')).PostPage }));
 
@@ -57,6 +58,7 @@ const routes = adminHost
   : [
       route('/', <HomePage />),
       route('/blog', <BlogPage />),
+      route('/media', <MediaPage />),
       route('/posts/:slug', <PostPage />),
       route('/contact', <ContactPage />),
       ...(allowAdmin && localHost

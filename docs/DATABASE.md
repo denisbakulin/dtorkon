@@ -144,6 +144,13 @@ Session storage теперь хранит только admin-only cookie session
 
 Хранит секреты, которые можно обновлять из админки (например, `groq_api_key` для audio/video транскрибации).
 
+Ключи, которые используются в текущем приложении:
+
+- `groq_api_key`
+- `telegram_bot_token`
+- `telegram_admin_chat_id`
+- `telegram_contact_template`
+
 ## Исторические изменения
 
 - миграция `004_multi_user_blog.sql` вводила users, comments и Telegram-first auth;

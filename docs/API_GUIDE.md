@@ -69,6 +69,22 @@
 - `backgroundAsset`
 - `updatedAt`
 
+### `POST /api/contact/messages`
+
+Отправляет сообщение из публичной формы связи в Telegram-чат админа через Bot API.
+
+Payload:
+
+- `contact`
+- `message`
+
+Ответ: `204 No Content`.
+
+Ошибки:
+
+- `503 contact_not_configured` — нет bot token и/или admin chat id;
+- `503 contact_delivery_failed` — Telegram API не принял запрос.
+
 ### `GET /api/posts`
 
 Возвращает только опубликованные статьи.
@@ -94,6 +110,16 @@ Query-параметры:
 - `attachments`
 - `publishedAt`
 - `updatedAt`
+
+### `GET /api/media`
+
+Возвращает вложения (attachments) из опубликованных постов, с фильтрацией по типу.
+
+Query-параметры:
+
+- `page`
+- `pageSize`
+- `kind` (`image | audio | video | file`)
 
 ## Admin: аналитика
 
@@ -258,6 +284,44 @@ Payload:
 ### `DELETE /api/admin/settings/transcription/groq-api-key`
 
 Удаляет сохраненный в SQLite Groq API key.
+
+## Связь (Telegram)
+
+### `GET /api/admin/settings/telegram`
+
+Возвращает Telegram-настройки формы связи.
+
+- `botConfigured` — настроен ли bot token (учитывает `.env` и/или ключ в SQLite);
+- `adminChatId` — chat id (user/group), куда пересылать сообщения;
+- `messageTemplate` — шаблон текста (переменные: `{contact}`, `{message}`, `{ip}`).
+
+### `PUT /api/admin/settings/telegram/bot-token`
+
+Сохраняет Telegram bot token в SQLite (`app_secrets.key = 'telegram_bot_token'`).
+
+Payload:
+
+- `apiKey`
+
+### `DELETE /api/admin/settings/telegram/bot-token`
+
+Удаляет сохранённый в SQLite Telegram bot token.
+
+### `PUT /api/admin/settings/telegram/admin-chat-id`
+
+Сохраняет Telegram admin chat id в SQLite (`app_secrets.key = 'telegram_admin_chat_id'`).
+
+Payload:
+
+- `adminChatId`
+
+### `PUT /api/admin/settings/telegram/message-template`
+
+Сохраняет шаблон сообщения в SQLite (`app_secrets.key = 'telegram_contact_template'`).
+
+Payload:
+
+- `messageTemplate`
 
 ## Что важно для frontend
 

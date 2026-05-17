@@ -1,3 +1,4 @@
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
@@ -16,14 +17,17 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
+
 import { useAuth } from '../../../app/providers/auth-provider';
 import { useSiteProfile } from '../../../app/providers/site-profile-provider';
+import { canUseAdminInterface, getAdminOverviewPath } from '../../lib/admin-access';
 
 const navigationItems = [
   { label: 'Главная', to: '/' },
   { label: 'Блог', to: '/blog' },
+  { label: 'Медиа', to: '/media' },
   { label: 'Связь', to: '/contact' },
 ];
 
@@ -38,7 +42,7 @@ function isRouteActive(pathname: string, href: string) {
 export function SiteHeader() {
   const location = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const { activeThemePreset, applyGuestPreferences } = useAuth();
+  const { activeThemePreset, applyGuestPreferences, isAuthenticated } = useAuth();
   const { siteProfile } = useSiteProfile();
 
   const headerTitle = siteProfile?.siteTitle?.trim() || 'dtorkon';
@@ -54,6 +58,13 @@ export function SiteHeader() {
       themePreset: activeThemePreset === 'dark' ? 'light' : 'dark',
     });
   };
+
+  const adminLink = useMemo(() => {
+    if (!isAuthenticated) return null;
+    const canOpenInlineAdmin = canUseAdminInterface();
+    const href = canOpenInlineAdmin ? getAdminOverviewPath() : 'https://admin.denisbakulin.ru/';
+    return { canOpenInlineAdmin, href };
+  }, [isAuthenticated]);
 
   return (
     <>
@@ -130,16 +141,16 @@ export function SiteHeader() {
                   placeItems: 'center',
                   width: 38,
                 }}
-              > 
-                {headerMark} 
-              </Box> 
-              <Stack spacing={0.1}> 
-                <Typography variant="subtitle1">{headerTitle}</Typography> 
-                <Typography color="text.secondary" variant="caption"> 
-                  {headerTagline} 
-                </Typography> 
-              </Stack> 
-            </Stack> 
+              >
+                {headerMark}
+              </Box>
+              <Stack spacing={0.1}>
+                <Typography variant="subtitle1">{headerTitle}</Typography>
+                <Typography color="text.secondary" variant="caption">
+                  {headerTagline}
+                </Typography>
+              </Stack>
+            </Stack>
 
             <Stack
               direction="row"
@@ -173,6 +184,29 @@ export function SiteHeader() {
                   </Button>
                 );
               })}
+
+              {adminLink ? (
+                <Button
+                  color="inherit"
+                  component={adminLink.canOpenInlineAdmin ? RouterLink : 'a'}
+                  href={adminLink.canOpenInlineAdmin ? undefined : adminLink.href}
+                  rel={adminLink.canOpenInlineAdmin ? undefined : 'noreferrer'}
+                  sx={(theme) => ({
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    borderRadius: 1,
+                    color: 'primary.main',
+                    px: 1.8,
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.14),
+                    },
+                  })}
+                  target={adminLink.canOpenInlineAdmin ? undefined : '_blank'}
+                  to={adminLink.canOpenInlineAdmin ? adminLink.href : undefined}
+                  variant="text"
+                >
+                  Админка
+                </Button>
+              ) : null}
             </Stack>
 
             <Box sx={{ flexGrow: 1 }} />
@@ -203,6 +237,12 @@ export function SiteHeader() {
       <Drawer anchor="right" onClose={() => setIsMobileNavOpen(false)} open={isMobileNavOpen}>
         <Box sx={{ minWidth: 280, px: 1.5, py: 2 }}>
           <Stack spacing={1.5} sx={{ px: 1.5, pb: 1.5 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="subtitle1">Навигация</Typography>
+              <IconButton aria-label="Close navigation" onClick={() => setIsMobileNavOpen(false)} size="small">
+                <CloseRoundedIcon />
+              </IconButton>
+            </Stack>
             <Button
               onClick={handleToggleTheme}
               startIcon={activeThemePreset === 'dark' ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
@@ -211,9 +251,8 @@ export function SiteHeader() {
             >
               {activeThemePreset === 'dark' ? 'Light theme' : 'Dark theme'}
             </Button>
-            <Typography variant="subtitle1">Навигация</Typography>
             <Typography color="text.secondary" variant="body2">
-              Публичная часть сайта без заметных ссылок на авторскую админку.
+              Публичная часть сайта.
             </Typography>
           </Stack>
 
@@ -229,6 +268,18 @@ export function SiteHeader() {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
+            {adminLink ? (
+              <ListItemButton
+                component={adminLink.canOpenInlineAdmin ? RouterLink : 'a'}
+                href={adminLink.canOpenInlineAdmin ? undefined : adminLink.href}
+                rel={adminLink.canOpenInlineAdmin ? undefined : 'noreferrer'}
+                sx={{ borderRadius: 1, mb: 0.5 }}
+                target={adminLink.canOpenInlineAdmin ? undefined : '_blank'}
+                to={adminLink.canOpenInlineAdmin ? adminLink.href : undefined}
+              >
+                <ListItemText primary="Админка" />
+              </ListItemButton>
+            ) : null}
           </List>
         </Box>
       </Drawer>

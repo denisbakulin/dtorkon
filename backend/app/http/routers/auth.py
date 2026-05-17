@@ -51,6 +51,7 @@ async def get_session(
 @router.post(
     "/logout",
     status_code=204,
+    response_class=Response,
     summary="Delete the current admin session",
 )
 async def logout(
@@ -59,7 +60,8 @@ async def logout(
     response: Response,
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
-) -> Response:
+) -> None:
     service = AuthService(session=session, settings=settings)
     await service.logout(session_id=session_record.id if session_record else None, response=response)
-    return Response(status_code=204)
+    response.status_code = 204
+    return None

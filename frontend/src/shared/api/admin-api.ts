@@ -10,6 +10,7 @@ import type {
   PresignUploadRequest,
   PresignUploadResponse,
   SiteProfile,
+  TelegramSettings,
   TranscriptionSettings,
   UpdateSiteProfileRequest,
   UpdateAdminPostRequest,
@@ -151,4 +152,34 @@ export async function setAdminGroqApiKey(apiKey: string) {
 
 export async function clearAdminGroqApiKey() {
   await httpClient.delete('/api/admin/settings/transcription/groq-api-key');
+}
+
+export async function getAdminTelegramSettings(signal?: AbortSignal) {
+  const response = await httpClient.get<TelegramSettings>('/api/admin/settings/telegram', { signal });
+  return response.data;
+}
+
+export async function setAdminTelegramBotToken(apiKey: string) {
+  const response = await httpClient.put<TelegramSettings>('/api/admin/settings/telegram/bot-token', {
+    apiKey,
+  });
+  return response.data;
+}
+
+export async function clearAdminTelegramBotToken() {
+  await httpClient.delete('/api/admin/settings/telegram/bot-token');
+}
+
+export async function setAdminTelegramAdminChatId(adminChatId: string) {
+  const response = await httpClient.put<TelegramSettings>('/api/admin/settings/telegram/admin-chat-id', {
+    adminChatId,
+  });
+  return response.data;
+}
+
+export async function setAdminTelegramMessageTemplate(messageTemplate: string) {
+  const response = await httpClient.put<TelegramSettings>('/api/admin/settings/telegram/message-template', {
+    messageTemplate,
+  });
+  return response.data;
 }

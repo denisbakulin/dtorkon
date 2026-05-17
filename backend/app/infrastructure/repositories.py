@@ -413,6 +413,39 @@ class PostRepository:
         )
         return result.scalars().all(), total_items
 
+    async def list_public_media(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        kind: AttachmentKind | None = None,
+    ) -> tuple[list[tuple[Attachment, Post]], int]:
+        filters = [
+            Post.status == PostStatus.PUBLISHED,
+            Post.published_at.is_not(None),
+        ]
+        if kind is not None:
+            filters.append(Attachment.kind == kind)
+
+        count_result = await self.session.execute(
+            select(func.count(Attachment.id))
+            .select_from(Attachment)
+            .join(Post, Post.id == Attachment.post_id)
+            .where(*filters)
+        )
+        total_items = count_result.scalar_one()
+
+        result = await self.session.execute(
+            select(Attachment, Post)
+            .join(Post, Post.id == Attachment.post_id)
+            .options(selectinload(Attachment.asset))
+            .where(*filters)
+            .order_by(Post.published_at.desc(), Attachment.sort_order.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(result.all()), total_items
+
     async def list_all(self) -> list[Post]:
         result = await self.session.execute(select(Post).options(*self._detail_options()).order_by(Post.updated_at.desc()))
         return result.scalars().all()

@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     groq_api_key: str | None = None
     groq_speech_model: str = "whisper-large-v3-turbo"
     groq_api_base: str = "https://api.groq.com/openai/v1"
+    telegram_bot_token: str | None = None
 
     @property
     def sqlite_url(self) -> str:
@@ -176,6 +177,10 @@ class Settings(BaseSettings):
     @property
     def groq_enabled(self) -> bool:
         return bool(self.groq_api_key)
+
+    @property
+    def telegram_enabled(self) -> bool:
+        return bool(self.telegram_bot_token)
 
 
 @lru_cache(maxsize=1)

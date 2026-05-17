@@ -119,6 +119,21 @@ class PublicPostDetail(CamelModel):
     published_at: str
 
 
+class PublicMediaItem(CamelModel):
+    id: str
+    kind: AttachmentKind
+    title: str
+    published_at: str
+    post_slug: str
+    post_title: str
+    asset: AssetRead
+
+
+class PublicMediaResponse(CamelModel):
+    items: list[PublicMediaItem]
+    pagination: Pagination
+
+
 class SiteProfileRead(CamelModel):
     site_title: str
     site_tagline: str
@@ -242,6 +257,29 @@ class TranscriptionSettingsRead(CamelModel):
 
 class UpdateGroqApiKeyRequest(CamelModel):
     api_key: str | None = Field(default=None, min_length=0)
+
+
+class TelegramSettingsRead(CamelModel):
+    bot_configured: bool
+    admin_chat_id: str | None = None
+    message_template: str
+
+
+class UpdateTelegramBotTokenRequest(CamelModel):
+    api_key: str | None = Field(default=None, min_length=0)
+
+
+class UpdateTelegramAdminChatIdRequest(CamelModel):
+    admin_chat_id: str | None = Field(default=None, min_length=0)
+
+
+class UpdateTelegramMessageTemplateRequest(CamelModel):
+    message_template: str | None = Field(default=None, min_length=0)
+
+
+class ContactMessageCreateRequest(CamelModel):
+    contact: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=4000)
 
 
 class AnalyticsTimelinePoint(CamelModel):
@@ -448,3 +486,8 @@ def paginate(
             total_pages=total_pages,
         ),
     )
+
+
+def build_pagination(*, page: int, page_size: int, total_items: int) -> Pagination:
+    total_pages = 0 if total_items == 0 else (total_items + page_size - 1) // page_size
+    return Pagination(page=page, page_size=page_size, total_items=total_items, total_pages=total_pages)

@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.post_service import PostService
+from app.domain.enums import AttachmentKind
 from app.http.dependencies import get_db_session
-from app.http.schemas import ErrorResponse, PublicPostDetail, PublicPostListResponse
+from app.http.schemas import ErrorResponse, PublicMediaResponse, PublicPostDetail, PublicPostListResponse
 from app.infrastructure.config import Settings, get_settings
 
 router = APIRouter(tags=["Public Posts"])
@@ -40,3 +41,19 @@ async def get_public_post(
 ) -> PublicPostDetail:
     service = PostService(session=session, settings=settings)
     return await service.get_public_post(slug=slug)
+
+
+@router.get(
+    "/media",
+    response_model=PublicMediaResponse,
+    summary="Get a paginated list of published media attachments",
+)
+async def list_public_media(
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=50)] = 24,
+    kind: AttachmentKind | None = None,
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,
+) -> PublicMediaResponse:
+    service = PostService(session=session, settings=settings)
+    return await service.list_public_media(page=page, page_size=page_size, kind=kind)

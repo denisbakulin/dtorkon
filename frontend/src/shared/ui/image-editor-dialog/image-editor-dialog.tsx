@@ -13,11 +13,23 @@ type ImageEditorDialogProps = {
 const DEFAULT_BRUSH_SIZE = 8;
 const DEFAULT_BRUSH_COLOR = '#111827';
 const IMAGE_QUALITY = 0.92;
+const MIN_CROP_SIZE = 8;
 
 function clampInt(value: string, fallback: number) {
   const next = Number.parseInt(value, 10);
   return Number.isFinite(next) && next > 0 ? next : fallback;
 }
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+type CropRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 async function canvasToFile(canvas: HTMLCanvasElement, fileName: string, preferredType?: string) {
   const mimeType = preferredType && preferredType.startsWith('image/') ? preferredType : 'image/png';
@@ -39,13 +51,17 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
   const [exportWidth, setExportWidth] = useState<string>('');
   const [exportHeight, setExportHeight] = useState<string>('');
   const [keepAspect, setKeepAspect] = useState(true);
+  const [tool, setTool] = useState<'draw' | 'crop'>('draw');
   const [brushSize, setBrushSize] = useState(DEFAULT_BRUSH_SIZE);
+  const [cropRect, setCropRect] = useState<CropRect | null>(null);
 
   const imageSizeRef = useRef<{ width: number; height: number } | null>(null);
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const isCroppingRef = useRef(false);
+  const cropStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -55,6 +71,10 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
       setExportHeight('');
       isDrawingRef.current = false;
       lastPointRef.current = null;
+      isCroppingRef.current = false;
+      cropStartRef.current = null;
+      setCropRect(null);
+      setTool('draw');
     }
   }, [open]);
 
@@ -94,7 +114,6 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
 
     const img = new Image();
     img.decoding = 'async';
-    img.src = objectUrl;
 
     img.onload = () => {
       if (cancelled) {
@@ -151,6 +170,8 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
       setLoadError('Unable to load image for editing.');
     };
 
+    img.src = objectUrl;
+
     return () => {
       cancelled = true;
     };
@@ -184,19 +205,72 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
       return;
     }
 
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
+
+    if (tool === 'crop') {
+      const imageSize = imageSizeRef.current;
+      if (!imageSize) {
+        return;
+      }
+
+      isCroppingRef.current = true;
+      cropStartRef.current = point;
+      setCropRect({
+        x: clamp(Math.round(point.x), 0, imageSize.width - 1),
+        y: clamp(Math.round(point.y), 0, imageSize.height - 1),
+        width: 1,
+        height: 1,
+      });
+      return;
+    }
+
     isDrawingRef.current = true;
     lastPointRef.current = point;
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!canEdit || !isDrawingRef.current) {
+    if (!canEdit) {
       return;
     }
 
     const point = getCanvasPoint(event);
+    if (!point) {
+      return;
+    }
+
+    if (tool === 'crop' && isCroppingRef.current) {
+      const start = cropStartRef.current;
+      const imageSize = imageSizeRef.current;
+      if (!start || !imageSize) {
+        return;
+      }
+
+      const endX = clamp(point.x, 0, imageSize.width);
+      const endY = clamp(point.y, 0, imageSize.height);
+      const startX = clamp(start.x, 0, imageSize.width);
+      const startY = clamp(start.y, 0, imageSize.height);
+
+      const left = Math.min(startX, endX);
+      const top = Math.min(startY, endY);
+      const width = Math.max(1, Math.abs(endX - startX));
+      const height = Math.max(1, Math.abs(endY - startY));
+
+      setCropRect({
+        x: Math.round(left),
+        y: Math.round(top),
+        width: Math.round(width),
+        height: Math.round(height),
+      });
+      return;
+    }
+
+    if (!isDrawingRef.current) {
+      return;
+    }
+
     const previous = lastPointRef.current;
-    if (!point || !previous) {
+    if (!previous) {
       return;
     }
 
@@ -225,6 +299,20 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
 
     isDrawingRef.current = false;
     lastPointRef.current = null;
+    isCroppingRef.current = false;
+    cropStartRef.current = null;
+
+    setCropRect((current) => {
+      if (!current) {
+        return current;
+      }
+
+      if (current.width < MIN_CROP_SIZE || current.height < MIN_CROP_SIZE) {
+        return null;
+      }
+
+      return current;
+    });
   };
 
   const handleClearDrawing = () => {
@@ -252,6 +340,15 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
       throw new Error('Editor is not ready.');
     }
 
+    const cropX = cropRect ? clamp(Math.round(cropRect.x), 0, imageSize.width - 1) : 0;
+    const cropY = cropRect ? clamp(Math.round(cropRect.y), 0, imageSize.height - 1) : 0;
+    const cropWidth = cropRect
+      ? clamp(Math.round(cropRect.width), 1, imageSize.width - cropX)
+      : imageSize.width;
+    const cropHeight = cropRect
+      ? clamp(Math.round(cropRect.height), 1, imageSize.height - cropY)
+      : imageSize.height;
+
     const targetWidth = clampInt(exportWidth, imageSize.width);
     const targetHeight = clampInt(exportHeight, imageSize.height);
 
@@ -264,8 +361,8 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
       throw new Error('Unable to export image.');
     }
 
-    exportCtx.drawImage(baseCanvas, 0, 0, targetWidth, targetHeight);
-    exportCtx.drawImage(drawCanvas, 0, 0, targetWidth, targetHeight);
+    exportCtx.drawImage(baseCanvas, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight);
+    exportCtx.drawImage(drawCanvas, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight);
 
     const editedFile = await canvasToFile(exportCanvas, file.name, file.type);
     await onSave(editedFile);
@@ -299,6 +396,35 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
     setExportWidth(String(width));
   };
 
+  const cropOverlay = useMemo(() => {
+    const imageSize = imageSizeRef.current;
+    if (!cropRect || !imageSize || !canEdit) {
+      return null;
+    }
+
+    const left = clamp(cropRect.x / imageSize.width, 0, 1) * 100;
+    const top = clamp(cropRect.y / imageSize.height, 0, 1) * 100;
+    const width = clamp(cropRect.width / imageSize.width, 0, 1) * 100;
+    const height = clamp(cropRect.height / imageSize.height, 0, 1) * 100;
+
+    return (
+      <Box
+        sx={{
+          border: '2px solid rgba(255, 255, 255, 0.95)',
+          borderRadius: 1,
+          boxShadow: '0 0 0 9999px rgba(17, 24, 39, 0.55)',
+          height: `${height}%`,
+          left: `${left}%`,
+          pointerEvents: 'none',
+          position: 'absolute',
+          top: `${top}%`,
+          width: `${width}%`,
+          zIndex: 2,
+        }}
+      />
+    );
+  }, [canEdit, cropRect]);
+
   return (
     <Dialog fullScreen onClose={onClose} open={open}>
       <Stack sx={{ height: '100%' }}>
@@ -316,10 +442,10 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
         >
           <Box>
             <Typography sx={{ fontSize: { xs: '1.2rem', md: '1.45rem' }, fontWeight: 700 }}>
-              Resize & draw before upload
+              Crop & draw before upload
             </Typography>
             <Typography color="text.secondary" variant="body2">
-              Set output size and draw on top, then save into the normal upload flow.
+              Select a crop area, draw on top, then save into the normal upload flow.
             </Typography>
           </Box>
           <Button color="inherit" onClick={onClose} startIcon={<CloseRoundedIcon />} variant="outlined">
@@ -332,9 +458,36 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
             {loadError ? <Alert severity="warning">{loadError}</Alert> : null}
             {!file ? null : (
               <Alert severity="info">
-                Tip: drawing uses the original image resolution. The exported file will be resized to the output dimensions.
+                Tip: drawing uses the original image resolution. The exported file will be cropped (if selected) and resized to the output dimensions.
               </Alert>
             )}
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+              <Button
+                color={tool === 'draw' ? 'primary' : 'inherit'}
+                disabled={!isReady}
+                onClick={() => setTool('draw')}
+                variant={tool === 'draw' ? 'contained' : 'outlined'}
+              >
+                Draw
+              </Button>
+              <Button
+                color={tool === 'crop' ? 'primary' : 'inherit'}
+                disabled={!isReady}
+                onClick={() => setTool('crop')}
+                variant={tool === 'crop' ? 'contained' : 'outlined'}
+              >
+                Crop
+              </Button>
+              <Button
+                color="inherit"
+                disabled={!isReady || !cropRect}
+                onClick={() => setCropRect(null)}
+                variant="outlined"
+              >
+                Reset crop
+              </Button>
+            </Stack>
 
             <Stack direction="row" spacing={1.5}>
               <TextField
@@ -427,6 +580,7 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
                   onPointerLeave={handlePointerUp}
                   style={{
                     cursor: isReady ? 'crosshair' : 'default',
+                    display: 'block',
                     height: 'auto',
                     left: 0,
                     maxWidth: '100%',
@@ -436,6 +590,7 @@ export function ImageEditorDialog({ file, onClose, onSave, open }: ImageEditorDi
                     width: '100%',
                   }}
                 />
+                {cropOverlay}
               </Box>
             )}
           </Box>

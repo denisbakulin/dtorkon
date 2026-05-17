@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
             {"name": "Auth", "description": "Admin session endpoints."},
             {"name": "Site Profile", "description": "Public author and contact endpoints."},
             {"name": "Public Posts", "description": "Public blog endpoints."},
+            {"name": "Contact", "description": "Public contact form delivery endpoints."},
             {"name": "Admin Analytics", "description": "Admin dashboard metrics and activity."},
             {"name": "Admin Posts", "description": "Authoring endpoints for posts."},
             {"name": "Admin Site Profile", "description": "Admin author and contact editing endpoints."},

@@ -9,6 +9,10 @@ from app.http.schemas import (
     AdminPostListResponse,
     PublicPostDetail,
     PublicPostListResponse,
+    PublicMediaResponse,
+    PublicMediaItem,
+    asset_to_read,
+    build_pagination,
     paginate,
     to_admin_post_detail,
     to_admin_post_summary,
@@ -57,6 +61,42 @@ class PostService:
             )
 
         return to_public_post_detail(post)
+
+    async def list_public_media(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        kind: AttachmentKind | None = None,
+    ) -> PublicMediaResponse:
+        rows, total_items = await self.posts.list_public_media(
+            page=page,
+            page_size=page_size,
+            kind=kind,
+        )
+
+        items: list[PublicMediaItem] = []
+        for attachment, post in rows:
+            asset_read = asset_to_read(attachment.asset)
+            if not asset_read:
+                continue
+
+            items.append(
+                PublicMediaItem(
+                    id=attachment.id,
+                    kind=attachment.kind,
+                    title=attachment.title,
+                    published_at=post.published_at or attachment.created_at,
+                    post_slug=post.slug,
+                    post_title=post.title,
+                    asset=asset_read,
+                )
+            )
+
+        return PublicMediaResponse(
+            items=items,
+            pagination=build_pagination(page=page, page_size=page_size, total_items=total_items),
+        )
 
     async def list_admin_posts(
         self,

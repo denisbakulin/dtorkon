@@ -63,6 +63,21 @@ export type PublicPostDetail = {
   publishedAt: string;
 };
 
+export type PublicMediaItem = {
+  id: string;
+  kind: AttachmentKind;
+  title: string;
+  publishedAt: string;
+  postSlug: string;
+  postTitle: string;
+  asset: PublicAsset;
+};
+
+export type PublicMediaResponse = {
+  items: PublicMediaItem[];
+  pagination: PaginationInfo;
+};
+
 export type SiteProfileLinkKind = 'email' | 'phone' | 'telegram' | 'vk' | 'link';
 
 export type SiteProfileLink = {
@@ -86,4 +101,9 @@ export type SiteProfile = {
   backgroundAsset: PublicAsset | null;
   links: SiteProfileLink[];
   updatedAt: string;
+};
+
+export type ContactMessageRequest = {
+  contact: string;
+  message: string;
 };

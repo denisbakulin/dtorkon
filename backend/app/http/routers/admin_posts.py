@@ -107,6 +107,7 @@ async def update_post(
 @router.delete(
     "/{post_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
@@ -119,7 +120,7 @@ async def delete_post(
     _: Annotated[SessionRecord, Depends(get_current_admin_session)],
     session: Annotated[AsyncSession, Depends(get_db_session)] = None,
     settings: Annotated[Settings, Depends(get_settings)] = None,
-) -> Response:
+) -> None:
     service = PostService(session=session, settings=settings)
     await service.delete_post(post_id=post_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return None
