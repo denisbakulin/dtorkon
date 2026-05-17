@@ -63,14 +63,14 @@ async def upload_content(
     _: Annotated[SessionRecord, Depends(get_current_admin_session)],
     session: Annotated[AsyncSession, Depends(get_db_session)] = None,
     settings: Annotated[Settings, Depends(get_settings)] = None,
-) -> Response:
+) -> None:
     service = UploadService(session=session, settings=settings)
     await service.upload_content(
         asset_id=asset_id,
         content=await request.body(),
         mime_type=request.headers.get("content-type", "application/octet-stream"),
     )
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return None
 
 
 @router.post(
@@ -135,7 +135,7 @@ async def delete_asset(
     _: Annotated[SessionRecord, Depends(get_current_admin_session)],
     session: Annotated[AsyncSession, Depends(get_db_session)] = None,
     settings: Annotated[Settings, Depends(get_settings)] = None,
-) -> Response:
+) -> None:
     service = UploadService(session=session, settings=settings)
     await service.delete_asset(asset_id=asset_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return None

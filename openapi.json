@@ -370,6 +370,50 @@
         }
       }
     },
+    "/api/contact/messages": {
+      "post": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Send a contact message to the admin Telegram chat",
+        "operationId": "send_contact_message_api_contact_messages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactMessageCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/analytics": {
       "get": {
         "tags": [
@@ -1058,6 +1102,287 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/telegram": {
+      "get": {
+        "tags": [
+          "Admin Settings"
+        ],
+        "summary": "Read Telegram contact configuration status",
+        "operationId": "get_telegram_settings_api_admin_settings_telegram_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSettingsRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/telegram/bot-token": {
+      "put": {
+        "tags": [
+          "Admin Settings"
+        ],
+        "summary": "Set Telegram bot token (stored in SQLite)",
+        "operationId": "set_telegram_bot_token_api_admin_settings_telegram_bot_token_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTelegramBotTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSettingsRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Admin Settings"
+        ],
+        "summary": "Remove stored Telegram bot token",
+        "operationId": "delete_telegram_bot_token_api_admin_settings_telegram_bot_token_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/telegram/admin-chat-id": {
+      "put": {
+        "tags": [
+          "Admin Settings"
+        ],
+        "summary": "Set Telegram admin chat id (stored in SQLite)",
+        "operationId": "set_telegram_admin_chat_id_api_admin_settings_telegram_admin_chat_id_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTelegramAdminChatIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSettingsRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/telegram/message-template": {
+      "put": {
+        "tags": [
+          "Admin Settings"
+        ],
+        "summary": "Set Telegram contact message template (stored in SQLite)",
+        "operationId": "set_telegram_message_template_api_admin_settings_telegram_message_template_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTelegramMessageTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSettingsRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2153,6 +2478,28 @@
         ],
         "title": "CompleteUploadRequest"
       },
+      "ContactMessageCreateRequest": {
+        "properties": {
+          "contact": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Contact"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "contact",
+          "message"
+        ],
+        "title": "ContactMessageCreateRequest"
+      },
       "CreatePostRequest": {
         "properties": {
           "title": {
@@ -2779,6 +3126,35 @@
         ],
         "title": "SiteProfileRead"
       },
+      "TelegramSettingsRead": {
+        "properties": {
+          "botConfigured": {
+            "type": "boolean",
+            "title": "Botconfigured"
+          },
+          "adminChatId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adminchatid"
+          },
+          "messageTemplate": {
+            "type": "string",
+            "title": "Messagetemplate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "botConfigured",
+          "messageTemplate"
+        ],
+        "title": "TelegramSettingsRead"
+      },
       "TranscriptStatus": {
         "type": "string",
         "enum": [
@@ -3037,6 +3413,60 @@
         "type": "object",
         "title": "UpdateSiteProfileRequest"
       },
+      "UpdateTelegramAdminChatIdRequest": {
+        "properties": {
+          "adminChatId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adminchatid"
+          }
+        },
+        "type": "object",
+        "title": "UpdateTelegramAdminChatIdRequest"
+      },
+      "UpdateTelegramBotTokenRequest": {
+        "properties": {
+          "apiKey": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apikey"
+          }
+        },
+        "type": "object",
+        "title": "UpdateTelegramBotTokenRequest"
+      },
+      "UpdateTelegramMessageTemplateRequest": {
+        "properties": {
+          "messageTemplate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messagetemplate"
+          }
+        },
+        "type": "object",
+        "title": "UpdateTelegramMessageTemplateRequest"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -3102,6 +3532,10 @@
     {
       "name": "Public Posts",
       "description": "Public blog endpoints."
+    },
+    {
+      "name": "Contact",
+      "description": "Public contact form delivery endpoints."
     },
     {
       "name": "Admin Analytics",

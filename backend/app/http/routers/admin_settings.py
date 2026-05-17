@@ -4,7 +4,15 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.http.dependencies import get_current_admin_session, get_db_session
-from app.http.schemas import ErrorResponse, TranscriptionSettingsRead, UpdateGroqApiKeyRequest
+from app.http.schemas import (
+    ErrorResponse,
+    TelegramSettingsRead,
+    TranscriptionSettingsRead,
+    UpdateGroqApiKeyRequest,
+    UpdateTelegramAdminChatIdRequest,
+    UpdateTelegramBotTokenRequest,
+    UpdateTelegramMessageTemplateRequest,
+)
 from app.infrastructure.config import Settings, get_settings
 from app.infrastructure.models import SessionRecord
 from app.infrastructure.repositories import AppSecretRepository
@@ -17,6 +25,9 @@ def _normalize_secret(value: str | None) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+_DEFAULT_TELEGRAM_TEMPLATE = "Новое сообщение с сайта\nКонтакт: {contact}\n\n{message}"
 
 
 @router.get(
@@ -90,8 +101,162 @@ async def set_groq_api_key(
 async def delete_groq_api_key(
     _: Annotated[SessionRecord, Depends(get_current_admin_session)],
     session: Annotated[AsyncSession, Depends(get_db_session)] = None,
-) -> Response:
+) -> None:
     secrets = AppSecretRepository(session)
     await secrets.delete("groq_api_key")
     await session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return None
+
+
+@router.get(
+    "/settings/telegram",
+    response_model=TelegramSettingsRead,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Read Telegram contact configuration status",
+)
+async def get_telegram_settings(
+    _: Annotated[SessionRecord, Depends(get_current_admin_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,
+) -> TelegramSettingsRead:
+    secrets = AppSecretRepository(session)
+    stored_token = _normalize_secret(await secrets.get_value("telegram_bot_token"))
+    effective_token = stored_token or _normalize_secret(settings.telegram_bot_token)
+    admin_chat_id = _normalize_secret(await secrets.get_value("telegram_admin_chat_id"))
+    template = _normalize_secret(await secrets.get_value("telegram_contact_template")) or _DEFAULT_TELEGRAM_TEMPLATE
+
+    return TelegramSettingsRead(
+        bot_configured=bool(effective_token),
+        admin_chat_id=admin_chat_id,
+        message_template=template,
+    )
+
+
+@router.put(
+    "/settings/telegram/bot-token",
+    response_model=TelegramSettingsRead,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Set Telegram bot token (stored in SQLite)",
+)
+async def set_telegram_bot_token(
+    payload: UpdateTelegramBotTokenRequest,
+    _: Annotated[SessionRecord, Depends(get_current_admin_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,
+) -> TelegramSettingsRead:
+    secrets = AppSecretRepository(session)
+    normalized = _normalize_secret(payload.api_key)
+
+    if normalized is None:
+        await secrets.delete("telegram_bot_token")
+    else:
+        await secrets.set_value(key="telegram_bot_token", value=normalized)
+
+    await session.commit()
+    stored_token = _normalize_secret(await secrets.get_value("telegram_bot_token"))
+    effective_token = stored_token or _normalize_secret(settings.telegram_bot_token)
+    admin_chat_id = _normalize_secret(await secrets.get_value("telegram_admin_chat_id"))
+    template = _normalize_secret(await secrets.get_value("telegram_contact_template")) or _DEFAULT_TELEGRAM_TEMPLATE
+
+    return TelegramSettingsRead(
+        bot_configured=bool(effective_token),
+        admin_chat_id=admin_chat_id,
+        message_template=template,
+    )
+
+
+@router.delete(
+    "/settings/telegram/bot-token",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Remove stored Telegram bot token",
+)
+async def delete_telegram_bot_token(
+    _: Annotated[SessionRecord, Depends(get_current_admin_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+) -> None:
+    secrets = AppSecretRepository(session)
+    await secrets.delete("telegram_bot_token")
+    await session.commit()
+    return None
+
+
+@router.put(
+    "/settings/telegram/admin-chat-id",
+    response_model=TelegramSettingsRead,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Set Telegram admin chat id (stored in SQLite)",
+)
+async def set_telegram_admin_chat_id(
+    payload: UpdateTelegramAdminChatIdRequest,
+    _: Annotated[SessionRecord, Depends(get_current_admin_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,
+) -> TelegramSettingsRead:
+    secrets = AppSecretRepository(session)
+    normalized = _normalize_secret(payload.admin_chat_id)
+
+    if normalized is None:
+        await secrets.delete("telegram_admin_chat_id")
+    else:
+        await secrets.set_value(key="telegram_admin_chat_id", value=normalized)
+
+    await session.commit()
+    stored_token = _normalize_secret(await secrets.get_value("telegram_bot_token"))
+    effective_token = stored_token or _normalize_secret(settings.telegram_bot_token)
+    admin_chat_id = _normalize_secret(await secrets.get_value("telegram_admin_chat_id"))
+    template = _normalize_secret(await secrets.get_value("telegram_contact_template")) or _DEFAULT_TELEGRAM_TEMPLATE
+
+    return TelegramSettingsRead(
+        bot_configured=bool(effective_token),
+        admin_chat_id=admin_chat_id,
+        message_template=template,
+    )
+
+
+@router.put(
+    "/settings/telegram/message-template",
+    response_model=TelegramSettingsRead,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Set Telegram contact message template (stored in SQLite)",
+)
+async def set_telegram_message_template(
+    payload: UpdateTelegramMessageTemplateRequest,
+    _: Annotated[SessionRecord, Depends(get_current_admin_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,
+) -> TelegramSettingsRead:
+    secrets = AppSecretRepository(session)
+    normalized = _normalize_secret(payload.message_template)
+
+    if normalized is None:
+        await secrets.delete("telegram_contact_template")
+    else:
+        await secrets.set_value(key="telegram_contact_template", value=normalized)
+
+    await session.commit()
+    stored_token = _normalize_secret(await secrets.get_value("telegram_bot_token"))
+    effective_token = stored_token or _normalize_secret(settings.telegram_bot_token)
+    admin_chat_id = _normalize_secret(await secrets.get_value("telegram_admin_chat_id"))
+    template = _normalize_secret(await secrets.get_value("telegram_contact_template")) or _DEFAULT_TELEGRAM_TEMPLATE
+
+    return TelegramSettingsRead(
+        bot_configured=bool(effective_token),
+        admin_chat_id=admin_chat_id,
+        message_template=template,
+    )
