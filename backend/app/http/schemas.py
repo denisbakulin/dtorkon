@@ -259,6 +259,29 @@ class UpdateGroqApiKeyRequest(CamelModel):
     api_key: str | None = Field(default=None, min_length=0)
 
 
+class TelegramSettingsRead(CamelModel):
+    bot_configured: bool
+    admin_chat_id: str | None = None
+    message_template: str
+
+
+class UpdateTelegramBotTokenRequest(CamelModel):
+    api_key: str | None = Field(default=None, min_length=0)
+
+
+class UpdateTelegramAdminChatIdRequest(CamelModel):
+    admin_chat_id: str | None = Field(default=None, min_length=0)
+
+
+class UpdateTelegramMessageTemplateRequest(CamelModel):
+    message_template: str | None = Field(default=None, min_length=0)
+
+
+class ContactMessageCreateRequest(CamelModel):
+    contact: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=4000)
+
+
 class AnalyticsTimelinePoint(CamelModel):
     label: str
     posts: int = 0

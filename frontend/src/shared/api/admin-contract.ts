@@ -145,3 +145,9 @@ export type TranscriptionSettings = {
   groqApiBase: string;
   groqSpeechModel: string;
 };
+
+export type TelegramSettings = {
+  botConfigured: boolean;
+  adminChatId: string | null;
+  messageTemplate: string;
+};

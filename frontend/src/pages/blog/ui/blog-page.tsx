@@ -6,7 +6,6 @@ import {
   Button,
   Container,
   InputAdornment,
-  Pagination,
   Paper,
   Skeleton,
   Stack,
@@ -14,65 +13,53 @@ import {
   Typography,
 } from '@mui/material';
 import axios from 'axios';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { getApiErrorMessage } from '../../../shared/api/api-error';
 import { getPublicPosts } from '../../../shared/api/blog-api';
-import type { PublicPostListResponse } from '../../../shared/api/blog-contract';
+import type { PaginationInfo, PublicPostListItem } from '../../../shared/api/blog-contract';
 import { PublicPostCard } from '../../../shared/ui/public-post-card/public-post-card';
 import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 12;
 
-function parsePage(searchParams: URLSearchParams) {
-  const rawValue = Number(searchParams.get('page') ?? '1');
-
-  if (!Number.isFinite(rawValue) || rawValue < 1) {
-    return 1;
-  }
-
-  return Math.trunc(rawValue);
-}
-
-function BlogGridSkeleton() {
+function BlogListSkeleton() {
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gap: 2,
-        gridTemplateColumns: {
-          xs: '1fr',
-          md: 'repeat(2, minmax(0, 1fr))',
-        },
-      }}
-    >
-      {Array.from({ length: 4 }, (_, index) => (
+    <Stack spacing={2}>
+      {Array.from({ length: 6 }, (_, index) => (
         <Paper key={index} sx={{ overflow: 'hidden', p: 2.25 }}>
           <Stack spacing={1.5}>
-            <Skeleton height={180} variant="rounded" />
-            <Skeleton width="36%" />
-            <Skeleton height={34} width="78%" />
-            <Skeleton />
-            <Skeleton width="88%" />
+            <Skeleton height={160} variant="rounded" />
             <Skeleton width="40%" />
+            <Skeleton height={30} width="82%" />
+            <Skeleton />
+            <Skeleton width="72%" />
           </Stack>
         </Paper>
       ))}
-    </Box>
+    </Stack>
   );
 }
 
 export function BlogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [data, setData] = useState<PublicPostListResponse | null>(null);
+  const [items, setItems] = useState<PublicPostListItem[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [nextPage, setNextPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '');
 
-  const page = useMemo(() => parsePage(searchParams), [searchParams]);
   const searchQuery = useMemo(() => (searchParams.get('q') ?? '').trim(), [searchParams]);
+  const hasOlderPosts = pagination ? nextPage <= pagination.totalPages : false;
+
+  const feedRef = useRef<HTMLDivElement | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+  const scrollRestoreRef = useRef<{ prevScrollHeight: number; prevScrollTop: number } | null>(null);
+  const shouldScrollToBottomRef = useRef(true);
 
   useEffect(() => {
     setSearchInput(searchQuery);
@@ -82,17 +69,24 @@ export function BlogPage() {
     const controller = new AbortController();
 
     setIsLoading(true);
+    setIsLoadingOlder(false);
     setErrorMessage(null);
+    setItems([]);
+    setPagination(null);
+    setNextPage(1);
+    shouldScrollToBottomRef.current = true;
 
     getPublicPosts({
-      page,
+      page: 1,
       pageSize: PAGE_SIZE,
       q: searchQuery || undefined,
       signal: controller.signal,
     })
       .then((response) => {
         if (!controller.signal.aborted) {
-          setData(response);
+          setItems([...response.items].reverse());
+          setPagination(response.pagination);
+          setNextPage(response.pagination.page + 1);
         }
       })
       .catch((error: unknown) => {
@@ -114,26 +108,130 @@ export function BlogPage() {
       });
 
     return () => controller.abort();
-  }, [page, searchQuery]);
+  }, [searchQuery]);
 
-  const featuredPost = data?.items[0] ?? null;
-  const secondaryPosts = data?.items.slice(featuredPost ? 1 : 0) ?? [];
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) {
+      return;
+    }
+
+    if (shouldScrollToBottomRef.current && items.length > 0) {
+      feed.scrollTop = feed.scrollHeight;
+      shouldScrollToBottomRef.current = false;
+      return;
+    }
+
+    const scrollRestore = scrollRestoreRef.current;
+    if (scrollRestore) {
+      const nextScrollHeight = feed.scrollHeight;
+      const delta = nextScrollHeight - scrollRestore.prevScrollHeight;
+      feed.scrollTop = scrollRestore.prevScrollTop + delta;
+      scrollRestoreRef.current = null;
+    }
+  }, [items]);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    const sentinel = topSentinelRef.current;
+    if (!feed || !sentinel) {
+      return;
+    }
+
+    if (!hasOlderPosts || isLoadingOlder || isLoading) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        if (!pagination || nextPage > pagination.totalPages) {
+          return;
+        }
+
+        setIsLoadingOlder(true);
+        scrollRestoreRef.current = {
+          prevScrollHeight: feed.scrollHeight,
+          prevScrollTop: feed.scrollTop,
+        };
+
+        getPublicPosts({
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+          q: searchQuery || undefined,
+        })
+          .then((response) => {
+            const normalizedItems = [...response.items].reverse();
+            setItems((prev) => [...normalizedItems, ...prev]);
+            setPagination(response.pagination);
+            setNextPage(response.pagination.page + 1);
+            setErrorMessage(null);
+          })
+          .catch((error: unknown) => {
+            setErrorMessage(
+              getApiErrorMessage(error, 'Не получилось загрузить старые публикации. Попробуй повторить.'),
+            );
+            scrollRestoreRef.current = null;
+          })
+          .finally(() => {
+            setIsLoadingOlder(false);
+          });
+      },
+      {
+        root: feed,
+        rootMargin: '0px',
+        threshold: 0.1,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasOlderPosts, isLoading, isLoadingOlder, nextPage, pagination, searchQuery]);
 
   return (
-    <SiteShell>
-      <Box component="main" sx={{ pb: 10, pt: { xs: 3, md: 5 } }}>
-        <Container maxWidth="lg">
-          <Stack spacing={3}>
-            <Paper sx={{ p: { xs: 3, md: 4 } }}>
+    <SiteShell lockViewport>
+      <Box
+        component="main"
+        sx={{
+          display: 'flex',
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
+          pb: 10,
+          pt: { xs: 3, md: 5 },
+        }}
+      >
+        <Container
+          maxWidth="lg"
+          sx={{
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            sx={{ flex: 1, minHeight: 0 }}
+          >
+            <Paper
+              sx={{
+                p: 2.5,
+                width: { xs: '100%', md: 360 },
+                flexShrink: 0,
+              }}
+            >
               <Stack spacing={1.5}>
-                <Typography sx={{ fontSize: { xs: '2rem', md: '3rem' }, fontWeight: 700 }}>
-                  Блог
-                </Typography>
-                <Typography color="text.secondary" sx={{ maxWidth: 720 }}>
-                  Публичная витрина материалов работает с реальным API и теперь поддерживает поиск по `q`.
+                <Typography sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700 }}>Блог</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  Последние посты внизу. Прокрути вверх, чтобы подгрузить старые.
                 </Typography>
                 <TextField
-                  label="Поиск по заголовку, описанию и тексту"
+                  label="Поиск"
                   onChange={(event) => setSearchInput(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
@@ -144,7 +242,6 @@ export function BlogPage() {
                         } else {
                           nextSearchParams.delete('q');
                         }
-                        nextSearchParams.delete('page');
                         setSearchParams(nextSearchParams);
                       });
                     }
@@ -170,7 +267,6 @@ export function BlogPage() {
                         } else {
                           nextSearchParams.delete('q');
                         }
-                        nextSearchParams.delete('page');
                         setSearchParams(nextSearchParams);
                       });
                     }}
@@ -185,7 +281,6 @@ export function BlogPage() {
                         startTransition(() => {
                           const nextSearchParams = new URLSearchParams(searchParams);
                           nextSearchParams.delete('q');
-                          nextSearchParams.delete('page');
                           setSearchParams(nextSearchParams);
                         });
                       }}
@@ -195,89 +290,149 @@ export function BlogPage() {
                     </Button>
                   ) : null}
                 </Stack>
-                {data ? (
+                {pagination ? (
                   <Typography color="text.secondary" variant="body2">
-                    Найдено публикаций: {data.pagination.totalItems}
+                    Найдено публикаций: {pagination.totalItems}
                   </Typography>
                 ) : null}
               </Stack>
             </Paper>
 
-            {errorMessage && !data ? (
-              <Alert
-                action={
-                  <Button
-                    color="inherit"
-                    onClick={() => window.location.reload()}
-                    size="small"
-                    startIcon={<RefreshRoundedIcon />}
-                  >
-                    Обновить
-                  </Button>
-                }
-                severity="warning"
-              >
-                {errorMessage}
-              </Alert>
-            ) : null}
+            <Paper
+              sx={{
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                minHeight: 0,
+                minWidth: 0,
+                overflow: 'hidden',
+                p: 1.25,
+              }}
+            >
+              {errorMessage && items.length === 0 ? (
+                <Alert
+                  action={
+                    <Button
+                      color="inherit"
+                      onClick={() => window.location.reload()}
+                      size="small"
+                      startIcon={<RefreshRoundedIcon />}
+                    >
+                      Обновить
+                    </Button>
+                  }
+                  severity="warning"
+                  sx={{ mb: 2 }}
+                >
+                  {errorMessage}
+                </Alert>
+              ) : null}
 
-            {isLoading && !data ? <BlogGridSkeleton /> : null}
+              {isLoading && items.length === 0 ? <BlogListSkeleton /> : null}
 
-            {!isLoading && data && data.items.length === 0 ? (
-              <Paper sx={{ p: 4 }}>
-                <Stack spacing={1}>
-                  <Typography variant="h6">Ничего не найдено</Typography>
-                  <Typography color="text.secondary">
-                    Попробуй изменить запрос или сбросить фильтр поиска.
-                  </Typography>
-                </Stack>
-              </Paper>
-            ) : null}
+              {!isLoading && pagination && items.length === 0 ? (
+                <Box sx={{ p: 2 }}>
+                  <Stack spacing={1}>
+                    <Typography variant="h6">Ничего не найдено</Typography>
+                    <Typography color="text.secondary">
+                      Попробуй изменить запрос или сбросить фильтр поиска.
+                    </Typography>
+                  </Stack>
+                </Box>
+              ) : null}
 
-            {featuredPost ? (
-              <Stack spacing={2.5}>
-                <PublicPostCard featured post={featuredPost} />
-
-                {secondaryPosts.length > 0 ? (
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gap: 2,
-                      gridTemplateColumns: {
-                        xs: '1fr',
-                        md: 'repeat(2, minmax(0, 1fr))',
-                      },
-                    }}
-                  >
-                    {secondaryPosts.map((post) => (
-                      <PublicPostCard key={post.id} post={post} />
-                    ))}
-                  </Box>
-                ) : null}
-              </Stack>
-            ) : null}
-
-            {data && data.pagination.totalPages > 1 ? (
-              <Stack direction="row" sx={{ justifyContent: 'center', pt: 1 }}>
-                <Pagination
-                  color="primary"
-                  count={data.pagination.totalPages}
-                  disabled={isPending}
-                  onChange={(_, nextPage) => {
-                    startTransition(() => {
-                      const nextSearchParams = new URLSearchParams(searchParams);
-                      if (nextPage === 1) {
-                        nextSearchParams.delete('page');
-                      } else {
-                        nextSearchParams.set('page', String(nextPage));
-                      }
-                      setSearchParams(nextSearchParams);
-                    });
+              {items.length > 0 ? (
+                <Box
+                  ref={feedRef}
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: 'auto',
+                    px: { xs: 1, md: 1.5 },
+                    py: 1.25,
                   }}
-                  page={page}
-                />
-              </Stack>
-            ) : null}
+                >
+                  <Stack spacing={2}>
+                    <Box
+                      ref={topSentinelRef}
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        pt: 0.5,
+                      }}
+                    >
+                      {hasOlderPosts ? (
+                        <Typography color="text.secondary" variant="body2">
+                          {isLoadingOlder ? 'Загружаю старые публикации…' : 'Прокрути вверх, чтобы загрузить ещё'}
+                        </Typography>
+                      ) : (
+                        <Typography color="text.secondary" variant="body2">
+                          Это начало ленты
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {items.map((post, index) => (
+                      <PublicPostCard key={post.id} featured={index === items.length - 1} post={post} />
+                    ))}
+
+                    {errorMessage && items.length > 0 ? (
+                      <Alert
+                        action={
+                          <Button
+                            color="inherit"
+                            disabled={!hasOlderPosts || isLoadingOlder || isPending}
+                            onClick={() => {
+                              const feed = feedRef.current;
+                              if (!feed || !hasOlderPosts || isLoadingOlder) {
+                                return;
+                              }
+
+                              setIsLoadingOlder(true);
+                              scrollRestoreRef.current = {
+                                prevScrollHeight: feed.scrollHeight,
+                                prevScrollTop: feed.scrollTop,
+                              };
+
+                              getPublicPosts({
+                                page: nextPage,
+                                pageSize: PAGE_SIZE,
+                                q: searchQuery || undefined,
+                              })
+                                .then((response) => {
+                                  const normalizedItems = [...response.items].reverse();
+                                  setItems((prev) => [...normalizedItems, ...prev]);
+                                  setPagination(response.pagination);
+                                  setNextPage(response.pagination.page + 1);
+                                  setErrorMessage(null);
+                                })
+                                .catch((error: unknown) => {
+                                  setErrorMessage(
+                                    getApiErrorMessage(
+                                      error,
+                                      'Не получилось загрузить старые публикации. Попробуй повторить.',
+                                    ),
+                                  );
+                                  scrollRestoreRef.current = null;
+                                })
+                                .finally(() => {
+                                  setIsLoadingOlder(false);
+                                });
+                            }}
+                            size="small"
+                          >
+                            Повторить
+                          </Button>
+                        }
+                        severity="warning"
+                      >
+                        {errorMessage}
+                      </Alert>
+                    ) : null}
+                  </Stack>
+                </Box>
+              ) : null}
+            </Paper>
           </Stack>
         </Container>
       </Box>

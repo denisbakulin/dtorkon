@@ -1,6 +1,7 @@
 import { httpClient } from './http-client';
 import type {
   AttachmentKind,
+  ContactMessageRequest,
   PublicMediaResponse,
   PublicPostDetail,
   PublicPostListResponse,
@@ -23,7 +24,7 @@ export async function getPublicPosts({
   const response = await httpClient.get<PublicPostListResponse>('/api/posts', {
     params: {
       page,
-      pageSize,
+      page_size: pageSize,
       q: q?.trim() ? q.trim() : undefined,
     },
     signal,
@@ -51,7 +52,7 @@ export async function getPublicMedia(options: {
   const response = await httpClient.get<PublicMediaResponse>('/api/media', {
     params: {
       page,
-      pageSize,
+      page_size: pageSize,
       kind: kind ?? undefined,
     },
     signal,
@@ -63,4 +64,8 @@ export async function getPublicMedia(options: {
 export async function getSiteProfile(signal?: AbortSignal) {
   const response = await httpClient.get<SiteProfile>('/api/site-profile', { signal });
   return response.data;
+}
+
+export async function sendContactMessage(payload: ContactMessageRequest) {
+  await httpClient.post('/api/contact/messages', payload);
 }

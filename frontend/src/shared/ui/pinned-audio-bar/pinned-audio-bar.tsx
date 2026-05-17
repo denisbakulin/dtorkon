@@ -37,9 +37,6 @@ export function PinnedAudioBar() {
     >
       <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, mb: 0.5 }} variant="body2">
-            Сейчас играет
-          </Typography>
           <AudioPlayer src={snapshot.src} subtitle={safeSubtitle} title={safeTitle} />
         </Box>
         <IconButton

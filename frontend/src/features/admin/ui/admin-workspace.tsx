@@ -2,6 +2,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
@@ -20,7 +21,6 @@ import {
   CircularProgress,
   Container,
   Divider,
-  FormControlLabel,
   IconButton,
   InputAdornment,
   Link,
@@ -28,15 +28,15 @@ import {
   Paper,
   Skeleton,
   Stack,
-  Switch,
   Tab,
   Tabs,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import axios from 'axios';
-import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../../app/providers/auth-provider';
@@ -91,7 +91,20 @@ import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 import { AdminAnalyticsPanel } from './admin-analytics-panel';
 import { AdminErrorEventsPanel } from './admin-error-events-panel';
 import { TranscriptionSettingsPanel } from './transcription-settings-panel';
+import { TelegramSettingsPanel } from './telegram-settings-panel';
 import { VoiceRecorderPanel } from './voice-recorder-panel';
+
+const VisuallyHiddenInput = styled('input')({
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+});
 
 type AdminWorkspaceProps = {
   mode: 'overview' | 'create' | 'edit';
@@ -144,6 +157,172 @@ type EditorPaneProps = {
   postId?: string;
 };
 
+type ComposePanelProps = {
+  draft: PostDraft;
+  onCommitDraft: (partial: Partial<PostDraft>) => void;
+  slugWasEdited: boolean;
+  onSlugEdited: () => void;
+};
+
+const ComposePanel = memo(function ComposePanel({
+  draft,
+  onCommitDraft,
+  slugWasEdited,
+  onSlugEdited,
+}: ComposePanelProps) {
+  const [title, setTitle] = useState(draft.title);
+  const [slug, setSlug] = useState(draft.slug);
+  const [excerpt, setExcerpt] = useState(draft.excerpt);
+  const [bodyMarkdown, setBodyMarkdown] = useState(draft.bodyMarkdown);
+
+  // Pull in external changes (load post, upload insertions, etc.) without clobbering ongoing edits.
+  const lastExternalRef = useRef({
+    bodyMarkdown: draft.bodyMarkdown,
+    excerpt: draft.excerpt,
+    slug: draft.slug,
+    status: draft.status,
+    title: draft.title,
+  });
+
+  useEffect(() => {
+    if (draft.title !== lastExternalRef.current.title && draft.title !== title) {
+      setTitle(draft.title);
+    }
+    if (draft.slug !== lastExternalRef.current.slug && draft.slug !== slug) {
+      setSlug(draft.slug);
+    }
+    if (draft.excerpt !== lastExternalRef.current.excerpt && draft.excerpt !== excerpt) {
+      setExcerpt(draft.excerpt);
+    }
+    if (draft.bodyMarkdown !== lastExternalRef.current.bodyMarkdown && draft.bodyMarkdown !== bodyMarkdown) {
+      setBodyMarkdown(draft.bodyMarkdown);
+    }
+    lastExternalRef.current = {
+      bodyMarkdown: draft.bodyMarkdown,
+      excerpt: draft.excerpt,
+      slug: draft.slug,
+      status: draft.status,
+      title: draft.title,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.bodyMarkdown, draft.excerpt, draft.slug, draft.status, draft.title]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (title !== draft.title) {
+        onCommitDraft({ title });
+      }
+    }, 120);
+    return () => window.clearTimeout(handle);
+  }, [draft.title, onCommitDraft, title]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (slug !== draft.slug) {
+        onCommitDraft({ slug });
+      }
+    }, 120);
+    return () => window.clearTimeout(handle);
+  }, [draft.slug, onCommitDraft, slug]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (excerpt !== draft.excerpt) {
+        onCommitDraft({ excerpt });
+      }
+    }, 180);
+    return () => window.clearTimeout(handle);
+  }, [draft.excerpt, excerpt, onCommitDraft]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (bodyMarkdown !== draft.bodyMarkdown) {
+        onCommitDraft({ bodyMarkdown });
+      }
+    }, 220);
+    return () => window.clearTimeout(handle);
+  }, [bodyMarkdown, draft.bodyMarkdown, onCommitDraft]);
+
+  return (
+    <Stack spacing={2.5}>
+      <Box>
+        <Typography variant="h6">Compose</Typography>
+        <Typography color="text.secondary" variant="body2">
+          Title, slug, status and Markdown stay in one flow. Inline media snippets are still inserted automatically after uploads.
+        </Typography>
+      </Box>
+
+      <TextField
+        label="Title"
+        onChange={(event) => {
+          const nextTitle = event.target.value;
+          setTitle(nextTitle);
+          if (!slugWasEdited) {
+            setSlug(normalizeSlug(nextTitle));
+          }
+        }}
+        sx={{
+          ...editorFieldSx,
+          '& .MuiInputBase-input': {
+            fontSize: { xs: '1.3rem', md: '1.6rem' },
+            fontWeight: 700,
+            lineHeight: 1.3,
+          },
+        }}
+        value={title}
+      />
+
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.4fr) 220px' },
+        }}
+      >
+        <TextField
+          helperText="Used in the public URL `/posts/:slug`."
+          label="Slug"
+          onChange={(event) => {
+            if (!slugWasEdited) {
+              onSlugEdited();
+            }
+            setSlug(event.target.value);
+          }}
+          sx={editorFieldSx}
+          value={slug}
+        />
+
+        <TextField
+          label="Status"
+          onChange={(event) => onCommitDraft({ status: event.target.value as PostStatus })}
+          select
+          sx={editorFieldSx}
+          value={draft.status}
+        >
+          <MenuItem value="draft">Draft</MenuItem>
+          <MenuItem value="published">Published</MenuItem>
+        </TextField>
+      </Box>
+
+      <TextField
+        label="Excerpt"
+        minRows={3}
+        multiline
+        onChange={(event) => setExcerpt(event.target.value)}
+        sx={editorFieldSx}
+        value={excerpt}
+      />
+
+      <MarkdownEditor
+        minHeight={360}
+        onChange={(value) => setBodyMarkdown(value)}
+        placeholder="Write the article body here. Inline uploads will append Markdown snippets automatically."
+        value={bodyMarkdown}
+      />
+    </Stack>
+  );
+});
+
 type OverviewPaneProps = {
   analytics: AdminAnalytics | null;
   isLoadingAnalytics: boolean;
@@ -154,7 +333,7 @@ type OverviewPaneProps = {
   siteProfile: SiteProfile | null;
 };
 
-type OverviewTab = 'dashboard' | 'errors' | 'siteProfile' | 'transcription';
+type OverviewTab = 'dashboard' | 'errors' | 'siteProfile' | 'transcription' | 'telegram';
 
 type EditableProfileLink = {
   kind: 'email' | 'phone' | 'telegram' | 'vk' | 'link';
@@ -165,11 +344,10 @@ type EditableProfileLink = {
 type SiteProfileDraft = Omit<SiteProfile, 'links'> & { links: EditableProfileLink[] };
 
 type PendingImageEdit = {
+  assetId?: string;
   file: File;
   target: 'cover' | 'inline' | 'attachment';
 };
-
-const IMAGE_EDITOR_AUTOOPEN_STORAGE_KEY = 'dtorkon.admin.imageEditor.autoOpen';
 
 const STATUS_OPTIONS: Array<{ label: string; value: AdminPostStatusFilter }> = [
   { label: 'All', value: 'all' },
@@ -767,6 +945,7 @@ function OverviewPane({
           <Tab label={`Errors (${analytics?.totalErrors ?? 0})`} value="errors" />
           <Tab label="Site profile" value="siteProfile" />
           <Tab label="Transcription" value="transcription" />
+          <Tab label="Связь" value="telegram" />
         </Tabs>
       </Paper>
 
@@ -779,6 +958,8 @@ function OverviewPane({
       ) : null}
 
       {activeTab === 'transcription' ? <TranscriptionSettingsPanel /> : null}
+
+      {activeTab === 'telegram' ? <TelegramSettingsPanel /> : null}
 
       {activeTab === 'siteProfile' ? (
         <Paper sx={{ p: { xs: 3, md: 4 } }}>
@@ -1020,17 +1201,10 @@ function OverviewPane({
                 />
 
                 <Stack spacing={1}>
-                  <input
-                    accept="image/*"
-                    hidden
-                    onChange={(event) => void handleBackgroundSelection(event.target.files)}
-                    ref={backgroundInputRef}
-                    type="file"
-                  />
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <Button
+                      component="label"
                       disabled={isSavingProfile || !profileDraft || isBackgroundUploading}
-                      onClick={() => backgroundInputRef.current?.click()}
                       startIcon={
                         isBackgroundUploading ? (
                           <CircularProgress color="inherit" size={18} />
@@ -1041,6 +1215,12 @@ function OverviewPane({
                       variant="outlined"
                     >
                       {isBackgroundUploading ? 'Uploading background...' : 'Upload background image'}
+                      <VisuallyHiddenInput
+                        accept="image/*"
+                        onChange={(event) => void handleBackgroundSelection(event.target.files)}
+                        ref={backgroundInputRef}
+                        type="file"
+                      />
                     </Button>
                     {profileDraft?.backgroundAssetId ? (
                       <Button
@@ -1113,19 +1293,16 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [slugWasEdited, setSlugWasEdited] = useState(mode === 'edit');
   const [pendingImageEdit, setPendingImageEdit] = useState<PendingImageEdit | null>(null);
-  const [autoOpenImageEditor, setAutoOpenImageEditor] = useState(() => {
-    try {
-      return window.localStorage.getItem(IMAGE_EDITOR_AUTOOPEN_STORAGE_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const localImageFilesRef = useRef(new Map<string, File>());
   const [activeTranscriptAssetId, setActiveTranscriptAssetId] = useState<string | null>(null);
   const [isNavigating, startNavigation] = useTransition();
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const inlineInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const deferredBodyMarkdown = useDeferredValue(draft.bodyMarkdown);
+  const commitDraft = useCallback((partial: Partial<PostDraft>) => {
+    setDraft((current) => ({ ...current, ...partial }));
+  }, []);
 
   useEffect(() => {
     if (mode === 'create') {
@@ -1138,14 +1315,6 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       setSlugWasEdited(false);
     }
   }, [mode]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(IMAGE_EDITOR_AUTOOPEN_STORAGE_KEY, String(autoOpenImageEditor));
-    } catch {
-      // ignore storage errors (private mode, disabled storage, etc.)
-    }
-  }, [autoOpenImageEditor]);
 
   useEffect(() => {
     if (mode !== 'edit' || !postId) {
@@ -1263,6 +1432,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       });
 
       const previousCover = draft.cover;
+      localImageFilesRef.current.set(asset.id, file);
       setDraft((current) => ({
         ...current,
         cover: {
@@ -1273,6 +1443,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
 
       if (previousCover) {
         void deleteUploadedAssetIfNeeded(previousCover.asset, previousCover.origin);
+        localImageFilesRef.current.delete(previousCover.asset.id);
       }
 
       setUploadState({ status: 'idle' });
@@ -1340,6 +1511,10 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
           width: dimensions?.width,
         });
 
+        if (kind === 'image') {
+          localImageFilesRef.current.set(asset.id, file);
+        }
+
         if (target === 'inline') {
           setDraft((current) => ({
             ...current,
@@ -1389,37 +1564,13 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
     }
   };
 
-  const openImageEditorIfNeeded = (
-    files: File[],
-    target: 'cover' | 'inline' | 'attachment',
-  ) => {
-    if (!autoOpenImageEditor) {
-      return false;
-    }
-
-    if (
-      files.length === 1 &&
-      getAttachmentKindFromMimeType(resolveFileMimeType(files[0])) === 'image'
-    ) {
-      setPendingImageEdit({
-        file: files[0],
-        target,
-      });
-      return true;
-    }
-
-    return false;
-  };
-
   const handleCoverFileSelection = async (fileList: FileList | null) => {
     const file = fileList?.[0];
     if (!file) {
       return;
     }
 
-    if (!openImageEditorIfNeeded([file], 'cover')) {
-      await uploadCoverFile(file);
-    }
+    await uploadCoverFile(file);
   };
 
   const handleInlineAssetSelection = async (fileList: FileList | null) => {
@@ -1428,9 +1579,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       return;
     }
 
-    if (!openImageEditorIfNeeded(files, 'inline')) {
-      await uploadFiles(files, 'inline');
-    }
+    await uploadFiles(files, 'inline');
 
     if (inlineInputRef.current) {
       inlineInputRef.current.value = '';
@@ -1443,9 +1592,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       return;
     }
 
-    if (!openImageEditorIfNeeded(files, 'attachment')) {
-      await uploadFiles(files, 'attachment');
-    }
+    await uploadFiles(files, 'attachment');
 
     if (attachmentInputRef.current) {
       attachmentInputRef.current.value = '';
@@ -1456,16 +1603,181 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
     await uploadFiles([file], 'attachment');
   };
 
-  const handleImageEditorSave = async (file: File) => {
-    const nextTarget = pendingImageEdit?.target;
-    if (!nextTarget) {
+  const downloadImageForEditing = async (asset: PublicAsset) => {
+    const cachedFile = localImageFilesRef.current.get(asset.id);
+    if (cachedFile) {
+      return cachedFile;
+    }
+
+    const response = await fetch(asset.url);
+    if (!response.ok) {
+      throw new Error(`Unable to download ${asset.originalName} for editing.`);
+    }
+
+    const blob = await response.blob();
+    return new File([blob], asset.originalName, {
+      lastModified: Date.now(),
+      type: blob.type || asset.mimeType,
+    });
+  };
+
+  const openImageEditor = async (asset: PublicAsset, target: PendingImageEdit['target'], assetId?: string) => {
+    try {
+      setSaveError(null);
+      setSuccessMessage(null);
+      const file = await downloadImageForEditing(asset);
+      setPendingImageEdit({ assetId, file, target });
+    } catch (error: unknown) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to prepare image for editing.');
+    }
+  };
+
+  const handleEditCover = async () => {
+    if (!draft.cover) {
       return;
     }
 
-    if (nextTarget === 'cover') {
+    await openImageEditor(draft.cover.asset, 'cover');
+  };
+
+  const handleEditInlineAsset = async (assetId: string) => {
+    const inlineAsset = draft.inlineAssets.find((item) => item.asset.id === assetId);
+    if (!inlineAsset || getAssetKind(inlineAsset.asset) !== 'image') {
+      return;
+    }
+
+    await openImageEditor(inlineAsset.asset, 'inline', assetId);
+  };
+
+  const handleEditAttachment = async (assetId: string) => {
+    const attachment = draft.attachments.find((item) => item.asset.id === assetId);
+    if (!attachment || attachment.kind !== 'image') {
+      return;
+    }
+
+    await openImageEditor(attachment.asset, 'attachment', assetId);
+  };
+
+  const uploadEditedImageAsset = async (file: File, failureMessage: string) => {
+    const mimeType = resolveFileMimeType(file);
+    let createdAssetId: string | null = null;
+
+    try {
+      setUploadState({ status: 'presigning', fileName: file.name });
+
+      const presigned = await presignAdminUpload({
+        kind: 'image',
+        mimeType,
+        originalName: file.name,
+        size: file.size,
+      });
+      createdAssetId = presigned.assetId;
+
+      setUploadState({ status: 'uploading', fileName: file.name });
+      await uploadAdminAssetContent({
+        file,
+        method: presigned.method,
+        mimeType,
+        requiredHeaders: presigned.requiredHeaders,
+        uploadUrl: presigned.uploadUrl,
+      });
+
+      setUploadState({ status: 'completing', fileName: file.name });
+      const dimensions = await readImageDimensions(file);
+      const asset = await completeAdminUpload({
+        assetId: presigned.assetId,
+        height: dimensions?.height,
+        width: dimensions?.width,
+      });
+
+      localImageFilesRef.current.set(asset.id, file);
+      setUploadState({ status: 'idle' });
+      return asset;
+    } catch (error: unknown) {
+      if (createdAssetId) {
+        void deleteAdminAsset(createdAssetId).catch(() => undefined);
+      }
+
+      if (isUnauthorized(error)) {
+        onAuthExpired();
+        return null;
+      }
+
+      setUploadState({
+        fileName: file.name,
+        message: getApiErrorMessage(error, failureMessage),
+        status: 'error',
+      });
+      return null;
+    }
+  };
+
+  const handleImageEditorSave = async (file: File) => {
+    const edit = pendingImageEdit;
+    if (!edit) {
+      return;
+    }
+
+    if (edit.target === 'cover') {
       await uploadCoverFile(file);
+      setPendingImageEdit(null);
+      return;
+    }
+
+    if (!edit.assetId) {
+      setPendingImageEdit(null);
+      return;
+    }
+
+    const replacementAsset = await uploadEditedImageAsset(
+      file,
+      edit.target === 'inline' ? 'Unable to update inline image.' : 'Unable to update the attachment image.',
+    );
+    if (!replacementAsset) {
+      return;
+    }
+
+    if (edit.target === 'inline') {
+      const existing = draft.inlineAssets.find((item) => item.asset.id === edit.assetId);
+      if (!existing) {
+        setSaveError('Inline asset no longer exists.');
+        setPendingImageEdit(null);
+        return;
+      }
+
+      localImageFilesRef.current.delete(existing.asset.id);
+      void deleteUploadedAssetIfNeeded(existing.asset, existing.origin);
+
+      setDraft((current) => ({
+        ...current,
+        bodyMarkdown: current.bodyMarkdown.replaceAll(existing.asset.url, replacementAsset.url),
+        inlineAssets: current.inlineAssets.map((item) =>
+          item.asset.id === existing.asset.id
+            ? { ...item, asset: replacementAsset, origin: 'session' }
+            : item,
+        ),
+      }));
+      setSuccessMessage(`Inline image ${existing.asset.originalName} updated.`);
     } else {
-      await uploadFiles([file], nextTarget);
+      const existing = draft.attachments.find((item) => item.asset.id === edit.assetId);
+      if (!existing) {
+        setSaveError('Attachment no longer exists.');
+        setPendingImageEdit(null);
+        return;
+      }
+
+      localImageFilesRef.current.delete(existing.asset.id);
+      void deleteUploadedAssetIfNeeded(existing.asset, existing.origin);
+
+      setDraft((current) => ({
+        ...current,
+        attachments: current.attachments.map((item) =>
+          item.asset.id === existing.asset.id
+            ? { ...item, asset: replacementAsset, origin: 'session' }
+            : item,
+        ),
+      }));
+      setSuccessMessage(`Attachment image ${existing.asset.originalName} updated.`);
     }
 
     setPendingImageEdit(null);
@@ -1497,6 +1809,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       inlineAssets: current.inlineAssets.filter((item) => item.asset.id !== assetId),
     }));
 
+    localImageFilesRef.current.delete(assetId);
     await deleteUploadedAssetIfNeeded(inlineAsset.asset, inlineAsset.origin);
   };
 
@@ -1511,6 +1824,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       attachments: current.attachments.filter((item) => item.asset.id !== assetId),
     }));
 
+    localImageFilesRef.current.delete(assetId);
     await deleteUploadedAssetIfNeeded(attachment.asset, attachment.origin);
   };
 
@@ -1525,6 +1839,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       cover: null,
     }));
 
+    localImageFilesRef.current.delete(currentCover.asset.id);
     await deleteUploadedAssetIfNeeded(currentCover.asset, currentCover.origin);
   };
 
@@ -1720,81 +2035,12 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
           {uploadState.status === 'error' ? <Alert severity="warning">{uploadState.message}</Alert> : null}
 
           <Box sx={editorSectionSx}>
-            <Stack spacing={2.5}>
-              <Box>
-                <Typography variant="h6">Compose</Typography>
-                <Typography color="text.secondary" variant="body2">
-                  Title, slug, status and Markdown stay in one flow. Inline media snippets are still inserted automatically after uploads.
-                </Typography>
-              </Box>
-
-              <TextField
-                label="Title"
-                onChange={(event) => {
-                  const nextTitle = event.target.value;
-                  setDraft((current) => ({
-                    ...current,
-                    slug: slugWasEdited ? current.slug : normalizeSlug(nextTitle),
-                    title: nextTitle,
-                  }));
-                }}
-                sx={{
-                  ...editorFieldSx,
-                  '& .MuiInputBase-input': {
-                    fontSize: { xs: '1.3rem', md: '1.6rem' },
-                    fontWeight: 700,
-                    lineHeight: 1.3,
-                  },
-                }}
-                value={draft.title}
-              />
-
-              <Box
-                sx={{
-                  display: 'grid',
-                  gap: 2,
-                  gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.4fr) 220px' },
-                }}
-              >
-                <TextField
-                  helperText="Used in the public URL `/posts/:slug`."
-                  label="Slug"
-                  onChange={(event) => {
-                    setSlugWasEdited(true);
-                    updateField('slug', event.target.value);
-                  }}
-                  sx={editorFieldSx}
-                  value={draft.slug}
-                />
-
-                <TextField
-                  label="Status"
-                  onChange={(event) => updateField('status', event.target.value as PostStatus)}
-                  select
-                  sx={editorFieldSx}
-                  value={draft.status}
-                >
-                  <MenuItem value="draft">Draft</MenuItem>
-                  <MenuItem value="published">Published</MenuItem>
-                </TextField>
-              </Box>
-
-              <TextField
-                label="Excerpt"
-                minRows={3}
-                multiline
-                onChange={(event) => updateField('excerpt', event.target.value)}
-                sx={editorFieldSx}
-                value={draft.excerpt}
-              />
-
-              <MarkdownEditor
-                minHeight={360}
-                onChange={(value) => updateField('bodyMarkdown', value)}
-                placeholder="Write the article body here. Inline uploads will append Markdown snippets automatically."
-                value={draft.bodyMarkdown}
-              />
-            </Stack>
+            <ComposePanel
+              draft={draft}
+              onCommitDraft={commitDraft}
+              onSlugEdited={() => setSlugWasEdited(true)}
+              slugWasEdited={slugWasEdited}
+            />
           </Box>
 
           <Box sx={editorSectionSx}>
@@ -1812,67 +2058,48 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                 </Box>
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
-                  <Button onClick={() => coverInputRef.current?.click()} startIcon={<CloudUploadRoundedIcon />} variant="outlined">
+                  <Button component="label" startIcon={<CloudUploadRoundedIcon />} variant="outlined">
                     Cover
+                    <VisuallyHiddenInput
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={(event) => {
+                        void handleCoverFileSelection(event.target.files);
+                      }}
+                      ref={coverInputRef}
+                      type="file"
+                    />
                   </Button>
-                  <Button onClick={() => inlineInputRef.current?.click()} startIcon={<CloudUploadRoundedIcon />} variant="outlined">
+                  <Button component="label" startIcon={<CloudUploadRoundedIcon />} variant="outlined">
                     Inline media
+                    <VisuallyHiddenInput
+                      accept={FILE_UPLOAD_ACCEPT}
+                      multiple
+                      onChange={(event) => {
+                        void handleInlineAssetSelection(event.target.files);
+                      }}
+                      ref={inlineInputRef}
+                      type="file"
+                    />
                   </Button>
-                  <Button
-                    onClick={() => attachmentInputRef.current?.click()}
-                    startIcon={<CloudUploadRoundedIcon />}
-                    variant="outlined"
-                  >
-                    Attachment
+                  <Button component="label" startIcon={<CloudUploadRoundedIcon />} variant="outlined">
+                    Attachments
+                    <VisuallyHiddenInput
+                      accept={FILE_UPLOAD_ACCEPT}
+                      multiple
+                      onChange={(event) => {
+                        void handleAttachmentSelection(event.target.files);
+                      }}
+                      ref={attachmentInputRef}
+                      type="file"
+                    />
                   </Button>
                 </Stack>
               </Stack>
 
-              <input
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                hidden
-                onChange={(event) => {
-                  void handleCoverFileSelection(event.target.files);
-                }}
-                ref={coverInputRef}
-                type="file"
-              />
-              <input
-                accept={FILE_UPLOAD_ACCEPT}
-                hidden
-                multiple
-                onChange={(event) => {
-                  void handleInlineAssetSelection(event.target.files);
-                }}
-                ref={inlineInputRef}
-                type="file"
-              />
-              <input
-                accept={FILE_UPLOAD_ACCEPT}
-                hidden
-                multiple
-                onChange={(event) => {
-                  void handleAttachmentSelection(event.target.files);
-                }}
-                ref={attachmentInputRef}
-                type="file"
-              />
-
               {uploadStateMessage ? <Alert severity="info">{uploadStateMessage}</Alert> : null}
-              <Stack spacing={1.25}>
-                <Alert severity="info">
-                  Image editor is optional. Enable it if you want to resize and draw on single images before upload.
-                </Alert>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={autoOpenImageEditor}
-                      onChange={(event) => setAutoOpenImageEditor(event.target.checked)}
-                    />
-                  }
-                  label={autoOpenImageEditor ? 'Open editor for single images' : 'Upload images without editor (default)'}
-                />
-              </Stack>
+              <Alert severity="info">
+                Upload images normally, then use the Edit button next to a preview to crop or draw on them.
+              </Alert>
 
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                 <Chip
@@ -1900,9 +2127,14 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                     </Box>
 
                     {draft.cover ? (
-                      <Button color="inherit" onClick={() => void handleRemoveCover()} startIcon={<DeleteOutlineRoundedIcon />} variant="text">
-                        Remove cover
-                      </Button>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                        <Button color="inherit" onClick={() => void handleEditCover()} startIcon={<EditRoundedIcon />} variant="text">
+                          Edit cover
+                        </Button>
+                        <Button color="inherit" onClick={() => void handleRemoveCover()} startIcon={<DeleteOutlineRoundedIcon />} variant="text">
+                          Remove cover
+                        </Button>
+                      </Stack>
                     ) : null}
                   </Stack>
 

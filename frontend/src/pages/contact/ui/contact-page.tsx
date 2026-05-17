@@ -12,13 +12,14 @@ import {
   Paper,
   Skeleton,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getApiErrorMessage } from '../../../shared/api/api-error';
-import { getSiteProfile } from '../../../shared/api/blog-api';
+import { getSiteProfile, sendContactMessage } from '../../../shared/api/blog-api';
 import type { SiteProfile } from '../../../shared/api/blog-contract';
 import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 
@@ -79,6 +80,16 @@ export function ContactPage() {
   const [siteProfile, setSiteProfile] = useState<SiteProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  const [contact, setContact] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const formRef = useRef<HTMLDivElement | null>(null);
+
+  const canSend = useMemo(() => {
+    return contact.trim().length > 0 && message.trim().length > 0 && !isSending;
+  }, [contact, isSending, message]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -129,9 +140,10 @@ export function ContactPage() {
                 <Typography sx={{ fontSize: { xs: '2rem', md: '2.8rem' } }} variant="h3">
                   Связь
                 </Typography>
-                <Typography color="text.secondary" sx={{ maxWidth: 620 }}>
-                  Контакты читаются из редактируемого профиля сайта и не зависят от статических констант фронтенда.
-                </Typography>
+                
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ pt: 0.5 }}>
+                 
+                </Stack>
               </Stack>
 
               {errorMessage ? <Alert severity="warning">{errorMessage}</Alert> : null}
@@ -202,6 +214,57 @@ export function ContactPage() {
                   )}
                 </Stack>
               ) : null}
+
+              <Box ref={formRef} />
+
+              <Paper sx={{ p: 2.25 }} variant="outlined">
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle1">Связаться сейчас</Typography>
+
+                  {sendError ? <Alert severity="warning">{sendError}</Alert> : null}
+                  {sendSuccess ? <Alert severity="success">{sendSuccess}</Alert> : null}
+
+                  <TextField
+                    label="Как с вами связаться"
+                    onChange={(event) => setContact(event.target.value)}
+                    placeholder="@telegram, email, phone..."
+                    value={contact}
+                  />
+                  <TextField
+                    label="Сообщение"
+                    minRows={4}
+                    multiline
+                    onChange={(event) => setMessage(event.target.value)}
+                    value={message}
+                  />
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                    <Button
+                      disabled={!canSend}
+                      onClick={() => {
+                        setSendError(null);
+                        setSendSuccess(null);
+                        setIsSending(true);
+                        sendContactMessage({ contact: contact.trim(), message: message.trim() })
+                          .then(() => {
+                            setSendSuccess('Отправлено. Спасибо!');
+                            setMessage('');
+                          })
+                          .catch((error: unknown) => {
+                            if (axios.isCancel(error)) {
+                              return;
+                            }
+                            setSendError(getApiErrorMessage(error, 'Не удалось отправить сообщение.'));
+                          })
+                          .finally(() => setIsSending(false));
+                      }}
+                      startIcon={<SendRoundedIcon />}
+                      variant="contained"
+                    >
+                      {isSending ? 'Отправляю…' : 'Отправить'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Paper>
             </Stack>
           </Paper>
         </Container>

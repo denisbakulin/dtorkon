@@ -102,3 +102,8 @@ export type SiteProfile = {
   links: SiteProfileLink[];
   updatedAt: string;
 };
+
+export type ContactMessageRequest = {
+  contact: string;
+  message: string;
+};
