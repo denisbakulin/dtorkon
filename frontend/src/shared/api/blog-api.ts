@@ -1,5 +1,7 @@
 import { httpClient } from './http-client';
 import type {
+  AttachmentKind,
+  PublicMediaResponse,
   PublicPostDetail,
   PublicPostListResponse,
   SiteProfile,
@@ -32,6 +34,26 @@ export async function getPublicPosts({
 
 export async function getPublicPost(slug: string, signal?: AbortSignal) {
   const response = await httpClient.get<PublicPostDetail>(`/api/posts/${slug}`, {
+    signal,
+  });
+
+  return response.data;
+}
+
+export async function getPublicMedia(options: {
+  page?: number;
+  pageSize?: number;
+  kind?: AttachmentKind | null;
+  signal?: AbortSignal;
+} = {}) {
+  const { page = 1, pageSize = 24, kind, signal } = options;
+
+  const response = await httpClient.get<PublicMediaResponse>('/api/media', {
+    params: {
+      page,
+      pageSize,
+      kind: kind ?? undefined,
+    },
     signal,
   });
 

@@ -95,6 +95,16 @@ Query-параметры:
 - `publishedAt`
 - `updatedAt`
 
+### `GET /api/media`
+
+Возвращает вложения (attachments) из опубликованных постов, с фильтрацией по типу.
+
+Query-параметры:
+
+- `page`
+- `pageSize`
+- `kind` (`image | audio | video | file`)
+
 ## Admin: аналитика
 
 ### `GET /api/admin/analytics`

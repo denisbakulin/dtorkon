@@ -1,6 +1,7 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
@@ -31,6 +32,7 @@ import {
   Tab,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import axios from 'axios';
@@ -72,6 +74,7 @@ import {
   getAdminOverviewPath,
 } from '../../../shared/lib/admin-access';
 import { formatDateLabel } from '../../../shared/lib/format-date';
+import { triggerBrowserDownload } from '../../../shared/lib/download';
 import {
   FILE_UPLOAD_ACCEPT,
   getAssetKind,
@@ -2070,6 +2073,20 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                                     </Button>
                                   ) : null}
 
+                                  <Tooltip title="Скачать">
+                                    <IconButton
+                                      aria-label="Скачать"
+                                      onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        triggerBrowserDownload(attachment.asset.url, attachment.asset.originalName);
+                                      }}
+                                      size="small"
+                                    >
+                                      <DownloadRoundedIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+
                                   <Button
                                     color="inherit"
                                     onClick={() => void handleRemoveAttachment(attachment.asset.id)}
@@ -2201,15 +2218,30 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                                   <Typography sx={{ fontWeight: 600 }}>
                                     {attachment.title || attachment.asset.originalName}
                                   </Typography>
-                                  <Link
-                                    href={attachment.asset.url}
-                                    rel="noreferrer"
-                                    sx={{ display: 'inline-flex', gap: 0.5, minWidth: 0 }}
-                                    target="_blank"
-                                    underline="hover"
-                                  >
-                                    <span>{attachment.asset.originalName}</span>
-                                  </Link>
+                                  <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', minWidth: 0 }}>
+                                    <Link
+                                      href={attachment.asset.url}
+                                      rel="noreferrer"
+                                      sx={{ display: 'inline-flex', gap: 0.5, minWidth: 0 }}
+                                      target="_blank"
+                                      underline="hover"
+                                    >
+                                      <span>{attachment.asset.originalName}</span>
+                                    </Link>
+                                    <Tooltip title="Скачать">
+                                      <IconButton
+                                        aria-label="Скачать"
+                                        onClick={(event) => {
+                                          event.preventDefault();
+                                          event.stopPropagation();
+                                          triggerBrowserDownload(attachment.asset.url, attachment.asset.originalName);
+                                        }}
+                                        size="small"
+                                      >
+                                        <DownloadRoundedIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Stack>
                                 </Box>
                               </Stack>
 

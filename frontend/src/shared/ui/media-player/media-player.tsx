@@ -1,8 +1,10 @@
-import { Box, Typography } from '@mui/material';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { Plyr } from 'plyr-react';
 import 'plyr/dist/plyr.css';
 
 import type { AttachmentKind, PublicAsset } from '../../api/blog-contract';
+import { triggerBrowserDownload } from '../../lib/download';
 import { AudioPlayer } from '../audio-player/audio-player';
 
 type MediaPlayerProps = {
@@ -13,6 +15,21 @@ type MediaPlayerProps = {
 export function MediaPlayer({ asset, kind }: MediaPlayerProps) {
   return (
     <Box sx={{ width: '100%' }}>
+      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
+        <Tooltip title="Скачать">
+          <IconButton
+            aria-label="Скачать"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              triggerBrowserDownload(asset.url, asset.originalName);
+            }}
+            size="small"
+          >
+            <DownloadRoundedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
       {kind === 'audio' ? (
         <AudioPlayer src={asset.url} />
       ) : (

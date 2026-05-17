@@ -1,7 +1,14 @@
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { alpha, Box, IconButton, Stack, Typography } from '@mui/material';
-import { type KeyboardEventHandler, type MouseEventHandler, useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardEventHandler, type MouseEventHandler, useEffect, useMemo, useState } from 'react';
+
+import {
+  getPersistentAudioSnapshot,
+  seekPersistentAudioByRatio,
+  subscribePersistentAudio,
+  togglePersistentAudio,
+} from '../../lib/persistent-audio';
 
 type AudioPlayerProps = {
   src: string;
@@ -10,10 +17,7 @@ type AudioPlayerProps = {
 };
 
 export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [snapshot, setSnapshot] = useState(() => getPersistentAudioSnapshot());
 
   const bars = useMemo(() => {
     const barCount = 64;
@@ -41,84 +45,35 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
     return result;
   }, [src]);
 
+  const isActive = snapshot.src === src;
+  const isPlaying = isActive && snapshot.isPlaying;
+  const currentTime = isActive ? snapshot.currentTime : 0;
+  const duration = isActive ? snapshot.duration : 0;
+
   const progress = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
 
   const formattedTime = useMemo(() => formatTime(duration || 0), [duration]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const syncDuration = () => {
-      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
-    };
-    const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime || 0);
-      // Some browsers update duration after playback starts (e.g. for webm).
-      syncDuration();
-    };
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    audio.addEventListener('loadedmetadata', syncDuration);
-    audio.addEventListener('durationchange', syncDuration);
-    audio.addEventListener('canplay', syncDuration);
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('play', onPlay);
-    audio.addEventListener('pause', onPause);
-    audio.addEventListener('ended', onEnded);
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', syncDuration);
-      audio.removeEventListener('durationchange', syncDuration);
-      audio.removeEventListener('canplay', syncDuration);
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('play', onPlay);
-      audio.removeEventListener('pause', onPause);
-      audio.removeEventListener('ended', onEnded);
-    };
+    return subscribePersistentAudio(setSnapshot);
   }, []);
 
-  useEffect(() => {
-    // If src changes, reset state.
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
-    audio.load();
-  }, [src]);
-
-  const togglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.paused) {
-      try {
-        await audio.play();
-      } catch {
-        // Ignore autoplay / gesture errors
-      }
-    } else {
-      audio.pause();
-    }
-  };
-
-  const seekByRatio = (ratio: number) => {
-    const audio = audioRef.current;
-    if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
-    audio.currentTime = Math.max(0, Math.min(audio.duration, ratio * audio.duration));
+  const togglePlay = () => {
+    togglePersistentAudio({ src, title, subtitle });
   };
 
   const onWaveformClick: MouseEventHandler<HTMLDivElement> = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const ratio = rect.width > 0 ? x / rect.width : 0;
-    seekByRatio(ratio);
+    if (isActive) {
+      seekPersistentAudioByRatio(ratio);
+    } else {
+      // Start playback on first interaction, then seek when metadata loads.
+      togglePersistentAudio({ src, title, subtitle });
+      // Best-effort immediate seek (will no-op if duration is unknown yet).
+      seekPersistentAudioByRatio(ratio);
+    }
   };
 
   const onWaveformKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
@@ -226,8 +181,6 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
         <Typography sx={{ flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' }} variant="body2">
           {formattedTime}
         </Typography>
-
-        <audio preload="metadata" ref={audioRef} src={src} />
       </Box>
     </Box>
   );

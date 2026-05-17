@@ -1,10 +1,23 @@
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import MovieRoundedIcon from '@mui/icons-material/MovieRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
-import { Alert, Box, Button, Chip, Container, Paper, Skeleton, Stack, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Container,
+  IconButton,
+  Paper,
+  Skeleton,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
@@ -12,6 +25,7 @@ import { Link as RouterLink, useParams } from 'react-router-dom';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../shared/api/api-error';
 import { getPublicPost } from '../../../shared/api/blog-api';
 import type { PublicAttachment, PublicPostDetail } from '../../../shared/api/blog-contract';
+import { triggerBrowserDownload } from '../../../shared/lib/download';
 import { formatDateLabel } from '../../../shared/lib/format-date';
 import { prettifyMediaName } from '../../../shared/lib/media';
 import { type GalleryImage, ImageGalleryDialog } from '../../../shared/ui/image-gallery-dialog/image-gallery-dialog';
@@ -34,7 +48,7 @@ function extractMarkdownImages(content: string): GalleryImage[] {
 function PostSkeleton() {
   return (
     <Stack spacing={2.5}>
-      <Paper sx={{ p: { xs: 3, md: 4 } }}>
+      <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
         <Stack spacing={1.5}>
           <Skeleton width="34%" />
           <Skeleton height={56} width="72%" />
@@ -42,10 +56,14 @@ function PostSkeleton() {
           <Skeleton width="63%" />
         </Stack>
       </Paper>
-      <Paper sx={{ p: { xs: 3, md: 4 } }}>
+      <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
         <Stack spacing={1.5}>
           {Array.from({ length: 7 }, (_, index) => (
-            <Skeleton key={index} height={index === 0 ? 24 : 18} width={index % 2 === 0 ? '100%' : '90%'} />
+            <Skeleton
+              key={index}
+              height={index === 0 ? 24 : 18}
+              width={index % 2 === 0 ? '100%' : '90%'}
+            />
           ))}
         </Stack>
       </Paper>
@@ -53,7 +71,13 @@ function PostSkeleton() {
   );
 }
 
-function AttachmentCard({ attachment, onOpenImage }: { attachment: PublicAttachment; onOpenImage?: (() => void) | null }) {
+function AttachmentCard({
+  attachment,
+  onOpenImage,
+}: {
+  attachment: PublicAttachment;
+  onOpenImage?: (() => void) | null;
+}) {
   const isImage = attachment.kind === 'image';
   const isAudio = attachment.kind === 'audio';
   const isVideo = attachment.kind === 'video';
@@ -61,7 +85,7 @@ function AttachmentCard({ attachment, onOpenImage }: { attachment: PublicAttachm
   if (isAudio || isVideo) {
     const primaryTitle = attachment.title?.trim() || prettifyMediaName(attachment.asset.originalName);
     return (
-      <Paper sx={{ p: 2 }} variant="outlined">
+      <Paper sx={{ p: 2, borderRadius: { xs: 0, md: 2 } }} variant="outlined">
         <Stack spacing={1.25}>
           <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
             {isAudio ? <GraphicEqRoundedIcon color="primary" /> : <MovieRoundedIcon color="primary" />}
@@ -91,6 +115,7 @@ function AttachmentCard({ attachment, onOpenImage }: { attachment: PublicAttachm
       href={isImage ? undefined : attachment.asset.url}
       rel={isImage ? undefined : 'noreferrer'}
       sx={{
+        borderRadius: { xs: 0, md: 2 },
         color: 'inherit',
         display: 'block',
         overflow: 'hidden',
@@ -115,9 +140,33 @@ function AttachmentCard({ attachment, onOpenImage }: { attachment: PublicAttachm
             }}
           />
           <Stack spacing={0.5} sx={{ p: 2 }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <ImageRoundedIcon color="primary" fontSize="small" />
-              <Typography variant="subtitle2">{attachment.title || attachment.asset.originalName}</Typography>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
+                <ImageRoundedIcon color="primary" fontSize="small" />
+                <Typography
+                  sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  variant="subtitle2"
+                >
+                  {attachment.title || attachment.asset.originalName}
+                </Typography>
+              </Stack>
+              <Tooltip title="Скачать">
+                <IconButton
+                  aria-label="Скачать"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    triggerBrowserDownload(attachment.asset.url, attachment.asset.originalName);
+                  }}
+                  size="small"
+                >
+                  <DownloadRoundedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Stack>
             <Typography color="text.secondary" variant="body2">
               Откроется в полноэкранной галерее с перелистыванием.
@@ -144,11 +193,26 @@ function AttachmentCard({ attachment, onOpenImage }: { attachment: PublicAttachm
               </Typography>
             </Stack>
           </Stack>
-          <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-            <Typography color="primary.main" variant="body2">
-              Открыть файл
-            </Typography>
-            <OpenInNewRoundedIcon color="primary" fontSize="small" />
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+              <Typography color="primary.main" variant="body2">
+                Открыть файл
+              </Typography>
+              <OpenInNewRoundedIcon color="primary" fontSize="small" />
+            </Stack>
+            <Tooltip title="Скачать">
+              <IconButton
+                aria-label="Скачать"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  triggerBrowserDownload(attachment.asset.url, attachment.asset.originalName);
+                }}
+                size="small"
+              >
+                <DownloadRoundedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Stack>
         </Stack>
       )}
@@ -196,12 +260,7 @@ export function PostPage() {
           return;
         }
 
-        setErrorMessage(
-          getApiErrorMessage(
-            error,
-            'Не получилось загрузить статью. Попробуй открыть ее еще раз.',
-          ),
-        );
+        setErrorMessage(getApiErrorMessage(error, 'Не получилось загрузить статью. Попробуй открыть ее еще раз.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -270,14 +329,20 @@ export function PostPage() {
 
   return (
     <SiteShell>
-      <Box component="main" sx={{ pb: 10, pt: { xs: 3, md: 5 } }}>
-        <Container maxWidth="md">
+      <Box component="main" sx={{ pb: 10, pt: { xs: 0, md: 5 } }}>
+        <Container
+          disableGutters
+          maxWidth={false}
+          sx={{
+            px: { xs: 0, sm: 3, md: 4, lg: 6, xl: 8 },
+          }}
+        >
           <Stack spacing={2.5}>
             <Button
               component={RouterLink}
               size="small"
               startIcon={<ArrowBackRoundedIcon />}
-              sx={{ alignSelf: 'flex-start' }}
+              sx={{ alignSelf: 'flex-start', px: { xs: 2, sm: 0 } }}
               to="/blog"
               variant="text"
             >
@@ -287,7 +352,7 @@ export function PostPage() {
             {isLoading ? <PostSkeleton /> : null}
 
             {!isLoading && notFound ? (
-              <Paper sx={{ p: { xs: 3, md: 4 } }}>
+              <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                 <Stack spacing={1.25}>
                   <Typography variant="h5">Статья не найдена</Typography>
                   <Typography color="text.secondary">
@@ -301,11 +366,13 @@ export function PostPage() {
 
             {post ? (
               <>
-                <Paper sx={{ overflow: 'hidden', p: { xs: 3, md: 4 } }}>
+                <Paper sx={{ overflow: 'hidden', p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                   <Stack spacing={2.25}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                       <Chip color="primary" label={formatDateLabel(post.publishedAt)} size="small" />
-                      {attachmentCountLabel ? <Chip label={attachmentCountLabel} size="small" variant="outlined" /> : null}
+                      {attachmentCountLabel ? (
+                        <Chip label={attachmentCountLabel} size="small" variant="outlined" />
+                      ) : null}
                     </Stack>
 
                     <Stack spacing={1.25}>
@@ -313,7 +380,10 @@ export function PostPage() {
                         {post.title}
                       </Typography>
                       {post.excerpt ? (
-                        <Typography color="text.secondary" sx={{ fontSize: { xs: '1rem', md: '1.12rem' }, lineHeight: 1.8 }}>
+                        <Typography
+                          color="text.secondary"
+                          sx={{ fontSize: { xs: '1rem', md: '1.12rem' }, lineHeight: 1.8 }}
+                        >
                           {post.excerpt}
                         </Typography>
                       ) : null}
@@ -335,7 +405,7 @@ export function PostPage() {
                   </Stack>
                 </Paper>
 
-                <Paper sx={{ p: { xs: 3, md: 4 } }}>
+                <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                   <MarkdownRenderer
                     content={post.bodyMarkdown}
                     imageGalleryIndexBySrc={markdownGalleryIndexBySrc}
@@ -344,7 +414,7 @@ export function PostPage() {
                 </Paper>
 
                 {post.attachments.length > 0 ? (
-                  <Paper sx={{ p: { xs: 3, md: 4 } }}>
+                  <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                     <Stack spacing={2}>
                       <Typography variant="h6">Вложения</Typography>
                       <MediaPlaylist attachments={post.attachments} showTitle={false} />
@@ -393,3 +463,4 @@ export function PostPage() {
     </SiteShell>
   );
 }
+

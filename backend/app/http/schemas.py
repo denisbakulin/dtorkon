@@ -119,6 +119,21 @@ class PublicPostDetail(CamelModel):
     published_at: str
 
 
+class PublicMediaItem(CamelModel):
+    id: str
+    kind: AttachmentKind
+    title: str
+    published_at: str
+    post_slug: str
+    post_title: str
+    asset: AssetRead
+
+
+class PublicMediaResponse(CamelModel):
+    items: list[PublicMediaItem]
+    pagination: Pagination
+
+
 class SiteProfileRead(CamelModel):
     site_title: str
     site_tagline: str
@@ -448,3 +463,8 @@ def paginate(
             total_pages=total_pages,
         ),
     )
+
+
+def build_pagination(*, page: int, page_size: int, total_items: int) -> Pagination:
+    total_pages = 0 if total_items == 0 else (total_items + page_size - 1) // page_size
+    return Pagination(page=page, page_size=page_size, total_items=total_items, total_pages=total_pages)
