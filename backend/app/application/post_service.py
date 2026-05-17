@@ -11,6 +11,7 @@ from app.http.schemas import (
     PublicPostListResponse,
     PublicMediaResponse,
     PublicMediaItem,
+    asset_to_read,
     build_pagination,
     paginate,
     to_admin_post_detail,
@@ -74,8 +75,13 @@ class PostService:
             kind=kind,
         )
 
-        return PublicMediaResponse(
-            items=[
+        items: list[PublicMediaItem] = []
+        for attachment, post in rows:
+            asset_read = asset_to_read(attachment.asset)
+            if not asset_read:
+                continue
+
+            items.append(
                 PublicMediaItem(
                     id=attachment.id,
                     kind=attachment.kind,
@@ -83,10 +89,12 @@ class PostService:
                     published_at=post.published_at or attachment.created_at,
                     post_slug=post.slug,
                     post_title=post.title,
-                    asset=attachment.asset,
+                    asset=asset_read,
                 )
-                for attachment, post in rows
-            ],
+            )
+
+        return PublicMediaResponse(
+            items=items,
             pagination=build_pagination(page=page, page_size=page_size, total_items=total_items),
         )
 
