@@ -40,7 +40,7 @@ export function PlatformHighlights() {
           <Paper
             key={item.title}
             variant="outlined"
-            sx={{ borderRadius: 4, p: 2 }}
+            sx={{ borderRadius: 1, p: 2 }}
           >
             <Stack direction="row" spacing={2}>
               <Avatar

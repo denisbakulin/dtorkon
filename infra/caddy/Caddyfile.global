@@ -2,7 +2,7 @@
 	email {$LETSENCRYPT_EMAIL:admin@example.com}
 }
 
-{$DOMAIN_NAMES:localhost} {
+(static_site) {
 	root * /srv
 	encode zstd gzip
 
@@ -11,4 +11,15 @@
 
 	try_files {path} /index.html
 	file_server
+}
+
+{$PUBLIC_DOMAIN:denisbakulin.ru}, {$ADMIN_DOMAIN:admin.denisbakulin.ru} {
+	@api path /api*
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		import static_site
+	}
 }

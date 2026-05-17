@@ -73,7 +73,7 @@ export function SiteConfigPanel() {
                 sx={{
                   border: '1px solid',
                   borderColor: 'divider',
-                  borderRadius: 4,
+                  borderRadius: 1,
                   p: 2,
                 }}
               >
@@ -108,4 +108,3 @@ export function SiteConfigPanel() {
     </SectionCard>
   );
 }
-

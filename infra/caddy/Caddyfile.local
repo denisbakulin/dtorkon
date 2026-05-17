@@ -1,0 +1,21 @@
+(static_site) {
+	root * /srv
+	encode zstd gzip
+
+	@siteConfig path /site-config.json
+	header @siteConfig Cache-Control "no-cache, no-store, must-revalidate"
+
+	try_files {path} /index.html
+	file_server
+}
+
+http://localhost, http://127.0.0.1 {
+	@api path /api*
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		import static_site
+	}
+}

@@ -1,22 +1,57 @@
 services:
-  landing:
+  api:
     build:
       context: .
-      dockerfile: infra/caddy/Dockerfile
-    container_name: dtorkon-landing
+      dockerfile: backend/Dockerfile
     env_file:
       - .env
     environment:
-      DOMAIN_NAMES: ${DOMAIN_NAMES:-localhost}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@example.com}
-    ports:
-      - "80:80"
-      - "443:443"
+      PUBLIC_APP_ORIGIN: http://localhost:${LOCAL_HTTP_PORT:-8080}
+      ADMIN_APP_ORIGIN: http://localhost:${LOCAL_HTTP_PORT:-8080}
+      SQLITE_PATH: /data/blog.sqlite
+      WATCHFILES_FORCE_POLLING: "true"
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+    expose:
+      - "8000"
     restart: unless-stopped
     volumes:
-      - caddy-data:/data
-      - caddy-config:/config
+      - ./backend:/app/backend
+      - sqlite-data:/data
+
+  web:
+    image: node:22-alpine
+    depends_on:
+      - api
+    working_dir: /app/frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://api:8000
+      VITE_USE_POLLING: "true"
+    command:
+      - sh
+      - -lc
+      - |
+        if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+          npm ci
+        elif [ ! -f node_modules/.package-lock.json ]; then
+          npm ci
+        elif ! cmp -s package-lock.json node_modules/.package-lock.json; then
+          npm ci
+        fi
+        npm run dev
+    ports:
+      - "${LOCAL_HTTP_PORT:-8080}:5173"
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend-node-modules:/app/frontend/node_modules
 
 volumes:
-  caddy-data:
-  caddy-config:
+  sqlite-data:
+  frontend-node-modules:

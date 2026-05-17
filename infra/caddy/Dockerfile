@@ -10,7 +10,10 @@ RUN npm run build
 
 FROM caddy:2.10-alpine
 
-COPY infra/caddy/Caddyfile /etc/caddy/Caddyfile
+COPY infra/caddy/Caddyfile.local /etc/caddy/Caddyfile.local
+COPY infra/caddy/Caddyfile.global /etc/caddy/Caddyfile.global
 COPY --from=frontend-builder /app/frontend/dist /srv
 
 EXPOSE 80 443
+
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile.local", "--adapter", "caddyfile"]

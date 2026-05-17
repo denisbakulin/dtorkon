@@ -1,52 +1,52 @@
-# Roadmap
+# ROADMAP
 
-## Stage 0 — Project Setup
+## Stage 0 — Docs-First Reboot
 
-- зафиксировать цель проекта и границы первой итерации;
-- определить структуру каталогов;
-- описать базовые правила для дальнейшей работы.
+Статус: завершен.
 
-## Stage 1 — Frontend Foundation
+## Stage 1 — Backend Foundation
 
-- поднять React-приложение;
-- подключить MUI;
-- подготовить минимальную feature-структуру;
-- добавить Axios и базовый API-layer.
+Статус: завершен.
 
-## Stage 2 — Landing UI
+- FastAPI backend поднят;
+- SQLite подключен через async SQLAlchemy;
+- auth, public/admin API и `/api/health` реализованы;
+- storage-каркас работает через Yandex Object Storage по S3 API;
+- runtime приведен к схеме `web + api + sqlite`.
 
-- собрать одну тестовую landing page;
-- добавить базовую типографику, блоки и CTA;
-- вывести информацию, что домен и HTTPS работают корректно.
+## Stage 2 — Public Blog
 
-## Stage 3 — Build and Static Delivery
+Статус: завершен.
 
-- собрать production build;
-- настроить Caddy на раздачу статики из build/dist;
-- проверить корректную работу статических маршрутов.
+- frontend подключен к `GET /api/posts`;
+- страница статьи подключена к `GET /api/posts/{slug}`;
+- `/blog` стал реальной публичной витриной;
+- markdown rendering публичной статьи уже работает;
+- главная страница показывает последние публикации.
 
-## Stage 4 — HTTPS and Certificates
+## Stage 3 — Admin Experience
 
-- подключить автоматический HTTPS через Caddy;
-- проверить автоматический первичный выпуск сертификатов;
-- проверить, что схема остается простой для VPS-деплоя.
+Статус: завершен.
 
-## Stage 5 — Docker Compose
+- реализованы `/admin`, `/admin/posts/new`, `/admin/posts/:postId`;
+- собран shell редактора: список постов, единый compose-surface, media dock и встроенный preview;
+- подключены создание, редактирование и публикация записей;
+- реализованы login flow, cover picker и attachments list.
 
-- завернуть фронтенд и Caddy в `docker-compose.yml`;
-- вынести нужные тома и конфиги;
-- подготовить единый сценарий запуска.
+## Stage 4 — Media And Files
 
-## Stage 6 — Verification
+Статус: завершен в коде, ожидает runtime-подтверждения.
 
-- проверить локальный запуск;
-- проверить отдачу статики через Caddy;
-- проверить доступность сайта по домену и HTTPS.
+- backend-mediated prepare/upload/complete flow доведен до реального UI;
+- закрыты сценарии cover, tracked inline media, audio-attachments и attachments block;
+- реализовано удаление неиспользуемых assets;
+- ограничения по MIME type и размеру синхронизированы в UI и backend, включая voice-note flow.
 
-## First Iteration Definition of Done
+## Stage 5 — Runtime Verification
 
-- есть аккуратный тестовый лендинг;
-- фронтенд собирается без ручных правок;
-- Caddy отдает только статическую сборку;
-- проект запускается через Docker Compose;
-- документация позволяет быстро повторить setup.
+Статус: в работе.
+
+- пройти локальный smoke QA для `web + api + sqlite`;
+- проверить глобальный compose-сценарий на домене;
+- убедиться в корректной работе cookie, S3 storage и reverse proxy;
+- обновить operational notes после первого полного прогона.

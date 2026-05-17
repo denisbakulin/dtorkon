@@ -1,5 +1,10 @@
 frontend/node_modules/
 frontend/dist/
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/data/
+*.pyc
 .env
 npm-debug.log*
-

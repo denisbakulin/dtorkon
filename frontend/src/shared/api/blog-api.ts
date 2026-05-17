@@ -1,0 +1,44 @@
+import { httpClient } from './http-client';
+import type {
+  PublicPostDetail,
+  PublicPostListResponse,
+  SiteProfile,
+} from './blog-contract';
+
+type GetPublicPostsOptions = {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  signal?: AbortSignal;
+};
+
+export async function getPublicPosts({
+  page = 1,
+  pageSize = 9,
+  q,
+  signal,
+}: GetPublicPostsOptions = {}) {
+  const response = await httpClient.get<PublicPostListResponse>('/api/posts', {
+    params: {
+      page,
+      pageSize,
+      q: q?.trim() ? q.trim() : undefined,
+    },
+    signal,
+  });
+
+  return response.data;
+}
+
+export async function getPublicPost(slug: string, signal?: AbortSignal) {
+  const response = await httpClient.get<PublicPostDetail>(`/api/posts/${slug}`, {
+    signal,
+  });
+
+  return response.data;
+}
+
+export async function getSiteProfile(signal?: AbortSignal) {
+  const response = await httpClient.get<SiteProfile>('/api/site-profile', { signal });
+  return response.data;
+}

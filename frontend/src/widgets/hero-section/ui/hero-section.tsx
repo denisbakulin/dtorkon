@@ -43,7 +43,7 @@ export function HeroSection({ host, protocol }: HeroSectionProps) {
             sx={{
               minWidth: { xs: '100%', md: 260 },
               p: 2.5,
-              borderRadius: 5,
+            
             }}
           >
             <Stack spacing={1}>

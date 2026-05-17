@@ -1,50 +1,110 @@
 # dtorkon
 
-Тестовый проект для проверки DNS-настройки нового домена через Cloudflare и базовой публикации фронтенд-лендинга по HTTPS.
+`dtorkon` — мини-блог с публичной витриной и приватной авторской админкой. Репозиторий живет в docs-first режиме: продукт, архитектура, API и правила работы обновляются вместе с кодом.
 
-## Цель
+## Текущее состояние
 
-Собрать небольшой, визуально аккуратный лендинг на React, который:
+- документационный baseline собран и поддерживается актуальным;
+- `openapi.json` генерируется из FastAPI-приложения;
+- backend реализован на `FastAPI + async SQLAlchemy + SQLite`;
+- публичный frontend подключен к реальным `GET /api/posts` и `GET /api/posts/{slug}`;
+- приватная админка подключена к реальному auth/admin API;
+- редактор постов собран как единый compose-flow с media dock и встроенным preview;
+- backend-mediated upload flow закрывает cover, attachments, голосовые и tracked inline media;
+- storage-слой работает с Yandex Object Storage через `boto3` по S3 API;
+- локальный и глобальный runtime используют схему `web + api + sqlite`.
 
-- отдается как статическая сборка;
-- обслуживается через Caddy без backend-proxy;
-- работает в Docker Compose;
-- использует SSL-сертификаты и схему их обновления;
-- остается достаточно простым, но удобным для дальнейшего расширения.
+## Цель MVP
 
-## Планируемый стек
+- главная страница с навигацией по сайту и превью последних публикаций;
+- страница блога со списком статей;
+- страница отдельной статьи по `slug`;
+- приватная админка с логином;
+- markdown-редактор статьи с preview;
+- загрузка изображений, файлов и голосовых;
+- tracked inline media для markdown-тела;
+- Yandex Object Storage для медиа;
+- SQLite для постов, сессий и метаданных;
+- VPS-first деплой через Docker Compose и Caddy.
+
+## Зафиксированный стек
 
 - React + Vite;
-- MUI для базовой UI-системы;
-- Axios для сетевого слоя;
-- Caddy для раздачи статической сборки и автоматического TLS;
-- Docker Compose для локального и серверного запуска.
+- `react-router-dom`;
+- MUI;
+- Axios;
+- FastAPI;
+- SQLAlchemy Async + `aiosqlite`;
+- Yandex Object Storage через S3 API;
+- Caddy;
+- Docker Compose.
 
-## Планируемая структура
+## Структура репозитория
 
-- `frontend/` — приложение на React;
-- `backend/` — резерв под будущий API или служебные задачи;
-- `infra/` — Caddy и docker-конфигурация;
-- `docs/` — проектные заметки, roadmap и этапы.
+- `frontend/` — публичная часть и авторская админка;
+- `backend/` — FastAPI backend, миграции и служебные скрипты;
+- `infra/` — Caddy и контейнеризация;
+- `docs/` — обязательная проектная документация;
+- `openapi.json` — каноничный API-контракт;
+- `AGENTS.md` — правила агентной работы в проекте.
 
-## Что должно получиться
+## Локальный запуск
 
-- простая landing page с базовым дизайном;
-- production build фронтенда;
-- статическая раздача собранных файлов через Caddy;
-- понятный сценарий подключения домена и сертификатов;
-- автоматический выпуск и продление сертификатов встроенными средствами Caddy;
-- минимальная документация для дальнейшей итерации.
+```bash
+docker compose up
+```
 
-## Полезные документы
+После старта сайт доступен на `http://localhost:<LOCAL_HTTP_PORT>`.
+Если `LOCAL_HTTP_PORT` не переопределен, по умолчанию используется `8080`.
 
-- `docs/ROADMAP.md` — этапы развития проекта;
-- `docs/DEPLOY.md` — как устроен деплой и сертификаты;
-- `docs/VPS-RUNBOOK.md` — практический порядок запуска на VPS.
+Локальный compose теперь работает в dev-режиме:
 
-## Принципы реализации
+- `api` поднимает `uvicorn --reload`;
+- `web` поднимает Vite dev server на Node;
+- локальные `PUBLIC_APP_ORIGIN` и `ADMIN_APP_ORIGIN` принудительно фиксируются на `http://localhost:<LOCAL_HTTP_PORT>`;
+- frontend bundle локально не пересобирается через Caddy-образ при каждом старте.
 
-- без лишней сложности и преждевременной архитектуры;
-- расширяемая feature-структура вместо хаотичной папки `src`;
-- минимальное количество инфраструктуры, достаточное для деплоя;
-- конфигурация и документация должны быть понятны без долгого онбординга.
+## Глобальный запуск
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.global.yml up -d --build
+```
+
+Для production обязательно заполнить:
+
+- `PUBLIC_DOMAIN`
+- `ADMIN_DOMAIN`
+- `LETSENCRYPT_EMAIL`
+- `PUBLIC_APP_ORIGIN`
+- `ADMIN_APP_ORIGIN`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+- `SESSION_SECRET`
+- `S3_BUCKET_NAME`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
+- `S3_ENDPOINT_URL`
+- `S3_REGION`
+- `PUBLIC_STORAGE_BASE_URL`
+
+## Документы-источники правды
+
+- `docs/PROJECT_OVERVIEW.md`
+- `docs/ROADMAP.md`
+- `docs/CURRENT_STAGE.md`
+- `docs/BACKEND_ARCHITECTURE.md`
+- `docs/FRONTEND_ARCHITECTURE.md`
+- `docs/API_GUIDE.md`
+- `docs/DATABASE.md`
+- `docs/DEVOPS_DEPLOY.md`
+- `docs/CODE_STYLE.md`
+- `docs/SECURITY.md`
+- `docs/GIT_WORKFLOW.md`
+
+## Правило синхронизации
+
+- любое изменение логики обновляет затронутые документы;
+- любое изменение API обновляет `openapi.json` и `docs/API_GUIDE.md`;
+- любое изменение схемы данных обновляет `docs/DATABASE.md`;
+- рассинхрон между кодом и документацией считается незавершенной работой.
