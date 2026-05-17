@@ -54,7 +54,7 @@
 - markdown как канонический формат статьи;
 - public search по `q`;
 - кастомные media players;
-- image editor перед image upload;
+- image editor (crop + draw) по кнопке рядом с изображением (с пере-загрузкой обновлённого файла);
 - транскрибация audio/video через Groq;
 - внутренняя admin analytics панель.
 

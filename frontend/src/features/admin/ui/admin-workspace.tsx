@@ -1750,7 +1750,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
 
       setDraft((current) => ({
         ...current,
-        bodyMarkdown: current.bodyMarkdown.replaceAll(existing.asset.url, replacementAsset.url),
+        bodyMarkdown: current.bodyMarkdown.split(existing.asset.url).join(replacementAsset.url),
         inlineAssets: current.inlineAssets.map((item) =>
           item.asset.id === existing.asset.id
             ? { ...item, asset: replacementAsset, origin: 'session' }
@@ -2202,6 +2202,16 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                               </Stack>
 
                               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                                {getAssetKind(inlineAsset.asset) === 'image' ? (
+                                  <Button
+                                    color="inherit"
+                                    onClick={() => void handleEditInlineAsset(inlineAsset.asset.id)}
+                                    startIcon={<EditRoundedIcon />}
+                                    variant="text"
+                                  >
+                                    Edit
+                                  </Button>
+                                ) : null}
                                 <Button onClick={() => handleInsertInlineAsset(inlineAsset.asset)} startIcon={<LaunchRoundedIcon />} variant="text">
                                   Insert again
                                 </Button>
@@ -2302,6 +2312,17 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                                       {attachment.asset.transcriptStatus === 'ready'
                                         ? 'Refresh transcript'
                                         : 'Transcribe'}
+                                    </Button>
+                                  ) : null}
+
+                                  {attachment.kind === 'image' ? (
+                                    <Button
+                                      color="inherit"
+                                      onClick={() => void handleEditAttachment(attachment.asset.id)}
+                                      startIcon={<EditRoundedIcon />}
+                                      variant="text"
+                                    >
+                                      Edit
                                     </Button>
                                   ) : null}
 
