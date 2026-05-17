@@ -2746,7 +2746,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
                   sx={{
                     display: 'grid',
                     gap: 2.5,
-                    gridTemplateColumns: { xs: '1fr', xl: '320px minmax(0, 1fr)' },
+                    gridTemplateColumns: { xs: '1fr', lg: '320px minmax(0, 1fr)' },
                   }}
                 >
                   <PostsSidebar
