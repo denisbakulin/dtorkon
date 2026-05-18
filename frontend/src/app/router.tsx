@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 
 import { RouteErrorPage } from '../pages/route-error/ui/route-error-page';
-import { canUseAdminInterface, isAdminHost, isLocalHost } from '../shared/lib/admin-access';
 
 const AdminPage = lazy(async () => ({ default: (await import('../pages/admin/ui/admin-page')).AdminPage }));
 const BlogPage = lazy(async () => ({ default: (await import('../pages/blog/ui/blog-page')).BlogPage }));
@@ -43,33 +42,17 @@ function route(path: string, element: ReactNode) {
   };
 }
 
-const adminHost = isAdminHost();
-const localHost = isLocalHost();
-const allowAdmin = canUseAdminInterface();
-
-const routes = adminHost
-  ? [
-      route('/', <AdminPage />),
-      route('/login', <LoginPage />),
-      route('/posts/new', <EditorPage mode="create" />),
-      route('/posts/:postId', <EditorPage mode="edit" />),
-      route('*', <NotFoundPage />),
-    ]
-  : [
-      route('/', <HomePage />),
-      route('/blog', <BlogPage />),
-      route('/media', <MediaPage />),
-      route('/posts/:slug', <PostPage />),
-      route('/contact', <ContactPage />),
-      ...(allowAdmin && localHost
-        ? [
-            route('/login', <LoginPage />),
-            route('/admin', <AdminPage />),
-            route('/admin/posts/new', <EditorPage mode="create" />),
-            route('/admin/posts/:postId', <EditorPage mode="edit" />),
-          ]
-        : []),
-      route('*', <NotFoundPage />),
-    ];
+const routes = [
+  route('/', <HomePage />),
+  route('/blog', <BlogPage />),
+  route('/media', <MediaPage />),
+  route('/posts/:slug', <PostPage />),
+  route('/contact', <ContactPage />),
+  route('/admin', <AdminPage />),
+  route('/admin/login', <LoginPage />),
+  route('/editor/new', <EditorPage mode="create" />),
+  route('/editor/:postId', <EditorPage mode="edit" />),
+  route('*', <NotFoundPage />),
+];
 
 export const appRouter = createBrowserRouter(routes);

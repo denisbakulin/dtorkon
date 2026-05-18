@@ -8,6 +8,7 @@ import { getPublicMedia } from '../../../shared/api/blog-api';
 import type { AttachmentKind, PublicMediaItem, PublicMediaResponse } from '../../../shared/api/blog-contract';
 import { formatDateLabel } from '../../../shared/lib/format-date';
 import { prettifyMediaName } from '../../../shared/lib/media';
+import type { AudioCollection } from '../../../shared/lib/persistent-audio';
 import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 import { LightboxImage } from '../../../shared/ui/lightbox-image/lightbox-image';
 import { MediaPlayer } from '../../../shared/ui/media-player/media-player';
@@ -63,6 +64,25 @@ export function MediaPage() {
   }, [activeKind]);
 
   const grouped = useMemo(() => groupByDate(data?.items ?? []), [data?.items]);
+  const audioCollection = useMemo<AudioCollection | null>(() => {
+    const audioItems = (data?.items ?? []).filter((item) => item.kind === 'audio');
+    if (audioItems.length === 0) {
+      return null;
+    }
+
+    return {
+      id: `media:${activeKind}:${audioItems.map((item) => item.id).join('|')}`,
+      title: 'Медиа',
+      subtitle: activeKind === 'audio' ? 'Аудио' : null,
+      contextLabel: 'Медиатека',
+      tracks: audioItems.map((item) => ({
+        id: item.id,
+        src: item.asset.url,
+        title: item.title?.trim() || prettifyMediaName(item.asset.originalName),
+        subtitle: item.postTitle?.trim() || null,
+      })),
+    };
+  }, [activeKind, data?.items]);
 
   return (
     <SiteShell>
@@ -153,7 +173,14 @@ export function MediaPage() {
                             </Button>
                           </Stack>
                           {item.kind === 'audio' || item.kind === 'video' ? (
-                            <MediaPlayer asset={item.asset} kind={item.kind} />
+                            <MediaPlayer
+                              asset={item.asset}
+                              audioCollection={item.kind === 'audio' ? audioCollection : null}
+                              audioSubtitle={item.kind === 'audio' ? item.postTitle?.trim() || null : null}
+                              audioTitle={item.title?.trim() || prettifyMediaName(item.asset.originalName)}
+                              audioTrackId={item.kind === 'audio' ? item.id : null}
+                              kind={item.kind}
+                            />
                           ) : (
                             <Button
                               href={item.asset.url}

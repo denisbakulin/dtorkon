@@ -4,15 +4,20 @@ import { Plyr } from 'plyr-react';
 import 'plyr/dist/plyr.css';
 
 import type { AttachmentKind, PublicAsset } from '../../api/blog-contract';
+import type { AudioCollection } from '../../lib/persistent-audio';
 import { triggerBrowserDownload } from '../../lib/download';
 import { AudioPlayer } from '../audio-player/audio-player';
 
 type MediaPlayerProps = {
   asset: Pick<PublicAsset, 'mimeType' | 'originalName' | 'transcriptStatus' | 'transcriptText' | 'url'>;
   kind: Extract<AttachmentKind, 'audio' | 'video'>;
+  audioCollection?: AudioCollection | null;
+  audioSubtitle?: string | null;
+  audioTitle?: string | null;
+  audioTrackId?: string | null;
 };
 
-export function MediaPlayer({ asset, kind }: MediaPlayerProps) {
+export function MediaPlayer({ asset, kind, audioCollection = null, audioSubtitle, audioTitle, audioTrackId }: MediaPlayerProps) {
   return (
     <Box sx={{ width: '100%' }}>
       <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
@@ -31,7 +36,13 @@ export function MediaPlayer({ asset, kind }: MediaPlayerProps) {
         </Tooltip>
       </Stack>
       {kind === 'audio' ? (
-        <AudioPlayer src={asset.url} />
+        <AudioPlayer
+          collection={audioCollection}
+          src={asset.url}
+          subtitle={audioSubtitle}
+          title={audioTitle || asset.originalName}
+          trackId={audioTrackId}
+        />
       ) : (
         <Plyr
           options={{

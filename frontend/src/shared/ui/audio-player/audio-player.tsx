@@ -4,6 +4,7 @@ import { alpha, Box, IconButton, Stack, Typography } from '@mui/material';
 import { type KeyboardEventHandler, type MouseEventHandler, useEffect, useMemo, useState } from 'react';
 
 import {
+  type AudioCollection,
   getPersistentAudioSnapshot,
   seekPersistentAudioByRatio,
   subscribePersistentAudio,
@@ -14,9 +15,21 @@ type AudioPlayerProps = {
   src: string;
   title?: string | null;
   subtitle?: string | null;
+  trackId?: string | null;
+  collection?: AudioCollection | null;
+  waveformAction?: 'seek' | 'open';
+  onOpenAlbum?: (() => void) | null;
 };
 
-export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
+export function AudioPlayer({
+  src,
+  subtitle,
+  title,
+  trackId,
+  collection,
+  waveformAction = 'seek',
+  onOpenAlbum,
+}: AudioPlayerProps) {
   const [snapshot, setSnapshot] = useState(() => getPersistentAudioSnapshot());
 
   const bars = useMemo(() => {
@@ -59,10 +72,16 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
   }, []);
 
   const togglePlay = () => {
-    togglePersistentAudio({ src, title, subtitle });
+    togglePersistentAudio({ src, title, subtitle, trackId, collection });
   };
 
   const onWaveformClick: MouseEventHandler<HTMLDivElement> = (e) => {
+    e.stopPropagation();
+    if (waveformAction === 'open') {
+      onOpenAlbum?.();
+      return;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const ratio = rect.width > 0 ? x / rect.width : 0;
@@ -70,8 +89,7 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
       seekPersistentAudioByRatio(ratio);
     } else {
       // Start playback on first interaction, then seek when metadata loads.
-      togglePersistentAudio({ src, title, subtitle });
-      // Best-effort immediate seek (will no-op if duration is unknown yet).
+      togglePersistentAudio({ src, title, subtitle, trackId, collection });
       seekPersistentAudioByRatio(ratio);
     }
   };
@@ -79,6 +97,10 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
   const onWaveformKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
+    if (waveformAction === 'open') {
+      onOpenAlbum?.();
+      return;
+    }
     togglePlay();
   };
 
@@ -115,6 +137,7 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
         <IconButton
           aria-label={isPlaying ? 'Pause' : 'Play'}
           onClick={togglePlay}
+          onClickCapture={(event) => event.stopPropagation()}
           size="small"
           sx={{
             bgcolor: 'transparent',
@@ -139,6 +162,7 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
             gap: '2px',
             height: 28,
             justifyContent: 'space-between',
+            minWidth: 0,
             outline: 'none',
             position: 'relative',
             '&:focus-visible': {
@@ -158,7 +182,7 @@ export function AudioPlayer({ src, subtitle, title }: AudioPlayerProps) {
                   flex: '1 1 0',
                   height: h,
                   maxWidth: 4,
-                  minWidth: 2,
+                  minWidth: 0,
                 })}
               />
             );

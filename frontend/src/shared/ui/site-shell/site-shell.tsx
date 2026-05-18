@@ -2,7 +2,6 @@ import { Box } from '@mui/material';
 import type { PropsWithChildren } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { isAdminHost } from '../../lib/admin-access';
 import { SiteHeader } from '../site-header/site-header';
 import { PinnedAudioBar } from '../pinned-audio-bar/pinned-audio-bar';
 
@@ -12,10 +11,7 @@ type SiteShellProps = PropsWithChildren<{
 
 export function SiteShell({ children, lockViewport = false }: SiteShellProps) {
   const location = useLocation();
-  const hideHeader =
-    isAdminHost() ||
-    location.pathname === '/login' ||
-    location.pathname.startsWith('/admin');
+  const hideHeader = location.pathname.startsWith('/admin');
 
   return (
     <Box

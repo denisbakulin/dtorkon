@@ -4,20 +4,23 @@ import ReactMarkdown from 'react-markdown';
 import { Link as RouterLink } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
+import type { AudioCollection } from '../../lib/persistent-audio';
 import { isAudioUrl, isVideoUrl } from '../../lib/media';
 import { LightboxImage } from '../lightbox-image/lightbox-image';
 import { MediaPlayer } from '../media-player/media-player';
 
 type MarkdownRendererProps = {
+  audioCollection?: AudioCollection | null;
   content: string;
   imageGalleryIndexBySrc?: Record<string, number>;
   onImageOpen?: (index: number) => void;
 };
 
 function createMarkdownComponents({
+  audioCollection,
   imageGalleryIndexBySrc,
   onImageOpen,
-}: Pick<MarkdownRendererProps, 'imageGalleryIndexBySrc' | 'onImageOpen'>): Components {
+}: Pick<MarkdownRendererProps, 'audioCollection' | 'imageGalleryIndexBySrc' | 'onImageOpen'>): Components {
   return {
     h1: ({ children }) => (
       <Typography component="h1" sx={{ fontSize: { xs: '2rem', md: '2.6rem' }, fontWeight: 700, lineHeight: 1.1, mb: 2.5 }}>
@@ -69,6 +72,7 @@ function createMarkdownComponents({
     ),
     a: ({ children, href }) => {
       if (href && isAudioUrl(href)) {
+        const track = audioCollection?.tracks.find((item) => item.src === href);
         return (
           <Box component="span" sx={{ display: 'block', my: 2.5 }}>
             <MediaPlayer
@@ -79,6 +83,10 @@ function createMarkdownComponents({
                 transcriptText: null,
                 url: href,
               }}
+              audioCollection={audioCollection}
+              audioSubtitle={track?.subtitle || null}
+              audioTitle={track?.title || (typeof children === 'string' ? children : 'Audio')}
+              audioTrackId={track?.id || href}
               kind="audio"
             />
           </Box>
@@ -164,10 +172,10 @@ function createMarkdownComponents({
   };
 }
 
-export function MarkdownRenderer({ content, imageGalleryIndexBySrc, onImageOpen }: MarkdownRendererProps) {
+export function MarkdownRenderer({ audioCollection, content, imageGalleryIndexBySrc, onImageOpen }: MarkdownRendererProps) {
   return (
     <Box sx={{ color: 'text.primary' }}>
-      <ReactMarkdown components={createMarkdownComponents({ imageGalleryIndexBySrc, onImageOpen })} remarkPlugins={[remarkGfm]}>
+      <ReactMarkdown components={createMarkdownComponents({ audioCollection, imageGalleryIndexBySrc, onImageOpen })} remarkPlugins={[remarkGfm]}>
         {content}
       </ReactMarkdown>
     </Box>

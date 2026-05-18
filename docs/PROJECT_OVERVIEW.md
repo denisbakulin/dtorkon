@@ -18,7 +18,7 @@
 
 ### Авторская админка
 
-- production-вход живет на `admin.denisbakulin.ru`;
+- production-вход живет на `https://<PUBLIC_DOMAIN>/admin`;
 - локально может открываться через `localhost` и путь `/admin`;
 - использует admin-only login по cookie session;
 - содержит overview, редактор постов, upload flow, site profile и analytics.

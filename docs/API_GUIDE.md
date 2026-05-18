@@ -125,7 +125,7 @@ Query-параметры:
 
 ### `GET /api/admin/analytics`
 
-Возвращает агрегаты для author workspace.
+Возвращает агрегаты для admin dashboard.
 
 Ключевые поля:
 
@@ -152,7 +152,7 @@ Query-параметры:
 
 ### `GET /api/admin/posts`
 
-Список постов для author workspace.
+Список постов для admin editor.
 
 Query-параметры:
 
@@ -326,7 +326,7 @@ Payload:
 ## Что важно для frontend
 
 - публичный сайт не показывает ссылку на админку;
-- production-admin доступ живет на `admin.denisbakulin.ru`;
+- приватная админ-зона живет на `https://<PUBLIC_DOMAIN>/admin`;
 - локально author routes можно открывать через `localhost` и путь `/admin`;
 - public `/blog` использует `q` для быстрого поиска по постам;
 - audio и video лучше рендерить из `kind` и `mimeType`, а не только по названию файла;

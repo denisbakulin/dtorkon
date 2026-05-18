@@ -14,11 +14,13 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 
+import { useAuth } from '../../../app/providers/auth-provider';
 import { getApiErrorMessage } from '../../../shared/api/api-error';
 import { getPublicPosts } from '../../../shared/api/blog-api';
 import type { PaginationInfo, PublicPostListItem } from '../../../shared/api/blog-contract';
+import { getAdminCreatePostPath } from '../../../shared/lib/admin-access';
 import { PublicPostCard } from '../../../shared/ui/public-post-card/public-post-card';
 import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 
@@ -43,6 +45,7 @@ function BlogListSkeleton() {
 }
 
 export function BlogPage() {
+  const { isAuthenticated } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [items, setItems] = useState<PublicPostListItem[]>([]);
@@ -258,6 +261,11 @@ export function BlogPage() {
                   value={searchInput}
                 />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                  {isAuthenticated ? (
+                    <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
+                      Новый пост
+                    </Button>
+                  ) : null}
                   <Button
                     onClick={() => {
                       startTransition(() => {

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/admin/analytics", tags=["Admin Analytics"])
     "",
     response_model=AdminAnalyticsRead,
     responses={401: {"model": ErrorResponse}},
-    summary="Get analytics for the author workspace",
+    summary="Get analytics for the admin dashboard",
 )
 async def get_admin_analytics(
     _: Annotated[SessionRecord, Depends(get_current_admin_session)],

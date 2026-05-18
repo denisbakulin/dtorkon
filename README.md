@@ -61,7 +61,7 @@ docker compose up
 
 - `api` поднимает `uvicorn --reload`;
 - `web` поднимает Vite dev server на Node;
-- локальные `PUBLIC_APP_ORIGIN` и `ADMIN_APP_ORIGIN` принудительно фиксируются на `http://localhost:<LOCAL_HTTP_PORT>`;
+- локальные `PUBLIC_APP_ORIGIN` и `ADMIN_APP_ORIGIN` по умолчанию указывают на `http://localhost:<LOCAL_HTTP_PORT>`;
 - frontend bundle локально не пересобирается через Caddy-образ при каждом старте.
 
 ## Глобальный запуск
@@ -74,7 +74,6 @@ docker compose -f docker-compose.global.yml up -d --build
 Для production обязательно заполнить:
 
 - `PUBLIC_DOMAIN`
-- `ADMIN_DOMAIN`
 - `LETSENCRYPT_EMAIL`
 - `PUBLIC_APP_ORIGIN`
 - `ADMIN_APP_ORIGIN`

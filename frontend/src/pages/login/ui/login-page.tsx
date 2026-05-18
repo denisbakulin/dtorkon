@@ -24,7 +24,7 @@ export function LoginPage() {
   const { isAuthenticated, refreshSession, session } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
@@ -50,9 +50,11 @@ export function LoginPage() {
             <Paper sx={{ p: { xs: 3, md: 4 } }}>
               <Stack spacing={2}>
                 <Typography sx={{ fontSize: { xs: '2rem', md: '2.8rem' }, fontWeight: 700 }}>
-                  Вход в админку
+                  Вход в /admin
                 </Typography>
-                <Typography color="text.secondary">Закрытый вход в приватную авторскую админку.</Typography>
+                <Typography color="text.secondary">
+                  Закрытый вход в приватные панели, настройки сайта и служебные дашборды.
+                </Typography>
                 {isAuthenticated ? (
                   <Alert severity="success">
                     Активна admin-сессия для {session?.adminDisplayName ?? 'admin'}.

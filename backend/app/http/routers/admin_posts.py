@@ -23,7 +23,7 @@ router = APIRouter(prefix="/admin/posts", tags=["Admin Posts"])
     "",
     response_model=AdminPostListResponse,
     responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
-    summary="Get posts for the author workspace",
+    summary="Get posts for the admin editor",
 )
 async def list_admin_posts(
     _: Annotated[SessionRecord, Depends(get_current_admin_session)],

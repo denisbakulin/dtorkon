@@ -4,10 +4,10 @@ import { Chip, List, ListItem, ListItemIcon, ListItemText, Stack } from '@mui/ma
 import { SectionCard } from '../../../shared/ui/section-card/section-card';
 
 const checklist = [
-  'Скопируйте .env.example в .env и укажите PUBLIC_DOMAIN, ADMIN_DOMAIN и LETSENCRYPT_EMAIL.',
+  'Скопируйте .env.example в .env и укажите PUBLIC_DOMAIN, PUBLIC_APP_ORIGIN, ADMIN_APP_ORIGIN и LETSENCRYPT_EMAIL.',
   'Запустите docker compose up -d --build, чтобы собрать фронтенд и поднять Caddy.',
   'Убедитесь, что домен уже смотрит на VPS и что порты 80/443 открыты.',
-  'Откройте публичный домен и admin-поддомен в браузере и убедитесь, что оба работают уже через HTTPS.',
+  'Откройте публичный домен и проверьте, что сайт, /admin и HTTPS работают на одном origin.',
 ];
 
 export function DeploymentChecklist() {

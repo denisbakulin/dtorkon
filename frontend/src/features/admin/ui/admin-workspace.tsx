@@ -904,14 +904,14 @@ function OverviewPane({
       <Paper sx={{ p: { xs: 3, md: 4 } }}>
         <Stack spacing={1.5}>
           <Typography sx={{ fontSize: { xs: '1.8rem', md: '2.5rem' }, fontWeight: 700 }}>
-            Author workspace
+            Admin center
           </Typography>
           <Typography color="text.secondary">
             Отдельная скрытая админка для контента, загрузок, настроек сайта и внутренней аналитики.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
             <Button onClick={onCreatePost} startIcon={<AddRoundedIcon />} variant="contained">
-              Create new post
+              New post
             </Button>
             {latestPost ? (
               <Button
@@ -1935,7 +1935,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
     try {
       await deleteAdminPost(postId);
       onPostDeleted();
-      navigate(getAdminOverviewPath());
+      navigate('/blog');
     } catch (error: unknown) {
       if (isUnauthorized(error)) {
         onAuthExpired();
@@ -1989,14 +1989,17 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                 <Chip label={`Media ${totalMediaCount}`} variant="outlined" />
               </Stack>
               <Typography sx={{ fontSize: { xs: '1.75rem', md: '2.35rem' }, fontWeight: 700 }}>
-                {mode === 'create' ? 'Create post' : 'Edit post'}
+                {mode === 'create' ? 'New post' : 'Edit post'}
               </Typography>
               <Typography color="text.secondary" sx={{ maxWidth: 820 }}>
-                Markdown editing now goes through a richer toolbar, media uses the same upload flow for audio, video and files, and preview is rendered from a deferred state to stay responsive.
+                This editor now lives in the regular site flow for admins, while `/admin` stays focused on dashboards and settings.
               </Typography>
             </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+              <Button component={RouterLink} to="/blog" variant="text">
+                Back to blog
+              </Button>
               {publishedPreviewUrl ? (
                 <Button
                   component={RouterLink}
@@ -2591,7 +2594,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
           return;
         }
 
-        setPostsError(getApiErrorMessage(error, 'Unable to load posts for the author workspace.'));
+        setPostsError(getApiErrorMessage(error, 'Unable to load posts.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -2713,10 +2716,12 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
                   sx={{ alignSelf: 'flex-start' }}
                 />
                 <Typography sx={{ fontSize: { xs: '2rem', md: '2.9rem' }, fontWeight: 700 }}>
-                  Author interface
+                  {mode === 'overview' ? 'Admin center' : mode === 'create' ? 'New post' : 'Edit post'}
                 </Typography>
                 <Typography color="text.secondary" sx={{ maxWidth: 900 }}>
-                  Отдельная авторская зона на admin-host для публикаций, загрузок, настроек сайта и внутренней аналитики.
+                  {mode === 'overview'
+                    ? 'Unified `/admin` now holds dashboards, settings and service panels.'
+                    : 'Post editing is available inside the regular site flow for signed-in admins.'}
                 </Typography>
                 {session ? (
                   <Typography color="text.secondary" variant="body2">
@@ -2731,8 +2736,8 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
             {!isLoading && !isAuthenticated ? (
               <AccessPanel
                 actionHref={getAdminLoginPath()}
-                actionLabel="Open admin login"
-                description="Эта зона доступна только через отдельный admin-only вход."
+                actionLabel="Open /admin login"
+                description="Sign in to open the private dashboards, settings and post editor."
                 title="Sign in required"
               />
             ) : null}
@@ -2742,46 +2747,25 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
                 {postsError ? <Alert severity="warning">{postsError}</Alert> : null}
                 {metaError && mode === 'overview' ? <Alert severity="warning">{metaError}</Alert> : null}
 
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gap: 2.5,
-                    gridTemplateColumns: { xs: '1fr', lg: '320px minmax(0, 1fr)' },
-                  }}
-                >
-                  <PostsSidebar
-                    activePostId={activePostId}
-                    filter={filter}
-                    isRefreshing={isRefreshingPosts}
+                {mode === 'overview' ? (
+                  <OverviewPane
+                    analytics={analytics}
+                    isLoadingAnalytics={isRefreshingAnalytics}
+                    isLoadingMeta={isRefreshingMeta}
                     onCreatePost={() => navigate(getAdminCreatePostPath())}
-                    onFilterChange={setFilter}
-                    onLogout={() => void handleLogout()}
-                    onRefresh={() => setRefreshKey((current) => current + 1)}
-                    onSearchChange={setSearchInput}
+                    onSaveSiteProfile={handleSaveSiteProfile}
                     posts={sortedPosts}
-                    searchValue={searchInput}
+                    siteProfile={siteProfile}
                   />
-
-                  {mode === 'overview' ? (
-                    <OverviewPane
-                      analytics={analytics}
-                      isLoadingAnalytics={isRefreshingAnalytics}
-                      isLoadingMeta={isRefreshingMeta}
-                      onCreatePost={() => navigate(getAdminCreatePostPath())}
-                      onSaveSiteProfile={handleSaveSiteProfile}
-                      posts={sortedPosts}
-                      siteProfile={siteProfile}
-                    />
-                  ) : (
-                    <EditorPane
-                      mode={mode}
-                      onAuthExpired={handleAuthExpired}
-                      onPostDeleted={() => setRefreshKey((current) => current + 1)}
-                      onPostSaved={() => setRefreshKey((current) => current + 1)}
-                      postId={postId}
-                    />
-                  )}
-                </Box>
+                ) : (
+                  <EditorPane
+                    mode={mode}
+                    onAuthExpired={handleAuthExpired}
+                    onPostDeleted={() => setRefreshKey((current) => current + 1)}
+                    onPostSaved={() => setRefreshKey((current) => current + 1)}
+                    postId={postId}
+                  />
+                )}
               </>
             ) : null}
           </Stack>

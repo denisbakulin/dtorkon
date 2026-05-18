@@ -22,7 +22,7 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../../app/providers/auth-provider';
 import { useSiteProfile } from '../../../app/providers/site-profile-provider';
-import { canUseAdminInterface, getAdminOverviewPath } from '../../lib/admin-access';
+import { getAdminCreatePostPath, getAdminOverviewPath } from '../../lib/admin-access';
 
 const navigationItems = [
   { label: 'Главная', to: '/' },
@@ -59,11 +59,15 @@ export function SiteHeader() {
     });
   };
 
-  const adminLink = useMemo(() => {
-    if (!isAuthenticated) return null;
-    const canOpenInlineAdmin = canUseAdminInterface();
-    const href = canOpenInlineAdmin ? getAdminOverviewPath() : 'https://admin.denisbakulin.ru/';
-    return { canOpenInlineAdmin, href };
+  const adminLinks = useMemo(() => {
+    if (!isAuthenticated) {
+      return null;
+    }
+
+    return {
+      createHref: getAdminCreatePostPath(),
+      overviewHref: getAdminOverviewPath(),
+    };
   }, [isAuthenticated]);
 
   return (
@@ -185,27 +189,42 @@ export function SiteHeader() {
                 );
               })}
 
-              {adminLink ? (
-                <Button
-                  color="inherit"
-                  component={adminLink.canOpenInlineAdmin ? RouterLink : 'a'}
-                  href={adminLink.canOpenInlineAdmin ? undefined : adminLink.href}
-                  rel={adminLink.canOpenInlineAdmin ? undefined : 'noreferrer'}
-                  sx={(theme) => ({
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    borderRadius: 1,
-                    color: 'primary.main',
-                    px: 1.8,
-                    '&:hover': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.14),
-                    },
-                  })}
-                  target={adminLink.canOpenInlineAdmin ? undefined : '_blank'}
-                  to={adminLink.canOpenInlineAdmin ? adminLink.href : undefined}
-                  variant="text"
-                >
-                  Админка
-                </Button>
+              {adminLinks ? (
+                <>
+                  <Button
+                    color="inherit"
+                    component={RouterLink}
+                    sx={(theme) => ({
+                      borderRadius: 1,
+                      color: 'text.primary',
+                      px: 1.8,
+                      '&:hover': {
+                        bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      },
+                    })}
+                    to={adminLinks.createHref}
+                    variant="text"
+                  >
+                    Новый пост
+                  </Button>
+                  <Button
+                    color="inherit"
+                    component={RouterLink}
+                    sx={(theme) => ({
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      borderRadius: 1,
+                      color: 'primary.main',
+                      px: 1.8,
+                      '&:hover': {
+                        bgcolor: alpha(theme.palette.primary.main, 0.14),
+                      },
+                    })}
+                    to={adminLinks.overviewHref}
+                    variant="text"
+                  >
+                    Админка
+                  </Button>
+                </>
               ) : null}
             </Stack>
 
@@ -268,17 +287,15 @@ export function SiteHeader() {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
-            {adminLink ? (
-              <ListItemButton
-                component={adminLink.canOpenInlineAdmin ? RouterLink : 'a'}
-                href={adminLink.canOpenInlineAdmin ? undefined : adminLink.href}
-                rel={adminLink.canOpenInlineAdmin ? undefined : 'noreferrer'}
-                sx={{ borderRadius: 1, mb: 0.5 }}
-                target={adminLink.canOpenInlineAdmin ? undefined : '_blank'}
-                to={adminLink.canOpenInlineAdmin ? adminLink.href : undefined}
-              >
-                <ListItemText primary="Админка" />
-              </ListItemButton>
+            {adminLinks ? (
+              <>
+                <ListItemButton component={RouterLink} sx={{ borderRadius: 1, mb: 0.5 }} to={adminLinks.createHref}>
+                  <ListItemText primary="Новый пост" />
+                </ListItemButton>
+                <ListItemButton component={RouterLink} sx={{ borderRadius: 1, mb: 0.5 }} to={adminLinks.overviewHref}>
+                  <ListItemText primary="Админка" />
+                </ListItemButton>
+              </>
             ) : null}
           </List>
         </Box>

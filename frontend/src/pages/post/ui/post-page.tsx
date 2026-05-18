@@ -22,12 +22,15 @@ import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 
+import { useAuth } from '../../../app/providers/auth-provider';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../shared/api/api-error';
 import { getPublicPost } from '../../../shared/api/blog-api';
 import type { PublicAttachment, PublicPostDetail } from '../../../shared/api/blog-contract';
+import { getAdminEditPostPath } from '../../../shared/lib/admin-access';
 import { triggerBrowserDownload } from '../../../shared/lib/download';
 import { formatDateLabel } from '../../../shared/lib/format-date';
-import { prettifyMediaName } from '../../../shared/lib/media';
+import type { AudioCollection } from '../../../shared/lib/persistent-audio';
+import { isAudioUrl, prettifyMediaName } from '../../../shared/lib/media';
 import { type GalleryImage, ImageGalleryDialog } from '../../../shared/ui/image-gallery-dialog/image-gallery-dialog';
 import { LightboxImage } from '../../../shared/ui/lightbox-image/lightbox-image';
 import { MarkdownRenderer } from '../../../shared/ui/markdown-renderer/markdown-renderer';
@@ -43,6 +46,18 @@ function extractMarkdownImages(content: string): GalleryImage[] {
     caption: alt?.trim() || null,
     src,
   }));
+}
+
+function extractMarkdownAudioTracks(content: string) {
+  const linkPattern = /\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g;
+
+  return Array.from(content.matchAll(linkPattern))
+    .map(([_, label, href], index) => ({
+      href,
+      index,
+      label: label?.trim() || null,
+    }))
+    .filter((item) => isAudioUrl(item.href));
 }
 
 function PostSkeleton() {
@@ -222,6 +237,7 @@ function AttachmentCard({
 
 export function PostPage() {
   const { slug } = useParams();
+  const { isAuthenticated } = useAuth();
   const [post, setPost] = useState<PublicPostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -280,6 +296,30 @@ export function PostPage() {
   }, [post]);
 
   const markdownImages = useMemo(() => extractMarkdownImages(post?.bodyMarkdown ?? ''), [post?.bodyMarkdown]);
+  const markdownAudioCollection = useMemo<AudioCollection | null>(() => {
+    if (!post) {
+      return null;
+    }
+
+    const tracks = extractMarkdownAudioTracks(post.bodyMarkdown).map((track) => ({
+      id: `markdown-audio:${track.index}`,
+      src: track.href,
+      title: track.label || `Аудио ${track.index + 1}`,
+      subtitle: 'Текст поста',
+    }));
+
+    if (tracks.length === 0) {
+      return null;
+    }
+
+    return {
+      id: `post-markdown-audio:${post.id}`,
+      title: post.title,
+      subtitle: 'Аудио в тексте',
+      contextLabel: 'Пост',
+      tracks,
+    };
+  }, [post]);
 
   const visibleAttachments = useMemo(
     () => post?.attachments.filter((attachment) => attachment.kind !== 'audio' && attachment.kind !== 'video') ?? [],
@@ -349,6 +389,18 @@ export function PostPage() {
               Вернуться в блог
             </Button>
 
+            {isAuthenticated && post ? (
+              <Button
+                component={RouterLink}
+                size="small"
+                sx={{ alignSelf: 'flex-start', px: { xs: 2, sm: 0 } }}
+                to={getAdminEditPostPath(post.id)}
+                variant="outlined"
+              >
+                Edit post
+              </Button>
+            ) : null}
+
             {isLoading ? <PostSkeleton /> : null}
 
             {!isLoading && notFound ? (
@@ -407,6 +459,7 @@ export function PostPage() {
 
                 <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                   <MarkdownRenderer
+                    audioCollection={markdownAudioCollection}
                     content={post.bodyMarkdown}
                     imageGalleryIndexBySrc={markdownGalleryIndexBySrc}
                     onImageOpen={setActiveGalleryIndex}
@@ -417,7 +470,13 @@ export function PostPage() {
                   <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                     <Stack spacing={2}>
                       <Typography variant="h6">Вложения</Typography>
-                      <MediaPlaylist attachments={post.attachments} showTitle={false} />
+                      <MediaPlaylist
+                        attachments={post.attachments}
+                        audioCollectionContextLabel="Пост"
+                        audioCollectionSubtitle="Вложения"
+                        audioCollectionTitle={post.title}
+                        showTitle={false}
+                      />
                       <Box
                         sx={{
                           display: 'grid',

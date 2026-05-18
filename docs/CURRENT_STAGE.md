@@ -9,7 +9,7 @@
 - публичный блог с поиском `q`;
 - отдельная закрытая админка для одного автора;
 - admin-only cookie auth без Telegram, пользователей и комментариев;
-- скрытый production-вход через `admin.denisbakulin.ru`;
+- скрытый production-вход через `/admin` на основном домене;
 - редактируемые публичные данные автора и контактов сайта;
 - встроенная аналитика по постам, загрузкам и состоянию медиа;
 - кастомные audio/video панели;
@@ -30,11 +30,11 @@
 - backend работает на `FastAPI + async SQLAlchemy + SQLite`;
 - storage-слой использует Yandex Object Storage через S3 API;
 - frontend использует единый admin session state через `/api/auth/session`;
-- production-admin вынесен на отдельный host `admin.denisbakulin.ru`;
-- локально author workspace остается доступным через `/admin`;
+- production-admin живет на основном домене через путь `/admin`;
+- локально приватная зона остается доступной через `/admin`;
 - публичный `/blog` поддерживает поиск через `q`;
 - public `/posts/:slug` показывает статью и вложения без комментариев;
-- author workspace умеет:
+- приватная зона умеет:
   - создавать, редактировать и удалять посты;
   - работать с cover, inline media и attachments;
   - загружать `image | audio | video | file`;
@@ -47,8 +47,8 @@
 
 ## Что еще не подтверждено живым runtime-прогоном
 
-- полный глобальный сценарий через реальный `admin.denisbakulin.ru` и Caddy;
-- smoke QA по всем admin-host маршрутам после деплоя;
+- полный глобальный сценарий через основной домен и Caddy;
+- smoke QA по всем `/admin` и `/editor/*` маршрутам после деплоя;
 - production-путь для Groq transcription на живых больших медиа;
 - bundle warning по размеру frontend-сборки все еще остается и требует отдельного этапа code-splitting для тяжелых editor/media библиотек.
 
@@ -73,6 +73,6 @@
 
 - локальный runtime поднимается без ручных обходов;
 - публичный интерфейс не светит админские ссылки;
-- автор может открыть admin-only host, войти, создать, найти и удалить хотя бы один пост;
+- автор может открыть `/admin`, войти, создать, найти и удалить хотя бы один пост;
 - analytics, site profile editing и media flow подтверждены руками;
 - документация и `openapi.json` остаются синхронными с кодом и проверенным runtime.

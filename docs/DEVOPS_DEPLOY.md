@@ -5,7 +5,7 @@
 - локальный запуск на `localhost`;
 - глобальный запуск на реальном домене с двумя host-ами:
   - публичный `denisbakulin.ru`;
-  - закрытый `admin.denisbakulin.ru`.
+  - приватный `/admin` на том же домене.
 
 ## Локальный runtime
 
@@ -31,7 +31,7 @@ http://localhost:<LOCAL_HTTP_PORT>
 
 Если `LOCAL_HTTP_PORT` не переопределен в `.env`, локальный runtime использует `8080`.
 
-Локально author workspace остается доступным через путь `/admin`.
+Локально приватная зона остается доступной через путь `/admin`.
 
 ## Глобальный runtime
 
@@ -74,7 +74,6 @@ docker compose -f docker-compose.global.yml up -d --build
 - `GLOBAL_HTTP_PORT`
 - `GLOBAL_HTTPS_PORT`
 - `PUBLIC_DOMAIN`
-- `ADMIN_DOMAIN`
 - `LETSENCRYPT_EMAIL`
 - `PUBLIC_APP_ORIGIN`
 - `ADMIN_APP_ORIGIN`
@@ -102,12 +101,12 @@ docker compose -f docker-compose.global.yml up -d --build
 
 1. Скопировать проект на VPS.
 2. Подготовить `.env`.
-3. Проверить DNS для `denisbakulin.ru` и `admin.denisbakulin.ru`.
+3. Проверить DNS для `denisbakulin.ru`.
 4. Поднять `docker compose -f docker-compose.global.yml up -d --build`.
 5. Проверить логи `web` и `api`.
 6. Убедиться, что:
    - публичный сайт открывается по `https://denisbakulin.ru`;
-   - админка открывается по `https://admin.denisbakulin.ru`;
+   - админка открывается по `https://denisbakulin.ru/admin`;
    - `/api/health` отвечает;
    - admin login работает;
    - public posts открываются;

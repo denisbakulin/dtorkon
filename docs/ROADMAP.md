@@ -28,7 +28,7 @@
 
 Статус: завершен.
 
-- реализованы `/admin`, `/admin/posts/new`, `/admin/posts/:postId`;
+- реализованы `/admin`, `/admin/login`, `/editor/new`, `/editor/:postId`;
 - собран shell редактора: список постов, единый compose-surface, media dock и встроенный preview;
 - подключены создание, редактирование и публикация записей;
 - реализованы login flow, cover picker и attachments list.

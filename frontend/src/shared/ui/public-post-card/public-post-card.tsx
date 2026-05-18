@@ -1,8 +1,11 @@
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
-import { Box, Chip, Paper, Stack, Typography } from '@mui/material';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
+import { useAuth } from '../../../app/providers/auth-provider';
 import type { PublicPostListItem } from '../../api/blog-contract';
+import { getAdminEditPostPath } from '../../lib/admin-access';
 import { formatDateLabel } from '../../lib/format-date';
 
 type PublicPostCardProps = {
@@ -10,13 +13,11 @@ type PublicPostCardProps = {
   featured?: boolean;
 };
 
-export function PublicPostCard({
-  post,
-  featured = false,
-}: PublicPostCardProps) {
+export function PublicPostCard({ post, featured = false }: PublicPostCardProps) {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Paper
-      component={RouterLink}
       sx={{
         color: 'inherit',
         display: 'block',
@@ -28,32 +29,35 @@ export function PublicPostCard({
           transform: 'translateY(-3px)',
         },
       }}
-      to={`/posts/${post.slug}`}
     >
-      {post.coverAsset ? (
-        <Box
-          alt={post.coverAsset.originalName}
-          component="img"
-          src={post.coverAsset.url}
-          sx={{
-            aspectRatio: featured ? '16 / 8.5' : '16 / 10',
-            display: 'block',
-            objectFit: 'cover',
-            width: '100%',
-          }}
-        />
-      ) : null}
+      <Stack
+        component={RouterLink}
+        spacing={featured ? 2 : 1.5}
+        sx={{
+          color: 'inherit',
+          display: 'block',
+          p: featured ? 3 : 2.25,
+          textDecoration: 'none',
+        }}
+        to={`/posts/${post.slug}`}
+      >
+        {post.coverAsset ? (
+          <Box
+            alt={post.coverAsset.originalName}
+            component="img"
+            src={post.coverAsset.url}
+            sx={{
+              aspectRatio: featured ? '16 / 8.5' : '16 / 10',
+              display: 'block',
+              objectFit: 'cover',
+              width: '100%',
+            }}
+          />
+        ) : null}
 
-      <Stack spacing={featured ? 2 : 1.5} sx={{ p: featured ? 3 : 2.25 }}>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: 'center', flexWrap: 'wrap' }}
-        >
-          {featured ? <Chip color="primary" label="Свежая публикация"/> : null}
-          <Typography color="text.secondary">
-            {formatDateLabel(post.publishedAt, )}
-          </Typography>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          {featured ? <Chip color="primary" label="Fresh post" /> : null}
+          <Typography color="text.secondary">{formatDateLabel(post.publishedAt)}</Typography>
         </Stack>
 
         <Stack spacing={1}>
@@ -78,17 +82,31 @@ export function PublicPostCard({
             }}
             variant="body2"
           >
-            {post.excerpt || 'Материал уже опубликован и доступен для чтения.'}
+            {post.excerpt || 'Published article available for reading.'}
           </Typography>
         </Stack>
 
         <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center' }}>
           <Typography color="primary.main" variant="body2">
-            Открыть статью
+            Open article
           </Typography>
           <ArrowOutwardRoundedIcon color="primary" fontSize="small" />
         </Stack>
       </Stack>
+
+      {isAuthenticated ? (
+        <Stack direction="row" spacing={1} sx={{ px: featured ? 3 : 2.25, pb: featured ? 3 : 2.25 }}>
+          <Button
+            component={RouterLink}
+            onClick={(event) => event.stopPropagation()}
+            startIcon={<EditRoundedIcon />}
+            to={getAdminEditPostPath(post.id)}
+            variant="outlined"
+          >
+            Edit
+          </Button>
+        </Stack>
+      ) : null}
     </Paper>
   );
 }

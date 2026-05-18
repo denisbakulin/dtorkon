@@ -20,9 +20,10 @@ Frontend покрывает две поверхности:
 
 ### Admin
 
-- `/admin` — экран логина или вход в editor shell;
-- `/admin/posts/new` — создание записи;
-- `/admin/posts/:postId` — редактирование записи.
+- `/admin` — приватные дашборды и настройки;
+- `/admin/login` — вход в приватную зону;
+- `/editor/new` — создание записи;
+- `/editor/:postId` — редактирование записи.
 
 ## Public UI
 

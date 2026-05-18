@@ -25,7 +25,7 @@ def create_app() -> FastAPI:
         version="0.1.0-fastapi",
         description=(
             "FastAPI backend for the dtorkon mini-blog. The service handles "
-            "admin-only auth, public/admin posts, site profile editing, "
+            "admin session auth, public/admin posts, site profile editing, "
             "analytics, SQLite persistence, searchable publishing, and backend-mediated uploads "
             "to Yandex Object Storage over the S3 API."
         ),
