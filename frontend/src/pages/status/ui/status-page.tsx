@@ -162,6 +162,67 @@ function DashboardMetric({
   );
 }
 
+function SnapshotBarChart({
+  items,
+}: {
+  items: Array<{ label: string; value: number | null; caption: string }>;
+}) {
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gap: 2,
+        gridTemplateColumns: {
+          xs: 'repeat(2, minmax(0, 1fr))',
+          md: 'repeat(4, minmax(0, 1fr))',
+        },
+      }}
+    >
+      {items.map((item) => {
+        const normalizedValue = item.value == null || Number.isNaN(item.value) ? 0 : Math.max(0, Math.min(item.value, 100));
+
+        return (
+          <Paper key={item.label} sx={{ border: 1, borderColor: 'divider', p: 2, boxShadow: 'none' }} variant="outlined">
+            <Stack spacing={1.25}>
+              <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
+                <Typography variant="subtitle2">{item.label}</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  {item.value == null ? 'n/a' : `${Math.round(normalizedValue)}%`}
+                </Typography>
+              </Stack>
+              <Box
+                sx={{
+                  alignItems: 'flex-end',
+                  bgcolor: 'rgba(148, 163, 184, 0.12)',
+                  borderRadius: 2,
+                  display: 'flex',
+                  height: 160,
+                  overflow: 'hidden',
+                  px: 1.25,
+                  py: 1,
+                }}
+              >
+                <Box
+                  sx={{
+                    bgcolor: item.value == null ? 'rgba(148, 163, 184, 0.28)' : '#2da6eb',
+                    borderRadius: 1.5,
+                    height: `${Math.max(normalizedValue, item.value == null ? 18 : 6)}%`,
+                    transition: 'height 220ms ease',
+                    width: '100%',
+                  }}
+                />
+              </Box>
+              <Typography color="text.secondary" variant="body2">
+                {item.caption}
+              </Typography>
+            </Stack>
+          </Paper>
+        );
+      })}
+    </Box>
+  );
+}
+
 function ContainerDashboardCard({ container, maxMemoryBytes }: { container: ContainerStatus; maxMemoryBytes: number }) {
   const cpuValue = container.cpuUsagePercent ?? null;
   const memoryBytes = container.memoryWorkingSetBytes ?? container.memoryUsageBytes ?? 0;
@@ -428,42 +489,45 @@ export function StatusPage() {
                   </Typography>
                 </Stack>
 
-                {runtimeStatus?.host ? (
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gap: 2,
-                      gridTemplateColumns: {
-                        xs: '1fr',
-                        md: 'repeat(3, minmax(0, 1fr))',
-                      },
-                    }}
-                  >
-                    <DashboardMetric
-                      icon={<MemoryRoundedIcon color="primary" />}
-                      primary={formatPercent(runtimeStatus.host.cpuUsagePercent)}
-                      secondary={`Load ${runtimeStatus.host.load1?.toFixed(2) ?? '-'} / ${runtimeStatus.host.load5?.toFixed(2) ?? '-'} / ${runtimeStatus.host.load15?.toFixed(2) ?? '-'}`}
-                      title="CPU load"
-                      value={runtimeStatus.host.cpuUsagePercent}
-                    />
-                    <DashboardMetric
-                      icon={<StorageRoundedIcon color="primary" />}
-                      primary={`${formatBytes(runtimeStatus.host.memoryUsedBytes)} / ${formatBytes(runtimeStatus.host.memoryTotalBytes)}`}
-                      secondary={`Free ${formatBytes(runtimeStatus.host.memoryAvailableBytes)}`}
-                      title="Memory usage"
-                      value={hostMemoryPercent}
-                    />
-                    <DashboardMetric
-                      icon={<StorageRoundedIcon color="primary" />}
-                      primary={`${formatBytes(runtimeStatus.host.diskUsedBytes)} / ${formatBytes(runtimeStatus.host.diskTotalBytes)}`}
-                      secondary={`Free ${formatBytes(runtimeStatus.host.diskAvailableBytes)}`}
-                      title="Disk usage"
-                      value={hostDiskPercent}
-                    />
-                  </Box>
-                ) : (
-                  <Alert severity="info">Host metrics появятся после подключения `node_exporter`.</Alert>
-                )}
+                <SnapshotBarChart
+                  items={[
+                    {
+                      label: 'CPU',
+                      value: runtimeStatus?.host?.cpuUsagePercent ?? null,
+                      caption:
+                        runtimeStatus?.host?.load1 != null
+                          ? `Load ${runtimeStatus.host.load1.toFixed(2)}`
+                          : 'CPU activity',
+                    },
+                    {
+                      label: 'RAM',
+                      value: hostMemoryPercent,
+                      caption:
+                        runtimeStatus?.host?.memoryUsedBytes != null
+                          ? `${formatBytes(runtimeStatus.host.memoryUsedBytes)} used`
+                          : 'Memory usage',
+                    },
+                    {
+                      label: 'Disk',
+                      value: hostDiskPercent,
+                      caption:
+                        runtimeStatus?.host?.diskUsedBytes != null
+                          ? `${formatBytes(runtimeStatus.host.diskUsedBytes)} used`
+                          : 'Disk usage',
+                    },
+                    {
+                      label: 'Load 5m',
+                      value:
+                        runtimeStatus?.host?.load5 != null
+                          ? Math.max(0, Math.min(runtimeStatus.host.load5 * 25, 100))
+                          : null,
+                      caption:
+                        runtimeStatus?.host?.load5 != null
+                          ? `${runtimeStatus.host.load5.toFixed(2)} avg`
+                          : 'System load',
+                    },
+                  ]}
+                />
               </Stack>
             </Paper>
 

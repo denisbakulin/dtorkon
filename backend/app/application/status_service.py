@@ -21,7 +21,7 @@ from app.infrastructure.config import Settings
 
 
 METRIC_LINE_PATTERN = re.compile(
-    r"^(?P<name>[a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{(?P<labels>.*)\})?\s+(?P<value>[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?)$"
+    r"^(?P<name>[a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{(?P<labels>.*)\})?\s+(?P<value>[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?)(?:\s+(?P<timestamp>\d+))?$"
 )
 LABEL_PATTERN = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)="((?:[^"\\]|\\.)*)"')
 IGNORED_FILESYSTEM_TYPES = {
@@ -149,11 +149,29 @@ def _coalesce_container_name(labels: dict[str, str]) -> str | None:
     return None
 
 
+def _container_key_from_labels(labels: dict[str, str]) -> str | None:
+    container_id = labels.get("id")
+    if container_id and container_id not in ROOT_CONTAINER_NAMES and "docker/" in container_id:
+        return container_id
+
+    name = labels.get("name")
+    if name and name not in ROOT_CONTAINER_NAMES:
+        return name
+
+    service = labels.get("container_label_com_docker_compose_service")
+    if service:
+        return service
+
+    return None
+
+
 def _should_keep_container(labels: dict[str, str]) -> bool:
     name = labels.get("name", "")
     service = labels.get("container_label_com_docker_compose_service")
     image = labels.get("image")
     if service:
+        return True
+    if name and name not in ROOT_CONTAINER_NAMES and "docker/" in labels.get("id", ""):
         return True
     if image and name and name not in ROOT_CONTAINER_NAMES:
         return True
@@ -271,44 +289,56 @@ def _build_container_statuses(cadvisor_samples: list[MetricSample]) -> list[Cont
         if not _should_keep_container(sample.labels):
             continue
 
-        container_name = _coalesce_container_name(sample.labels)
-        if not container_name:
+        container_key = _container_key_from_labels(sample.labels)
+        if not container_key:
             continue
 
-        service_name = sample.labels.get("container_label_com_docker_compose_service") or container_name
-        container_key = sample.labels.get("id") or container_name
         bucket = metrics_by_container.setdefault(
             container_key,
             {
-                "name": container_name,
-                "service": service_name,
+                "name": None,
+                "service": None,
                 "cpu_percent": None,
                 "memory_usage_bytes": None,
                 "memory_working_set_bytes": None,
                 "filesystem_usage_bytes": None,
                 "network_receive_bytes": 0.0,
                 "network_transmit_bytes": 0.0,
+                "recognized_metric": False,
             },
         )
 
+        container_name = _coalesce_container_name(sample.labels)
+        service_name = sample.labels.get("container_label_com_docker_compose_service")
+        if service_name and not bucket["service"]:
+            bucket["service"] = service_name
+        if container_name and not bucket["name"]:
+            bucket["name"] = container_name
+
         if sample.name == "container_cpu_usage_seconds_total":
             bucket["cpu_percent"] = _calculate_container_cpu_percent(container_key, sample.value, now)
+            bucket["recognized_metric"] = True
         elif sample.name == "container_memory_usage_bytes":
             bucket["memory_usage_bytes"] = sample.value
+            bucket["recognized_metric"] = True
         elif sample.name == "container_memory_working_set_bytes":
             bucket["memory_working_set_bytes"] = sample.value
+            bucket["recognized_metric"] = True
         elif sample.name == "container_fs_usage_bytes":
             current = bucket.get("filesystem_usage_bytes")
             bucket["filesystem_usage_bytes"] = max(sample.value, float(current or 0))
+            bucket["recognized_metric"] = True
         elif sample.name == "container_network_receive_bytes_total":
             bucket["network_receive_bytes"] = float(bucket["network_receive_bytes"] or 0) + sample.value
+            bucket["recognized_metric"] = True
         elif sample.name == "container_network_transmit_bytes_total":
             bucket["network_transmit_bytes"] = float(bucket["network_transmit_bytes"] or 0) + sample.value
+            bucket["recognized_metric"] = True
 
     containers = [
         ContainerStatusRead(
-            name=str(values["name"]),
-            service=str(values["service"]),
+            name=str(values["name"] or values["service"] or key.removeprefix("/")),
+            service=str(values["service"] or values["name"] or key.removeprefix("/")),
             cpu_usage_percent=values["cpu_percent"],
             memory_usage_bytes=values["memory_usage_bytes"],
             memory_working_set_bytes=values["memory_working_set_bytes"],
@@ -316,7 +346,8 @@ def _build_container_statuses(cadvisor_samples: list[MetricSample]) -> list[Cont
             network_receive_bytes=int(values["network_receive_bytes"] or 0),
             network_transmit_bytes=int(values["network_transmit_bytes"] or 0),
         )
-        for values in metrics_by_container.values()
+        for key, values in metrics_by_container.items()
+        if values["recognized_metric"]
     ]
     containers.sort(key=lambda item: item.service)
     return containers
