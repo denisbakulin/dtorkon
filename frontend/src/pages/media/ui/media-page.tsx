@@ -177,7 +177,7 @@ export function MediaPage() {
                               asset={item.asset}
                               audioCollection={item.kind === 'audio' ? audioCollection : null}
                               audioSubtitle={item.kind === 'audio' ? item.postTitle?.trim() || null : null}
-                              audioTitle={item.title?.trim() || prettifyMediaName(item.asset.originalName)}
+                              
                               audioTrackId={item.kind === 'audio' ? item.id : null}
                               kind={item.kind}
                             />

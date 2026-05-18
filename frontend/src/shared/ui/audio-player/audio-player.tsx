@@ -115,9 +115,7 @@ export function AudioPlayer({
               </Typography>
             ) : null}
             {subtitle ? (
-              <Typography color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} variant="caption">
-                {subtitle}
-              </Typography>
+              <></>
             ) : null}
           </Box>
         </Stack>
@@ -134,6 +132,7 @@ export function AudioPlayer({
           width: '100%',
         })}
       >
+        
         <IconButton
           aria-label={isPlaying ? 'Pause' : 'Play'}
           onClick={(event) => {
@@ -203,6 +202,7 @@ export function AudioPlayer({
             }}
           />
         </Box>
+        
 
         <Typography sx={{ flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' }} variant="body2">
           {formattedTime}

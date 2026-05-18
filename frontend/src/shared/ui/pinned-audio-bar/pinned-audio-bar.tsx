@@ -65,9 +65,7 @@ export function PinnedAudioBar() {
               trackId={snapshot.trackId}
               waveformAction="open"
             />
-            <Typography color="primary.main" sx={{ mt: 0.75, ml: 0.5 }} variant="caption">
-              Открыть альбом
-            </Typography>
+            
           </Box>
           <IconButton
             aria-label="Close player"

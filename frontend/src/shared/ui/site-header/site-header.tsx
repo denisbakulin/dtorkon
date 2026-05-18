@@ -236,23 +236,6 @@ export function SiteHeader() {
                     component={RouterLink}
                     sx={(theme) => ({
                       borderRadius: 1,
-                      color: 'text.primary',
-                      px: 1.8,
-                      '&:hover': {
-                        bgcolor: alpha(theme.palette.primary.main, 0.08),
-                      },
-                    })}
-                    to={adminLinks.createHref}
-                    variant="text"
-                  >
-                    Новый пост
-                  </Button>
-                  <Button
-                    color="inherit"
-                    component={RouterLink}
-                    sx={(theme) => ({
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
-                      borderRadius: 1,
                       color: 'primary.main',
                       px: 1.8,
                       '&:hover': {
