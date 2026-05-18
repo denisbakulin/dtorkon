@@ -2569,7 +2569,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                                   }}
                                 />
                               ) : attachment.kind === 'audio' || attachment.kind === 'video' ? (
-                                <MediaPlayer asset={attachment.asset} kind={attachment.kind} />
+                                <MediaPlayer asset={attachment.asset} compact={false} kind={attachment.kind} showTranscript />
                               ) : (
                                 <Typography color="text.secondary" variant="body2">
                                   {attachment.asset.mimeType} • {Math.round(attachment.asset.size / 1024)} KB
@@ -2692,7 +2692,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                               </Stack>
 
                               {attachment.kind === 'audio' || attachment.kind === 'video' ? (
-                                <MediaPlayer asset={attachment.asset} kind={attachment.kind} />
+                                <MediaPlayer asset={attachment.asset} compact={false} kind={attachment.kind} showTranscript />
                               ) : null}
                             </Stack>
                           </Box>

@@ -15,9 +15,11 @@ type MediaPlayerProps = {
   audioSubtitle?: string | null;
   audioTitle?: string | null;
   audioTrackId?: string | null;
+  compact?: boolean;
+  showTranscript?: boolean;
 };
 
-export function MediaPlayer({ asset, kind, audioCollection = null, audioSubtitle, audioTitle, audioTrackId }: MediaPlayerProps) {
+export function MediaPlayer({ asset, kind, audioCollection = null, audioSubtitle, audioTitle, audioTrackId, compact = true, showTranscript = false }: MediaPlayerProps) {
   return (
     <Box sx={{ width: '100%' }}>
       <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
@@ -39,7 +41,7 @@ export function MediaPlayer({ asset, kind, audioCollection = null, audioSubtitle
         <AudioPlayer
           collection={audioCollection}
           src={asset.url}
-          subtitle={audioSubtitle}
+          subtitle={compact ? null : audioSubtitle}
           title={audioTitle || asset.originalName}
           trackId={audioTrackId}
         />
@@ -55,7 +57,7 @@ export function MediaPlayer({ asset, kind, audioCollection = null, audioSubtitle
           }}
         />
       )}
-      {asset.transcriptStatus === 'ready' && asset.transcriptText ? (
+      {showTranscript && asset.transcriptStatus === 'ready' && asset.transcriptText ? (
         <Box
           sx={{
             border: '1px solid',
