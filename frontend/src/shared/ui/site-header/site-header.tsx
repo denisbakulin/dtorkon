@@ -2,23 +2,29 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   AppBar,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Drawer,
   IconButton,
   List,
   ListItemButton,
   ListItemText,
   Stack,
+  TextField,
   Toolbar,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useEffect, useMemo, useState } from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../../app/providers/auth-provider';
 import { useSiteProfile } from '../../../app/providers/site-profile-provider';
@@ -41,22 +47,47 @@ function isRouteActive(pathname: string, href: string) {
 
 export function SiteHeader() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const { activeThemePreset, applyGuestPreferences, isAuthenticated } = useAuth();
   const { siteProfile } = useSiteProfile();
 
   const headerTitle = siteProfile?.siteTitle?.trim() || 'dtorkon';
   const headerTagline = siteProfile?.siteTagline?.trim() || 'mini blog';
-  const headerMark = ((headerTitle.trim()[0] ?? 'd') as string).toLowerCase();
+  const showBlogSearch = location.pathname.startsWith('/blog');
+  const searchQuery = (searchParams.get('q') ?? '').trim();
 
   useEffect(() => {
     setIsMobileNavOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!isSearchOpen) {
+      return;
+    }
+
+    setSearchInput(searchQuery);
+  }, [isSearchOpen, searchQuery]);
+
   const handleToggleTheme = () => {
     applyGuestPreferences({
       themePreset: activeThemePreset === 'dark' ? 'light' : 'dark',
     });
+  };
+
+  const applySearchQuery = (nextQuery: string) => {
+    const normalizedQuery = nextQuery.trim();
+    const nextSearchParams = new URLSearchParams(searchParams);
+
+    if (normalizedQuery) {
+      nextSearchParams.set('q', normalizedQuery);
+    } else {
+      nextSearchParams.delete('q');
+    }
+
+    setSearchParams(nextSearchParams);
   };
 
   const adminLinks = useMemo(() => {
@@ -146,7 +177,16 @@ export function SiteHeader() {
                   width: 38,
                 }}
               >
-                {headerMark}
+                <Box
+                  alt={`${headerTitle} logo`}
+                  component="img"
+                  src="/favicon.ico"
+                  sx={{
+                    display: 'block',
+                    height: 24,
+                    width: 24,
+                  }}
+                />
               </Box>
               <Stack spacing={0.1}>
                 <Typography variant="subtitle1">{headerTitle}</Typography>
@@ -230,6 +270,14 @@ export function SiteHeader() {
 
             <Box sx={{ flexGrow: 1 }} />
 
+            {showBlogSearch ? (
+              <Tooltip title="Search posts">
+                <IconButton aria-label="Search posts" color="inherit" onClick={() => setIsSearchOpen(true)}>
+                  <SearchRoundedIcon />
+                </IconButton>
+              </Tooltip>
+            ) : null}
+
             <Tooltip title={activeThemePreset === 'dark' ? 'Light theme' : 'Dark theme'}>
               <IconButton
                 aria-label="Toggle theme"
@@ -300,6 +348,53 @@ export function SiteHeader() {
           </List>
         </Box>
       </Drawer>
+
+      <Dialog fullWidth maxWidth="sm" onClose={() => setIsSearchOpen(false)} open={isSearchOpen}>
+        <DialogTitle>Поиск по постам</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Поиск"
+            onChange={(event) => setSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                applySearchQuery(searchInput);
+                setIsSearchOpen(false);
+              }
+            }}
+            sx={{ mt: 1 }}
+            value={searchInput}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          {searchQuery ? (
+            <Button
+              onClick={() => {
+                setSearchInput('');
+                applySearchQuery('');
+                setIsSearchOpen(false);
+              }}
+              variant="outlined"
+            >
+              Сбросить
+            </Button>
+          ) : null}
+          <Box sx={{ flexGrow: 1 }} />
+          <Button onClick={() => setIsSearchOpen(false)} variant="text">
+            Отмена
+          </Button>
+          <Button
+            onClick={() => {
+              applySearchQuery(searchInput);
+              setIsSearchOpen(false);
+            }}
+            variant="contained"
+          >
+            Искать
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

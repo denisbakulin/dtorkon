@@ -1,19 +1,16 @@
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Alert,
   Box,
   Button,
   Container,
-  InputAdornment,
   Paper,
   Skeleton,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material';
 import axios from 'axios';
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../../app/providers/auth-provider';
@@ -46,15 +43,13 @@ function BlogListSkeleton() {
 
 export function BlogPage() {
   const { isAuthenticated } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState<PublicPostListItem[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [nextPage, setNextPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '');
 
   const searchQuery = useMemo(() => (searchParams.get('q') ?? '').trim(), [searchParams]);
   const hasOlderPosts = pagination ? nextPage <= pagination.totalPages : false;
@@ -63,10 +58,6 @@ export function BlogPage() {
   const topSentinelRef = useRef<HTMLDivElement | null>(null);
   const scrollRestoreRef = useRef<{ prevScrollHeight: number; prevScrollTop: number } | null>(null);
   const shouldScrollToBottomRef = useRef(true);
-
-  useEffect(() => {
-    setSearchInput(searchQuery);
-  }, [searchQuery]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -204,8 +195,8 @@ export function BlogPage() {
           flex: 1,
           minHeight: 0,
           overflow: 'hidden',
-          pb: 10,
-          pt: { xs: 3, md: 5 },
+          pb: 0,
+          pt: 0,
         }}
       >
         <Container
@@ -226,6 +217,7 @@ export function BlogPage() {
                 p: 2.5,
                 width: { xs: '100%', md: 360 },
                 flexShrink: 0,
+                display: { xs: 'none', md: 'block' },
               }}
             >
               <Stack spacing={1.5}>
@@ -233,71 +225,14 @@ export function BlogPage() {
                 <Typography color="text.secondary" variant="body2">
                   Последние посты внизу. Прокрути вверх, чтобы подгрузить старые.
                 </Typography>
-                <TextField
-                  label="Поиск"
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      startTransition(() => {
-                        const nextSearchParams = new URLSearchParams(searchParams);
-                        if (searchInput.trim()) {
-                          nextSearchParams.set('q', searchInput.trim());
-                        } else {
-                          nextSearchParams.delete('q');
-                        }
-                        setSearchParams(nextSearchParams);
-                      });
-                    }
-                  }}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchRoundedIcon fontSize="small" />
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                  value={searchInput}
-                />
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
-                  {isAuthenticated ? (
-                    <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
-                      Новый пост
-                    </Button>
-                  ) : null}
-                  <Button
-                    onClick={() => {
-                      startTransition(() => {
-                        const nextSearchParams = new URLSearchParams(searchParams);
-                        if (searchInput.trim()) {
-                          nextSearchParams.set('q', searchInput.trim());
-                        } else {
-                          nextSearchParams.delete('q');
-                        }
-                        setSearchParams(nextSearchParams);
-                      });
-                    }}
-                    variant="contained"
-                  >
-                    Искать
+                <Typography color="text.secondary" variant="body2">
+                  Поиск — кнопка с лупой в шапке.
+                </Typography>
+                {isAuthenticated ? (
+                  <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
+                    Новый пост
                   </Button>
-                  {searchQuery ? (
-                    <Button
-                      onClick={() => {
-                        setSearchInput('');
-                        startTransition(() => {
-                          const nextSearchParams = new URLSearchParams(searchParams);
-                          nextSearchParams.delete('q');
-                          setSearchParams(nextSearchParams);
-                        });
-                      }}
-                      variant="outlined"
-                    >
-                      Сбросить
-                    </Button>
-                  ) : null}
-                </Stack>
+                ) : null}
                 {pagination ? (
                   <Typography color="text.secondary" variant="body2">
                     Найдено публикаций: {pagination.totalItems}
@@ -317,6 +252,27 @@ export function BlogPage() {
                 p: 1.25,
               }}
             >
+              <Box sx={{ display: { xs: 'block', md: 'none' }, px: 0.5, pt: 0.5 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Stack spacing={0.25}>
+                    <Typography sx={{ fontSize: '1.5rem', fontWeight: 700 }}>Блог</Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Поиск — кнопка в шапке.
+                    </Typography>
+                  </Stack>
+                  {isAuthenticated ? (
+                    <Button component={RouterLink} size="small" to={getAdminCreatePostPath()} variant="outlined">
+                      Новый пост
+                    </Button>
+                  ) : null}
+                </Stack>
+                {pagination ? (
+                  <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
+                    Найдено публикаций: {pagination.totalItems}
+                  </Typography>
+                ) : null}
+              </Box>
+
               {errorMessage && items.length === 0 ? (
                 <Alert
                   action={
@@ -389,7 +345,7 @@ export function BlogPage() {
                         action={
                           <Button
                             color="inherit"
-                            disabled={!hasOlderPosts || isLoadingOlder || isPending}
+                            disabled={!hasOlderPosts || isLoadingOlder || isLoading}
                             onClick={() => {
                               const feed = feedRef.current;
                               if (!feed || !hasOlderPosts || isLoadingOlder) {
