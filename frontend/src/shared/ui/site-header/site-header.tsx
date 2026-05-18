@@ -166,8 +166,8 @@ export function SiteHeader() {
             >
               <Box
                 sx={{
-                  bgcolor: 'primary.main',
-                  borderRadius: 1,
+                  
+                  
                   color: '#fff',
                   display: 'grid',
                   fontSize: '0.95rem',
@@ -183,8 +183,9 @@ export function SiteHeader() {
                   src="/favicon.ico"
                   sx={{
                     display: 'block',
-                    height: 24,
-                    width: 24,
+                    height: "100%",
+                    width: "100%",
+                    borderRadius: 1
                   }}
                 />
               </Box>
