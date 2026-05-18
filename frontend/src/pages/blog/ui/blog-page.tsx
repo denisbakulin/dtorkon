@@ -212,29 +212,7 @@ export function BlogPage() {
             spacing={2}
             sx={{ flex: 1, minHeight: 0 }}
           >
-            <Paper
-              sx={{
-                p: 2.5,
-                width: { xs: '100%', md: 360 },
-                flexShrink: 0,
-                display: { xs: 'none', md: 'block' },
-              }}
-            >
-              <Stack spacing={1.5}>
-                <Typography sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700 }}>Блог</Typography>
-              
-                {isAuthenticated ? (
-                  <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
-                    Новый пост
-                  </Button>
-                ) : null}
-                {pagination ? (
-                  <Typography color="text.secondary" variant="body2">
-                    Найдено публикаций: {pagination.totalItems}
-                  </Typography>
-                ) : null}
-              </Stack>
-            </Paper>
+           
 
             <Paper
               sx={{
@@ -386,9 +364,16 @@ export function BlogPage() {
                         {errorMessage}
                       </Alert>
                     ) : null}
+                    
                   </Stack>
                 </Box>
+                
               ) : null}
+              {isAuthenticated ? (
+                  <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
+                    Новый пост
+                  </Button>
+                ) : null}
             </Paper>
           </Stack>
         </Container>
