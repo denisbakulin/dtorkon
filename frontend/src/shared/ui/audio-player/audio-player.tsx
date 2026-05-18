@@ -136,8 +136,10 @@ export function AudioPlayer({
       >
         <IconButton
           aria-label={isPlaying ? 'Pause' : 'Play'}
-          onClick={togglePlay}
-          onClickCapture={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            togglePlay();
+          }}
           size="small"
           sx={{
             bgcolor: 'transparent',
