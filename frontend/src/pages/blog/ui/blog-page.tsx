@@ -222,12 +222,7 @@ export function BlogPage() {
             >
               <Stack spacing={1.5}>
                 <Typography sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700 }}>Блог</Typography>
-                <Typography color="text.secondary" variant="body2">
-                  Последние посты внизу. Прокрути вверх, чтобы подгрузить старые.
-                </Typography>
-                <Typography color="text.secondary" variant="body2">
-                  Поиск — кнопка с лупой в шапке.
-                </Typography>
+              
                 {isAuthenticated ? (
                   <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
                     Новый пост
@@ -256,9 +251,7 @@ export function BlogPage() {
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                   <Stack spacing={0.25}>
                     <Typography sx={{ fontSize: '1.5rem', fontWeight: 700 }}>Блог</Typography>
-                    <Typography color="text.secondary" variant="body2">
-                      Поиск — кнопка в шапке.
-                    </Typography>
+                   
                   </Stack>
                   {isAuthenticated ? (
                     <Button component={RouterLink} size="small" to={getAdminCreatePostPath()} variant="outlined">

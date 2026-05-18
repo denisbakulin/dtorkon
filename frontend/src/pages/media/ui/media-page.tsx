@@ -91,9 +91,6 @@ export function MediaPage() {
           <Stack spacing={2.5}>
             <Stack spacing={0.75} sx={{ px: { xs: 2, sm: 0 } }}>
               <Typography variant="h4">Медиа</Typography>
-              <Typography color="text.secondary" variant="body2">
-                Все вложения из опубликованных постов, сгруппированные по типу и дате.
-              </Typography>
             </Stack>
 
             <Paper sx={{ borderRadius: { xs: 0, md: 2 }, overflow: 'hidden' }} variant="outlined">
