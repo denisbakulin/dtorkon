@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     groq_speech_model: str = "whisper-large-v3-turbo"
     groq_api_base: str = "https://api.groq.com/openai/v1"
     telegram_bot_token: str | None = None
+    cadvisor_base_url: str | None = None
+    node_exporter_base_url: str | None = None
+    uptime_kuma_base_url: str | None = None
+    uptime_kuma_status_slug: str | None = None
 
     @property
     def sqlite_url(self) -> str:

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "dtorkon API",
-    "description": "FastAPI backend for the dtorkon mini-blog. The service handles admin-only auth, public/admin posts, site profile editing, analytics, SQLite persistence, searchable publishing, and backend-mediated uploads to Yandex Object Storage over the S3 API.",
+    "description": "FastAPI backend for the dtorkon mini-blog. The service handles admin session auth, public/admin posts, site profile editing, analytics, SQLite persistence, searchable publishing, and backend-mediated uploads to Yandex Object Storage over the S3 API.",
     "version": "0.1.0-fastapi"
   },
   "servers": [
@@ -30,6 +30,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Get aggregated runtime status",
+        "operationId": "get_status_api_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
                 }
               }
             }
@@ -419,7 +440,7 @@
         "tags": [
           "Admin Analytics"
         ],
-        "summary": "Get analytics for the author workspace",
+        "summary": "Get analytics for the admin dashboard",
         "operationId": "get_admin_analytics_api_admin_analytics_get",
         "responses": {
           "200": {
@@ -455,7 +476,7 @@
         "tags": [
           "Admin Posts"
         ],
-        "summary": "Get posts for the author workspace",
+        "summary": "Get posts for the admin editor",
         "operationId": "list_admin_posts_api_admin_posts_get",
         "security": [
           {
@@ -2500,6 +2521,78 @@
         ],
         "title": "ContactMessageCreateRequest"
       },
+      "ContainerStatusRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "cpuUsagePercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpuusagepercent"
+          },
+          "memoryUsageBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memoryusagebytes"
+          },
+          "memoryWorkingSetBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memoryworkingsetbytes"
+          },
+          "filesystemUsageBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filesystemusagebytes"
+          },
+          "networkReceiveBytes": {
+            "type": "integer",
+            "title": "Networkreceivebytes",
+            "default": 0
+          },
+          "networkTransmitBytes": {
+            "type": "integer",
+            "title": "Networktransmitbytes",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "service"
+        ],
+        "title": "ContainerStatusRead"
+      },
       "CreatePostRequest": {
         "properties": {
           "title": {
@@ -2630,6 +2723,133 @@
         ],
         "title": "HealthResponse"
       },
+      "HostStatusRead": {
+        "properties": {
+          "cpuUsagePercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpuusagepercent"
+          },
+          "load1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load1"
+          },
+          "load5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load5"
+          },
+          "load15": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load15"
+          },
+          "memoryTotalBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memorytotalbytes"
+          },
+          "memoryAvailableBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memoryavailablebytes"
+          },
+          "memoryUsedBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memoryusedbytes"
+          },
+          "diskTotalBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disktotalbytes"
+          },
+          "diskAvailableBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diskavailablebytes"
+          },
+          "diskUsedBytes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diskusedbytes"
+          },
+          "uptimeSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uptimeseconds"
+          }
+        },
+        "type": "object",
+        "title": "HostStatusRead"
+      },
       "LoginRequest": {
         "properties": {
           "username": {
@@ -2647,6 +2867,51 @@
           "password"
         ],
         "title": "LoginRequest"
+      },
+      "MonitoringSourceRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "reachable": {
+            "type": "boolean",
+            "title": "Reachable"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "enabled",
+          "reachable"
+        ],
+        "title": "MonitoringSourceRead"
       },
       "Pagination": {
         "properties": {
@@ -3126,6 +3391,118 @@
         ],
         "title": "SiteProfileRead"
       },
+      "StatusMonitorRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down",
+              "maintenance",
+              "unknown"
+            ],
+            "title": "Status"
+          },
+          "pingMs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pingms"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "title": "StatusMonitorRead"
+      },
+      "StatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "generatedAt": {
+            "type": "string",
+            "title": "Generatedat"
+          },
+          "backendStatus": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "title": "Backendstatus"
+          },
+          "host": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HostStatusRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "containers": {
+            "items": {
+              "$ref": "#/components/schemas/ContainerStatusRead"
+            },
+            "type": "array",
+            "title": "Containers"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/MonitoringSourceRead"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "uptimeKuma": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UptimeKumaStatusRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "generatedAt",
+          "backendStatus"
+        ],
+        "title": "StatusResponse"
+      },
       "TelegramSettingsRead": {
         "properties": {
           "botConfigured": {
@@ -3467,6 +3844,56 @@
         "type": "object",
         "title": "UpdateTelegramMessageTemplateRequest"
       },
+      "UptimeKumaStatusRead": {
+        "properties": {
+          "pageTitle": {
+            "type": "string",
+            "title": "Pagetitle"
+          },
+          "pageUrl": {
+            "type": "string",
+            "title": "Pageurl"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "totalMonitors": {
+            "type": "integer",
+            "title": "Totalmonitors"
+          },
+          "upMonitors": {
+            "type": "integer",
+            "title": "Upmonitors"
+          },
+          "downMonitors": {
+            "type": "integer",
+            "title": "Downmonitors"
+          },
+          "maintenanceMonitors": {
+            "type": "integer",
+            "title": "Maintenancemonitors"
+          },
+          "monitors": {
+            "items": {
+              "$ref": "#/components/schemas/StatusMonitorRead"
+            },
+            "type": "array",
+            "title": "Monitors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pageTitle",
+          "pageUrl",
+          "slug",
+          "totalMonitors",
+          "upMonitors",
+          "downMonitors",
+          "maintenanceMonitors"
+        ],
+        "title": "UptimeKumaStatusRead"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -3520,6 +3947,10 @@
     {
       "name": "Health",
       "description": "Service health endpoints."
+    },
+    {
+      "name": "Status",
+      "description": "Aggregated runtime and monitoring endpoints."
     },
     {
       "name": "Auth",

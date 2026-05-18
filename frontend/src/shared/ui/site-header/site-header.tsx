@@ -34,6 +34,7 @@ const navigationItems = [
   { label: 'Главная', to: '/' },
   { label: 'Блог', to: '/blog' },
   { label: 'Медиа', to: '/media' },
+  { label: 'Status', to: '/status' },
   { label: 'Связь', to: '/contact' },
 ];
 

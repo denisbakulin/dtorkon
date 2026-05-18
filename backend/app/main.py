@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         openapi_tags=[
             {"name": "Health", "description": "Service health endpoints."},
+            {"name": "Status", "description": "Aggregated runtime and monitoring endpoints."},
             {"name": "Auth", "description": "Admin session endpoints."},
             {"name": "Site Profile", "description": "Public author and contact endpoints."},
             {"name": "Public Posts", "description": "Public blog endpoints."},

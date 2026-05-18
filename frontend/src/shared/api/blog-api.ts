@@ -5,6 +5,7 @@ import type {
   PublicMediaResponse,
   PublicPostDetail,
   PublicPostListResponse,
+  RuntimeStatusResponse,
   SiteProfile,
 } from './blog-contract';
 
@@ -63,6 +64,11 @@ export async function getPublicMedia(options: {
 
 export async function getSiteProfile(signal?: AbortSignal) {
   const response = await httpClient.get<SiteProfile>('/api/site-profile', { signal });
+  return response.data;
+}
+
+export async function getRuntimeStatus(signal?: AbortSignal) {
+  const response = await httpClient.get<RuntimeStatusResponse>('/api/status', { signal });
   return response.data;
 }
 

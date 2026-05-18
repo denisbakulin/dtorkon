@@ -23,6 +23,27 @@
 
 Проверяет, что backend поднят и отвечает.
 
+## Status
+
+### `GET /api/status`
+
+Возвращает агрегированный runtime-статус для публичной страницы `/status`.
+
+Что входит в ответ:
+
+- общий `status` (`ok | degraded | error`);
+- `generatedAt` и `backendStatus`;
+- `host` с CPU, load average, памятью, диском и uptime, если подключён `node_exporter`;
+- `containers[]` с CPU, RAM, filesystem и network counters, если подключён `cAdvisor`;
+- `sources[]` со статусом каждого источника мониторинга;
+- `uptimeKuma`, если настроены `UPTIME_KUMA_BASE_URL` и `UPTIME_KUMA_STATUS_SLUG`.
+
+Особенности:
+
+- endpoint публичный и не требует авторизации;
+- если часть источников не настроена или недоступна, backend всё равно отвечает, но общий статус может стать `degraded`;
+- CPU для контейнеров и хоста считается по delta между последовательными опросами, поэтому после первого открытия `/status` часть CPU-полей может кратко отображаться как `null`.
+
 ## Auth
 
 ### `POST /api/auth/login`

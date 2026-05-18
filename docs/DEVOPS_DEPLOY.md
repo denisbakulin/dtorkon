@@ -16,11 +16,18 @@
 - сервис `api`;
 - volume `sqlite-data`;
 - volume `frontend-node-modules`.
+- optional profile `monitoring` с `cAdvisor` и `node-exporter`.
 
 Команда:
 
 ```bash
 docker compose up
+```
+
+Для локального `/status` с server/container metrics:
+
+```bash
+docker compose --profile monitoring up
 ```
 
 Адрес:
@@ -42,11 +49,18 @@ http://localhost:<LOCAL_HTTP_PORT>
 - `.env`;
 - Caddy с автоматическим HTTPS;
 - `web + api + sqlite`.
+- optional profile `monitoring` с `cAdvisor` и `node-exporter`.
 
 Команда:
 
 ```bash
 docker compose -f docker-compose.global.yml up -d --build
+```
+
+Если нужен production runtime monitoring для страницы `/status`:
+
+```bash
+docker compose -f docker-compose.global.yml --profile monitoring up -d --build
 ```
 
 ## Ответственность сервисов
@@ -64,7 +78,20 @@ docker compose -f docker-compose.global.yml up -d --build
 - использует SQLite;
 - в локальном compose всегда считает `PUBLIC_APP_ORIGIN` и `ADMIN_APP_ORIGIN` localhost-origin'ами;
 - принимает upload-ы через backend и отправляет их в Yandex Object Storage;
-- управляет server-side admin sessions.
+- управляет server-side admin sessions;
+- агрегирует `/api/status` из внутренних healthcheck-ов, `node_exporter`, `cAdvisor` и опционально публичной status page из `Uptime Kuma`.
+
+### `cadvisor`
+
+- опциональный сервис профиля `monitoring`;
+- отдаёт метрики контейнеров через `/metrics`;
+- нужен для блока контейнеров на странице `/status`.
+
+### `node-exporter`
+
+- опциональный сервис профиля `monitoring`;
+- отдаёт метрики хоста через `/metrics`;
+- нужен для CPU/load/memory/disk на странице `/status`.
 
 ## Целевые env-переменные
 
@@ -97,6 +124,13 @@ docker compose -f docker-compose.global.yml up -d --build
 - `S3_REGION`
 - `PUBLIC_STORAGE_BASE_URL`
 
+### Monitoring
+
+- `CADVISOR_BASE_URL`
+- `NODE_EXPORTER_BASE_URL`
+- `UPTIME_KUMA_BASE_URL`
+- `UPTIME_KUMA_STATUS_SLUG`
+
 ## VPS rollout sequence
 
 1. Скопировать проект на VPS.
@@ -108,6 +142,13 @@ docker compose -f docker-compose.global.yml up -d --build
    - публичный сайт открывается по `https://denisbakulin.ru`;
    - админка открывается по `https://denisbakulin.ru/admin`;
    - `/api/health` отвечает;
+   - `/status` открывается и показывает хотя бы backend status;
    - admin login работает;
    - public posts открываются;
    - файлы из `PUBLIC_STORAGE_BASE_URL` доступны.
+
+Если нужен расширенный мониторинг на `/status`, дополнительно:
+
+1. Заполнить `CADVISOR_BASE_URL` и `NODE_EXPORTER_BASE_URL` либо оставить internal Docker URLs.
+2. Поднять compose с профилем `monitoring`.
+3. Опционально подключить публичную status page из `Uptime Kuma` через `UPTIME_KUMA_BASE_URL` и `UPTIME_KUMA_STATUS_SLUG`.

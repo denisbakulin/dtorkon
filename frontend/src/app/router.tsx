@@ -14,6 +14,7 @@ const LoginPage = lazy(async () => ({ default: (await import('../pages/login/ui/
 const MediaPage = lazy(async () => ({ default: (await import('../pages/media/ui/media-page')).MediaPage }));
 const NotFoundPage = lazy(async () => ({ default: (await import('../pages/not-found/ui/not-found-page')).NotFoundPage }));
 const PostPage = lazy(async () => ({ default: (await import('../pages/post/ui/post-page')).PostPage }));
+const StatusPage = lazy(async () => ({ default: (await import('../pages/status/ui/status-page')).StatusPage }));
 
 function PageFallback() {
   return (
@@ -48,6 +49,7 @@ const routes = [
   route('/media', <MediaPage />),
   route('/posts/:slug', <PostPage />),
   route('/contact', <ContactPage />),
+  route('/status', <StatusPage />),
   route('/admin', <AdminPage />),
   route('/admin/login', <LoginPage />),
   route('/editor/new', <EditorPage mode="create" />),

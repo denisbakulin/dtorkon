@@ -9,6 +9,10 @@ services:
       PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:-https://denisbakulin.ru}
       ADMIN_APP_ORIGIN: ${ADMIN_APP_ORIGIN:-https://denisbakulin.ru}
       SQLITE_PATH: /data/blog.sqlite
+      CADVISOR_BASE_URL: ${CADVISOR_BASE_URL:-http://cadvisor:8080}
+      NODE_EXPORTER_BASE_URL: ${NODE_EXPORTER_BASE_URL:-http://node-exporter:9100}
+      UPTIME_KUMA_BASE_URL: ${UPTIME_KUMA_BASE_URL:-}
+      UPTIME_KUMA_STATUS_SLUG: ${UPTIME_KUMA_STATUS_SLUG:-}
     expose:
       - "8000"
     restart: unless-stopped
@@ -40,6 +44,29 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.53.0
+    profiles:
+      - monitoring
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    command:
+      - --path.rootfs=/host
+    profiles:
+      - monitoring
+    restart: unless-stopped
+    volumes:
+      - /:/host:ro,rslave
 
 volumes:
   sqlite-data:

@@ -42,6 +42,67 @@ class HealthResponse(CamelModel):
     status: str
 
 
+class MonitoringSourceRead(CamelModel):
+    name: str
+    enabled: bool
+    reachable: bool
+    url: str | None = None
+    message: str | None = None
+
+
+class HostStatusRead(CamelModel):
+    cpu_usage_percent: float | None = None
+    load1: float | None = None
+    load5: float | None = None
+    load15: float | None = None
+    memory_total_bytes: float | None = None
+    memory_available_bytes: float | None = None
+    memory_used_bytes: float | None = None
+    disk_total_bytes: float | None = None
+    disk_available_bytes: float | None = None
+    disk_used_bytes: float | None = None
+    uptime_seconds: float | None = None
+
+
+class ContainerStatusRead(CamelModel):
+    name: str
+    service: str
+    cpu_usage_percent: float | None = None
+    memory_usage_bytes: float | None = None
+    memory_working_set_bytes: float | None = None
+    filesystem_usage_bytes: float | None = None
+    network_receive_bytes: int = 0
+    network_transmit_bytes: int = 0
+
+
+class StatusMonitorRead(CamelModel):
+    name: str
+    status: Literal["up", "down", "maintenance", "unknown"]
+    ping_ms: float | None = None
+    url: str | None = None
+
+
+class UptimeKumaStatusRead(CamelModel):
+    page_title: str
+    page_url: str
+    slug: str
+    total_monitors: int
+    up_monitors: int
+    down_monitors: int
+    maintenance_monitors: int
+    monitors: list[StatusMonitorRead] = Field(default_factory=list)
+
+
+class StatusResponse(CamelModel):
+    status: Literal["ok", "degraded", "error"]
+    generated_at: str
+    backend_status: Literal["ok", "error"]
+    host: HostStatusRead | None = None
+    containers: list[ContainerStatusRead] = Field(default_factory=list)
+    sources: list[MonitoringSourceRead] = Field(default_factory=list)
+    uptime_kuma: UptimeKumaStatusRead | None = None
+
+
 class LoginRequest(CamelModel):
     username: str
     password: str

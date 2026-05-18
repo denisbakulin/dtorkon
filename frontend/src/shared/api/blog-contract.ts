@@ -107,3 +107,64 @@ export type ContactMessageRequest = {
   contact: string;
   message: string;
 };
+
+export type StatusSource = {
+  name: string;
+  enabled: boolean;
+  reachable: boolean;
+  url: string | null;
+  message: string | null;
+};
+
+export type HostStatus = {
+  cpuUsagePercent: number | null;
+  load1: number | null;
+  load5: number | null;
+  load15: number | null;
+  memoryTotalBytes: number | null;
+  memoryAvailableBytes: number | null;
+  memoryUsedBytes: number | null;
+  diskTotalBytes: number | null;
+  diskAvailableBytes: number | null;
+  diskUsedBytes: number | null;
+  uptimeSeconds: number | null;
+};
+
+export type ContainerStatus = {
+  name: string;
+  service: string;
+  cpuUsagePercent: number | null;
+  memoryUsageBytes: number | null;
+  memoryWorkingSetBytes: number | null;
+  filesystemUsageBytes: number | null;
+  networkReceiveBytes: number;
+  networkTransmitBytes: number;
+};
+
+export type StatusMonitor = {
+  name: string;
+  status: 'up' | 'down' | 'maintenance' | 'unknown';
+  pingMs: number | null;
+  url: string | null;
+};
+
+export type UptimeKumaStatus = {
+  pageTitle: string;
+  pageUrl: string;
+  slug: string;
+  totalMonitors: number;
+  upMonitors: number;
+  downMonitors: number;
+  maintenanceMonitors: number;
+  monitors: StatusMonitor[];
+};
+
+export type RuntimeStatusResponse = {
+  status: 'ok' | 'degraded' | 'error';
+  generatedAt: string;
+  backendStatus: 'ok' | 'error';
+  host: HostStatus | null;
+  containers: ContainerStatus[];
+  sources: StatusSource[];
+  uptimeKuma: UptimeKumaStatus | null;
+};
