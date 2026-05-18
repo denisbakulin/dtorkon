@@ -8,7 +8,6 @@ import {
   Chip,
   CircularProgress,
   Container,
-  LinearProgress,
   Paper,
   Stack,
   Typography,
@@ -82,6 +81,55 @@ function statusChipColor(status: string): 'default' | 'error' | 'success' | 'war
   return 'default';
 }
 
+function GaugeDial({
+  label,
+  value,
+  size = 86,
+}: {
+  label: string;
+  value: number | null;
+  size?: number;
+}) {
+  const normalizedValue = value == null || Number.isNaN(value) ? null : Math.max(0, Math.min(value, 100));
+  const angle = normalizedValue == null ? 0 : normalizedValue * 3.6;
+
+  return (
+    <Stack spacing={0.8} sx={{ alignItems: 'center' }}>
+      <Box
+        sx={{
+          alignItems: 'center',
+          background:
+            normalizedValue == null
+              ? 'conic-gradient(from 180deg, rgba(148, 163, 184, 0.18) 0deg 360deg)'
+              : `conic-gradient(from 180deg, #2da6eb 0deg ${angle}deg, rgba(148, 163, 184, 0.18) ${angle}deg 360deg)`,
+          borderRadius: '50%',
+          display: 'flex',
+          height: size,
+          justifyContent: 'center',
+          position: 'relative',
+          width: size,
+          '&::after': {
+            backgroundColor: 'background.paper',
+            borderRadius: '50%',
+            content: '""',
+            inset: 8,
+            position: 'absolute',
+          },
+        }}
+      >
+        <Stack spacing={0.2} sx={{ alignItems: 'center', position: 'relative', zIndex: 1 }}>
+          <Typography sx={{ fontSize: size < 72 ? '0.85rem' : '1rem', fontWeight: 700 }}>
+            {normalizedValue == null ? 'n/a' : `${Math.round(normalizedValue)}%`}
+          </Typography>
+          <Typography color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+            {label}
+          </Typography>
+        </Stack>
+      </Box>
+    </Stack>
+  );
+}
+
 function DashboardMetric({
   title,
   icon,
@@ -95,24 +143,20 @@ function DashboardMetric({
   secondary: string;
   value: number | null;
 }) {
-  const normalizedValue = value == null || Number.isNaN(value) ? 0 : Math.max(0, Math.min(value, 100));
-
   return (
     <Paper sx={{ p: 2.5 }}>
-      <Stack spacing={1.5}>
-        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
-          {icon}
-          <Typography variant="subtitle1">{title}</Typography>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <Stack spacing={1.2} sx={{ minWidth: 0 }}>
+          <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+            {icon}
+            <Typography variant="subtitle1">{title}</Typography>
+          </Stack>
+          <Typography sx={{ fontSize: '1.65rem', fontWeight: 700, lineHeight: 1.1 }}>{primary}</Typography>
+          <Typography color="text.secondary" variant="body2">
+            {secondary}
+          </Typography>
         </Stack>
-        <Typography sx={{ fontSize: '1.65rem', fontWeight: 700, lineHeight: 1.1 }}>{primary}</Typography>
-        <LinearProgress
-          sx={{ borderRadius: 999, height: 10 }}
-          value={normalizedValue}
-          variant={value == null ? 'indeterminate' : 'determinate'}
-        />
-        <Typography color="text.secondary" variant="body2">
-          {secondary}
-        </Typography>
+        <GaugeDial label={title} value={value} />
       </Stack>
     </Paper>
   );
@@ -141,33 +185,9 @@ function ContainerDashboardCard({ container, maxMemoryBytes }: { container: Cont
           />
         </Stack>
 
-        <Stack spacing={0.75}>
-          <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
-            <Typography color="text.secondary" variant="caption">
-              CPU
-            </Typography>
-            <Typography variant="caption">{formatPercent(cpuValue)}</Typography>
-          </Stack>
-          <LinearProgress
-            sx={{ borderRadius: 999, height: 8 }}
-            value={cpuValue == null ? 0 : Math.max(0, Math.min(cpuValue, 100))}
-            variant={cpuValue == null ? 'indeterminate' : 'determinate'}
-          />
-        </Stack>
-
-        <Stack spacing={0.75}>
-          <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
-            <Typography color="text.secondary" variant="caption">
-              Memory share
-            </Typography>
-            <Typography variant="caption">{memoryValue == null ? '-' : formatPercent(memoryValue)}</Typography>
-          </Stack>
-          <LinearProgress
-            color="secondary"
-            sx={{ borderRadius: 999, height: 8 }}
-            value={memoryValue == null ? 0 : Math.max(0, Math.min(memoryValue, 100))}
-            variant={memoryValue == null ? 'indeterminate' : 'determinate'}
-          />
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+          <GaugeDial label="CPU" size={76} value={cpuValue} />
+          <GaugeDial label="RAM" size={76} value={memoryValue} />
         </Stack>
 
         <Box
