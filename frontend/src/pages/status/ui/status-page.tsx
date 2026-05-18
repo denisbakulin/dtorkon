@@ -22,6 +22,8 @@ import { getRuntimeStatus } from '../../../shared/api/blog-api';
 import type { ContainerStatus, RuntimeStatusResponse, StatusMonitor } from '../../../shared/api/blog-contract';
 import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 
+const LANDING_CONTAINER_SERVICES = new Set(['api', 'web']);
+
 function formatBytes(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) {
     return '-';
@@ -281,12 +283,16 @@ export function StatusPage() {
   }, [runtimeStatus]);
 
   const containerMaxMemoryBytes = useMemo(() => {
-    const values = runtimeStatus?.containers.map((container) => container.memoryWorkingSetBytes ?? container.memoryUsageBytes ?? 0) ?? [];
+    const values =
+      runtimeStatus?.containers
+        .filter((container) => LANDING_CONTAINER_SERVICES.has(container.service))
+        .map((container) => container.memoryWorkingSetBytes ?? container.memoryUsageBytes ?? 0) ?? [];
     return values.length > 0 ? Math.max(...values) : 0;
   }, [runtimeStatus]);
 
   const topContainers = useMemo(() => {
     return [...(runtimeStatus?.containers ?? [])]
+      .filter((container) => LANDING_CONTAINER_SERVICES.has(container.service))
       .sort((left, right) => (right.memoryWorkingSetBytes ?? right.memoryUsageBytes ?? 0) - (left.memoryWorkingSetBytes ?? left.memoryUsageBytes ?? 0))
       .slice(0, 6);
   }, [runtimeStatus]);
@@ -450,7 +456,7 @@ export function StatusPage() {
                 >
                   <Typography variant="h6">Container dashboard</Typography>
                   <Typography color="text.secondary" variant="body2">
-                    {runtimeStatus?.containers.length ?? 0} containers
+                    {topContainers.length} containers
                   </Typography>
                 </Stack>
 
