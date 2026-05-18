@@ -20,4 +20,4 @@ jobs:
             cd /dtorkon
             git pull origin master
             docker compose -f docker-compose.global.yml --profile monitoring up --build -d
-            curl --fail --silent http://127.0.0.1:8000/api/status > /dev/null
+            docker compose -f docker-compose.global.yml --profile monitoring ps

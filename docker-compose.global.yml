@@ -46,7 +46,7 @@ services:
       - caddy-config:/config
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.53.0
+    image: ghcr.io/google/cadvisor:v0.57.0
     profiles:
       - monitoring
     privileged: true
