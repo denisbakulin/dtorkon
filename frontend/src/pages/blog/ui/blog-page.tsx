@@ -226,17 +226,7 @@ export function BlogPage() {
               }}
             >
               <Box sx={{ display: { xs: 'block', md: 'none' }, px: 0.5, pt: 0.5 }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Stack spacing={0.25}>
-                    <Typography sx={{ fontSize: '1.5rem', fontWeight: 700 }}>Блог</Typography>
-                   
-                  </Stack>
-                  {isAuthenticated ? (
-                    <Button component={RouterLink} size="small" to={getAdminCreatePostPath()} variant="outlined">
-                      Новый пост
-                    </Button>
-                  ) : null}
-                </Stack>
+                
                 {pagination ? (
                   <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
                     Найдено публикаций: {pagination.totalItems}

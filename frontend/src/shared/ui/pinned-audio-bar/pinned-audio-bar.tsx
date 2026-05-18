@@ -45,6 +45,7 @@ export function PinnedAudioBar() {
           zIndex: t.zIndex.appBar - 1,
           px: { xs: 2, sm: 3, md: 4, lg: 6, xl: 8 },
           py: 1.25,
+          
           borderBottom: `1px solid ${alpha(t.palette.divider, t.palette.mode === 'dark' ? 0.7 : 0.92)}`,
           bgcolor: alpha(t.palette.background.paper, t.palette.mode === 'dark' ? 0.62 : 0.78),
           backdropFilter: 'blur(24px) saturate(180%)',
