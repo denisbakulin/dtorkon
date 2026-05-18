@@ -24,6 +24,7 @@ import {
   IconButton,
   InputAdornment,
   Link,
+  LinearProgress,
   MenuItem,
   Paper,
   Skeleton,
@@ -148,6 +149,27 @@ type UploadState =
       message?: string;
       status: 'presigning' | 'uploading' | 'completing' | 'error';
     };
+
+type UploadQueueStatus =
+  | 'queued'
+  | 'presigning'
+  | 'uploading'
+  | 'completing'
+  | 'done'
+  | 'error'
+  | 'canceled';
+
+type UploadQueueItem = {
+  id: string;
+  file: File;
+  fileName: string;
+  kind: AttachmentKind;
+  mimeType: string;
+  progress?: number;
+  status: UploadQueueStatus;
+  target: 'inline' | 'attachment';
+  message?: string;
+};
 
 type EditorPaneProps = {
   mode: 'create' | 'edit';
@@ -1291,6 +1313,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
+  const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const [slugWasEdited, setSlugWasEdited] = useState(mode === 'edit');
   const [pendingImageEdit, setPendingImageEdit] = useState<PendingImageEdit | null>(null);
   const localImageFilesRef = useRef(new Map<string, File>());
@@ -1312,6 +1335,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       setSaveError(null);
       setSuccessMessage(null);
       setUploadState({ status: 'idle' });
+      setUploadQueue([]);
       setSlugWasEdited(false);
     }
   }, [mode]);
@@ -1327,6 +1351,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
     setLoadError(null);
     setSaveError(null);
     setSuccessMessage(null);
+    setUploadQueue([]);
 
     getAdminPost(postId, controller.signal)
       .then((detail) => {
@@ -1364,7 +1389,26 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
 
   const publishedPreviewUrl =
     draft.status === 'published' && draft.slug ? `/posts/${normalizeSlug(draft.slug)}` : null;
-  const isUploadBusy = uploadState.status !== 'idle' && uploadState.status !== 'error';
+  const isSingleUploadBusy = uploadState.status !== 'idle' && uploadState.status !== 'error';
+  const activeQueuedUploads = useMemo(
+    () =>
+      uploadQueue.filter((item) =>
+        item.status === 'queued' ||
+        item.status === 'presigning' ||
+        item.status === 'uploading' ||
+        item.status === 'completing',
+      ),
+    [uploadQueue],
+  );
+  const queuedUploadsCount = useMemo(
+    () => activeQueuedUploads.filter((item) => item.status === 'queued').length,
+    [activeQueuedUploads],
+  );
+  const uploadingUploadsCount = useMemo(
+    () => activeQueuedUploads.filter((item) => item.status !== 'queued').length,
+    [activeQueuedUploads],
+  );
+  const isUploadBusy = isSingleUploadBusy || activeQueuedUploads.length > 0;
   const uploadStateMessage =
     uploadState.status === 'presigning'
       ? `Preparing upload target for ${uploadState.fileName}...`
@@ -1373,6 +1417,10 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
         : uploadState.status === 'completing'
           ? `Saving ${uploadState.fileName} in the backend...`
           : null;
+  const uploadQueueMessage =
+    activeQueuedUploads.length > 0
+      ? `Uploads: ${uploadingUploadsCount} uploading, ${queuedUploadsCount} queued.`
+      : null;
   const totalMediaCount =
     draft.inlineAssets.length + draft.attachments.length + (draft.cover ? 1 : 0);
 
@@ -1396,6 +1444,38 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       }
     }
   };
+
+  const patchUploadQueueItem = useCallback((id: string, patch: Partial<UploadQueueItem>) => {
+    setUploadQueue((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }, []);
+
+  const cancelQueuedUploads = useCallback(() => {
+    setUploadQueue((current) =>
+      current.map((item) => (item.status === 'queued' ? { ...item, status: 'canceled' } : item)),
+    );
+  }, []);
+
+  const runUploadPool = useCallback(
+    async (items: UploadQueueItem[], concurrency: number, worker: (item: UploadQueueItem) => Promise<void>) => {
+      let nextIndex = 0;
+
+      const runWorker = async () => {
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const index = nextIndex;
+          nextIndex += 1;
+          if (index >= items.length) {
+            return;
+          }
+          await worker(items[index]);
+        }
+      };
+
+      const workerCount = Math.max(1, Math.min(concurrency, items.length));
+      await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
+    },
+    [],
+  );
 
   const uploadCoverFile = async (file: File) => {
     const mimeType = resolveFileMimeType(file);
@@ -1478,50 +1558,83 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
     setSaveError(null);
     setSuccessMessage(null);
 
-    for (const file of files) {
+    const items: UploadQueueItem[] = files.map((file) => {
       const mimeType = resolveFileMimeType(file);
+      const kind = getAttachmentKindFromMimeType(mimeType);
+      return {
+        file,
+        fileName: file.name,
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        kind,
+        mimeType,
+        status: 'queued',
+        target,
+      };
+    });
+
+    setUploadQueue((current) => [...current, ...items]);
+
+    let authExpired = false;
+    const markAuthExpired = () => {
+      if (authExpired) {
+        return;
+      }
+      authExpired = true;
+      cancelQueuedUploads();
+      onAuthExpired();
+    };
+
+    await runUploadPool(items, 3, async (item) => {
+      if (authExpired) {
+        patchUploadQueueItem(item.id, { status: 'canceled' });
+        return;
+      }
+
       let createdAssetId: string | null = null;
 
       try {
-        const kind = getAttachmentKindFromMimeType(mimeType);
-        setUploadState({ status: 'presigning', fileName: file.name });
-
+        patchUploadQueueItem(item.id, { status: 'presigning', progress: undefined, message: undefined });
         const presigned = await presignAdminUpload({
-          kind,
-          mimeType,
-          originalName: file.name,
-          size: file.size,
+          kind: item.kind,
+          mimeType: item.mimeType,
+          originalName: item.fileName,
+          size: item.file.size,
         });
         createdAssetId = presigned.assetId;
 
-        setUploadState({ status: 'uploading', fileName: file.name });
+        patchUploadQueueItem(item.id, { status: 'uploading', progress: 0 });
         await uploadAdminAssetContent({
-          file,
+          file: item.file,
           method: presigned.method,
-          mimeType,
+          mimeType: item.mimeType,
           requiredHeaders: presigned.requiredHeaders,
           uploadUrl: presigned.uploadUrl,
+          onProgress: (progress) => {
+            if (typeof progress.percent === 'number') {
+              patchUploadQueueItem(item.id, { progress: progress.percent });
+            }
+          },
         });
 
-        setUploadState({ status: 'completing', fileName: file.name });
-        const dimensions = await readImageDimensions(file);
+        patchUploadQueueItem(item.id, { status: 'completing', progress: 100 });
+        const dimensions = item.kind === 'image' ? await readImageDimensions(item.file) : null;
         const asset = await completeAdminUpload({
           assetId: presigned.assetId,
           height: dimensions?.height,
           width: dimensions?.width,
         });
 
-        if (kind === 'image') {
-          localImageFilesRef.current.set(asset.id, file);
+        if (item.kind === 'image') {
+          localImageFilesRef.current.set(asset.id, item.file);
         }
 
-        if (target === 'inline') {
+        if (item.target === 'inline') {
           setDraft((current) => ({
             ...current,
             bodyMarkdown: appendMarkdownSnippet(current.bodyMarkdown, buildInlineMediaSnippet(asset)),
             inlineAssets: [...current.inlineAssets, { asset, origin: 'session' }],
           }));
-          setSuccessMessage(`Inline media ${file.name} added to the article body.`);
+          setSuccessMessage(`Inline media ${item.fileName} added to the article body.`);
         } else {
           setDraft((current) => ({
             ...current,
@@ -1529,39 +1642,43 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
               ...current.attachments,
               {
                 asset,
-                kind,
+                kind: item.kind,
                 origin: 'session',
-                title: stripFileExtension(file.name),
+                title: stripFileExtension(item.fileName),
               },
             ],
           }));
-          setSuccessMessage(`${getAttachmentKindLabel(kind)} ${file.name} uploaded.`);
+          setSuccessMessage(`${getAttachmentKindLabel(item.kind)} ${item.fileName} uploaded.`);
         }
 
-        setUploadState({ status: 'idle' });
+        patchUploadQueueItem(item.id, { status: 'done', progress: 100 });
       } catch (error: unknown) {
         if (createdAssetId) {
           void deleteAdminAsset(createdAssetId).catch(() => undefined);
         }
 
         if (isUnauthorized(error)) {
-          onAuthExpired();
+          markAuthExpired();
+          patchUploadQueueItem(item.id, {
+            status: 'error',
+            message: getApiErrorMessage(error, 'Unauthorized.'),
+          });
           return;
         }
 
-        setUploadState({
-          fileName: file.name,
-          message: getApiErrorMessage(
-            error,
-            target === 'inline'
-              ? 'Unable to upload inline media.'
-              : 'Unable to upload the attachment.',
-          ),
+        const message = getApiErrorMessage(
+          error,
+          item.target === 'inline'
+            ? 'Unable to upload inline media.'
+            : 'Unable to upload the attachment.',
+        );
+        setSaveError(message);
+        patchUploadQueueItem(item.id, {
           status: 'error',
+          message,
         });
-        break;
       }
-    }
+    });
   };
 
   const handleCoverFileSelection = async (fileList: FileList | null) => {
@@ -1971,39 +2088,41 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
 
   return (
     <>
-      <Paper sx={{ overflow: 'hidden', p: { xs: 2.5, md: 4 } }}>
-        <Stack spacing={3}>
+      <Paper sx={{ overflow: 'hidden', p: { xs: 2, md: 2.75 } }}>
+        <Stack spacing={2}>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
+            spacing={1.5}
             sx={{ alignItems: { md: 'flex-start' }, justifyContent: 'space-between' }}
           >
-            <Stack spacing={1.1}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+            <Stack spacing={0.75}>
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.75 }}>
                 <Chip
                   color="primary"
                   label={mode === 'create' ? getAdminCreatePostPath() : getAdminEditPostPath(postId ?? '...')}
+                  size="small"
                   sx={{ alignSelf: 'flex-start' }}
                 />
                 <StatusChip status={draft.status} />
-                <Chip label={`Media ${totalMediaCount}`} variant="outlined" />
+                <Chip label={`Media ${totalMediaCount}`} size="small" variant="outlined" />
               </Stack>
-              <Typography sx={{ fontSize: { xs: '1.75rem', md: '2.35rem' }, fontWeight: 700 }}>
+              <Typography sx={{ fontSize: { xs: '1.45rem', md: '1.9rem' }, fontWeight: 700, lineHeight: 1.1 }}>
                 {mode === 'create' ? 'New post' : 'Edit post'}
               </Typography>
-              <Typography color="text.secondary" sx={{ maxWidth: 820 }}>
+              <Typography color="text.secondary" sx={{ fontSize: '0.95rem', maxWidth: 700 }}>
                 This editor now lives in the regular site flow for admins, while `/admin` stays focused on dashboards and settings.
               </Typography>
             </Stack>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
-              <Button component={RouterLink} to="/blog" variant="text">
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <Button component={RouterLink} size="small" to="/blog" variant="text">
                 Back to blog
               </Button>
               {publishedPreviewUrl ? (
                 <Button
                   component={RouterLink}
                   endIcon={<LaunchRoundedIcon />}
+                  size="small"
                   target="_blank"
                   to={publishedPreviewUrl}
                   variant="outlined"
@@ -2016,6 +2135,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                   color="error"
                   disabled={isDeleting}
                   onClick={() => void handleDeletePost()}
+                  size="small"
                   startIcon={isDeleting ? <CircularProgress color="inherit" size={18} /> : <DeleteOutlineRoundedIcon />}
                   variant="outlined"
                 >
@@ -2025,6 +2145,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
               <Button
                 disabled={isSaving || isNavigating}
                 onClick={() => void handleSave()}
+                size="small"
                 startIcon={isSaving ? <CircularProgress color="inherit" size={18} /> : <SaveRoundedIcon />}
                 variant="contained"
               >
@@ -2037,6 +2158,15 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
           {successMessage ? <Alert severity="success">{successMessage}</Alert> : null}
           {uploadState.status === 'error' ? <Alert severity="warning">{uploadState.message}</Alert> : null}
 
+          <Box
+            sx={{
+              alignItems: 'start',
+              display: 'grid',
+              gap: 2.5,
+              gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.15fr) minmax(360px, 0.85fr)' },
+            }}
+          >
+            <Stack spacing={2.5}>
           <Box sx={editorSectionSx}>
             <ComposePanel
               draft={draft}
@@ -2100,6 +2230,55 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
               </Stack>
 
               {uploadStateMessage ? <Alert severity="info">{uploadStateMessage}</Alert> : null}
+              {uploadQueueMessage ? <Alert severity="info">{uploadQueueMessage}</Alert> : null}
+              {activeQueuedUploads.length > 0 ? (
+                <Paper sx={{ p: 1.25 }} variant="outlined">
+                  <Stack spacing={1}>
+                    {activeQueuedUploads.map((item) => (
+                      <Stack key={item.id} spacing={0.5}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography noWrap sx={{ fontWeight: 600 }}>
+                              {item.fileName}
+                            </Typography>
+                            <Typography color="text.secondary" variant="body2">
+                              {item.target === 'inline' ? 'Inline media' : 'Attachment'} ·{' '}
+                              {item.status === 'queued'
+                                ? 'Queued'
+                                : item.status === 'presigning'
+                                  ? 'Preparing'
+                                  : item.status === 'uploading'
+                                    ? 'Uploading'
+                                    : 'Saving'}
+                              {item.status === 'uploading' && typeof item.progress === 'number'
+                                ? ` (${item.progress}%)`
+                                : null}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={
+                              item.status === 'queued'
+                                ? 'Queued'
+                                : item.status === 'presigning'
+                                  ? 'Presign'
+                                  : item.status === 'uploading'
+                                    ? 'Upload'
+                                    : 'Complete'
+                            }
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Stack>
+                        {item.status === 'uploading' ? (
+                          <LinearProgress value={item.progress ?? 0} variant="determinate" />
+                        ) : item.status === 'presigning' || item.status === 'completing' ? (
+                          <LinearProgress variant="indeterminate" />
+                        ) : null}
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Paper>
+              ) : null}
               <Alert severity="info">
                 Upload images normally, then use the Edit button next to a preview to crop or draw on them.
               </Alert>
@@ -2115,6 +2294,13 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                 <Chip label={`Attachments ${draft.attachments.length}`} variant="outlined" />
               </Stack>
 
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 2,
+                  gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' },
+                }}
+              >
               <Box sx={editorCardSx}>
                 <Stack spacing={1.5}>
                   <Stack
@@ -2242,6 +2428,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                     </Stack>
                   )}
                 </Stack>
+              </Box>
               </Box>
 
               <Box sx={editorCardSx}>
@@ -2403,6 +2590,9 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
             </Stack>
           </Box>
 
+            </Stack>
+
+            <Stack spacing={2.5} sx={{ position: { xl: 'sticky' }, top: { xl: 96 } }}>
           <Box sx={editorSectionSx}>
             <Stack spacing={2.5}>
               <Box>
@@ -2514,6 +2704,8 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
               </Box>
             </Stack>
           </Box>
+            </Stack>
+          </Box>
         </Stack>
       </Paper>
 
@@ -2544,7 +2736,6 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const deferredSearchInput = useDeferredValue(searchInput);
 
-  const activePostId = mode === 'edit' ? postId : undefined;
   const sortedPosts = useMemo(
     () =>
       [...posts].sort(
@@ -2561,9 +2752,10 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || mode !== 'overview') {
       setPosts([]);
       setPostsError(null);
+      setIsRefreshingPosts(false);
       return;
     }
 
@@ -2603,7 +2795,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
       });
 
     return () => controller.abort();
-  }, [deferredSearchInput, filter, isAuthenticated, refreshKey]);
+  }, [deferredSearchInput, filter, isAuthenticated, mode, refreshKey]);
 
   useEffect(() => {
     if (!isAuthenticated || mode !== 'overview') {
@@ -2702,34 +2894,24 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
       <Box component="main" sx={{ pb: 10, pt: { xs: 3, md: 5 } }}>
         <Container maxWidth="xl">
           <Stack spacing={3}>
-            <Paper sx={{ p: { xs: 3, md: 4 } }}>
-              <Stack spacing={1.5}>
-                <Chip
-                  color="primary"
-                  label={
-                    mode === 'overview'
-                      ? getAdminOverviewPath()
-                      : mode === 'create'
-                        ? getAdminCreatePostPath()
-                        : getAdminEditPostPath(':postId')
-                  }
-                  sx={{ alignSelf: 'flex-start' }}
-                />
-                <Typography sx={{ fontSize: { xs: '2rem', md: '2.9rem' }, fontWeight: 700 }}>
-                  {mode === 'overview' ? 'Admin center' : mode === 'create' ? 'New post' : 'Edit post'}
-                </Typography>
-                <Typography color="text.secondary" sx={{ maxWidth: 900 }}>
-                  {mode === 'overview'
-                    ? 'Unified `/admin` now holds dashboards, settings and service panels.'
-                    : 'Post editing is available inside the regular site flow for signed-in admins.'}
-                </Typography>
-                {session ? (
-                  <Typography color="text.secondary" variant="body2">
-                    Signed in as {session.adminDisplayName}
+            {mode === 'overview' ? (
+              <Paper sx={{ p: { xs: 3, md: 4 } }}>
+                <Stack spacing={1.5}>
+                  <Chip color="primary" label={getAdminOverviewPath()} sx={{ alignSelf: 'flex-start' }} />
+                  <Typography sx={{ fontSize: { xs: '2rem', md: '2.9rem' }, fontWeight: 700 }}>
+                    Admin center
                   </Typography>
-                ) : null}
-              </Stack>
-            </Paper>
+                  <Typography color="text.secondary" sx={{ maxWidth: 900 }}>
+                    Unified `/admin` now holds dashboards, settings and service panels.
+                  </Typography>
+                  {session ? (
+                    <Typography color="text.secondary" variant="body2">
+                      Signed in as {session.adminDisplayName}
+                    </Typography>
+                  ) : null}
+                </Stack>
+              </Paper>
+            ) : null}
 
             {isLoading ? <SessionSkeleton /> : null}
 
@@ -2744,7 +2926,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
 
             {!isLoading && isAuthenticated ? (
               <>
-                {postsError ? <Alert severity="warning">{postsError}</Alert> : null}
+                {postsError && mode === 'overview' ? <Alert severity="warning">{postsError}</Alert> : null}
                 {metaError && mode === 'overview' ? <Alert severity="warning">{metaError}</Alert> : null}
 
                 {mode === 'overview' ? (

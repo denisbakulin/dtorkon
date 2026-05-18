@@ -106,6 +106,7 @@ export async function uploadAdminAssetContent(params: {
   mimeType: string;
   requiredHeaders: Record<string, string>;
   file: Blob;
+  onProgress?: (progress: { loaded: number; total?: number; percent?: number }) => void;
 }) {
   await httpClient.request({
     url: params.uploadUrl,
@@ -116,6 +117,17 @@ export async function uploadAdminAssetContent(params: {
       ...params.requiredHeaders,
     },
     timeout: 60000,
+    onUploadProgress: params.onProgress
+      ? (event) => {
+          const total = typeof event.total === 'number' && Number.isFinite(event.total) ? event.total : undefined;
+          const loaded = typeof event.loaded === 'number' && Number.isFinite(event.loaded) ? event.loaded : 0;
+          params.onProgress?.({
+            loaded,
+            percent: total && total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : undefined,
+            total,
+          });
+        }
+      : undefined,
   });
 }
 
