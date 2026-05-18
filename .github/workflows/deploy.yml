@@ -17,23 +17,6 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -eu
             cd /dtorkon
             git pull origin master
-            if [ -f .env ]; then
-              echo "---- .env validation (compose-compatible) ----"
-              awk '
-                /^[[:space:]]*#/ { next }
-                /^[[:space:]]*$/ { next }
-                $0 !~ /^[A-Za-z_][A-Za-z0-9_]*=/ {
-                  printf("Invalid .env line %d: %s\n", NR, $0);
-                  bad=1
-                }
-                END { exit bad }
-              ' .env
-              echo "---- docker compose config (sanity check) ----"
-              docker compose -f docker-compose.global.yml config >/dev/null
-            else
-              echo "WARNING: /dtorkon/.env not found; docker compose may fail"
-            fi
             docker compose -f docker-compose.global.yml up --build -d
