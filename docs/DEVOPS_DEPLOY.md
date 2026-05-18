@@ -63,6 +63,8 @@ docker compose -f docker-compose.global.yml up -d --build
 docker compose -f docker-compose.global.yml --profile monitoring up -d --build
 ```
 
+GitHub Actions deploy workflow для ветки `master` использует именно этот вариант и автоматически поднимает profile `monitoring` на VPS.
+
 ## Ответственность сервисов
 
 ### `web`
