@@ -82,7 +82,7 @@ export function BlogPage() {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            'РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСѓР±Р»РёРєР°С†РёРё. РџРѕРїСЂРѕР±СѓР№ РѕР±РЅРѕРІРёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ.',
+            'Не получилось загрузить публикации. Попробуй обновить страницу.',
           ),
         );
       })
@@ -158,7 +158,7 @@ export function BlogPage() {
           })
           .catch((error: unknown) => {
             setErrorMessage(
-              getApiErrorMessage(error, 'РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃС‚Р°СЂС‹Рµ РїСѓР±Р»РёРєР°С†РёРё. РџРѕРїСЂРѕР±СѓР№ РїРѕРІС‚РѕСЂРёС‚СЊ.'),
+              getApiErrorMessage(error, 'Не получилось загрузить старые публикации. Попробуй повторить.'),
             );
             scrollRestoreRef.current = null;
           })
@@ -205,7 +205,7 @@ export function BlogPage() {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            'РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃС‚Р°СЂС‹Рµ РїСѓР±Р»РёРєР°С†РёРё. РџРѕРїСЂРѕР±СѓР№ РїРѕРІС‚РѕСЂРёС‚СЊ.',
+            'Не получилось загрузить старые публикации. Попробуй повторить.',
           ),
         );
         scrollRestoreRef.current = null;
@@ -234,6 +234,7 @@ export function BlogPage() {
           sx={{
             display: 'flex',
             flex: 1,
+            justifyContent: 'center',
             minHeight: 0,
             px: { xs: 0, sm: 2, md: 3, lg: 4 },
           }}
@@ -241,11 +242,13 @@ export function BlogPage() {
           <Box
             sx={{
               display: 'flex',
-              flex: 1,
+              flex: { xs: 1, lg: '0 1 50%' },
               flexDirection: 'column',
+              maxWidth: { xs: '100%', lg: '50%' },
               minHeight: 0,
               minWidth: 0,
               overflow: 'hidden',
+              width: { xs: '100%', lg: '50%' },
             }}
           >
             {errorMessage && items.length === 0 ? (
@@ -257,7 +260,7 @@ export function BlogPage() {
                     size="small"
                     startIcon={<RefreshRoundedIcon />}
                   >
-                    РћР±РЅРѕРІРёС‚СЊ
+                    Обновить
                   </Button>
                 }
                 severity="warning"
@@ -272,9 +275,9 @@ export function BlogPage() {
             {!isLoading && pagination && items.length === 0 ? (
               <Box sx={{ p: 2, px: { xs: 2, sm: 0 } }}>
                 <Stack spacing={1}>
-                  <Typography variant="h6">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</Typography>
+                  <Typography variant="h6">Ничего не найдено</Typography>
                   <Typography color="text.secondary">
-                    РџРѕРїСЂРѕР±СѓР№ РёР·РјРµРЅРёС‚СЊ Р·Р°РїСЂРѕСЃ РёР»Рё СЃР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂ РїРѕРёСЃРєР°.
+                    Попробуй изменить запрос или сбросить фильтр поиска.
                   </Typography>
                 </Stack>
               </Box>
@@ -302,11 +305,11 @@ export function BlogPage() {
                   >
                     {hasOlderPosts ? (
                       <Typography color="text.secondary" variant="body2">
-                        {isLoadingOlder ? 'Р—Р°РіСЂСѓР¶Р°СЋ СЃС‚Р°СЂС‹Рµ РїСѓР±Р»РёРєР°С†РёРёвЂ¦' : 'РџСЂРѕРєСЂСѓС‚Рё РІРІРµСЂС…, С‡С‚РѕР±С‹ Р·Р°РіСЂСѓР·РёС‚СЊ РµС‰С‘'}
+                        {isLoadingOlder ? 'Загружаю старые публикации…' : 'Прокрути вверх, чтобы загрузить ещё'}
                       </Typography>
                     ) : (
                       <Typography color="text.secondary" variant="body2">
-                        Р­С‚Рѕ РЅР°С‡Р°Р»Рѕ Р»РµРЅС‚С‹
+                        Это начало ленты
                       </Typography>
                     )}
                   </Box>
@@ -324,7 +327,7 @@ export function BlogPage() {
                           onClick={handleRetryOlder}
                           size="small"
                         >
-                          РџРѕРІС‚РѕСЂРёС‚СЊ
+                          Повторить
                         </Button>
                       }
                       severity="warning"
@@ -340,7 +343,7 @@ export function BlogPage() {
             {isAuthenticated ? (
               <Box sx={{ px: { xs: 2, sm: 0 }, pt: 1.25 }}>
                 <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
-                  РќРѕРІС‹Р№ РїРѕСЃС‚
+                  Новый пост
                 </Button>
               </Box>
             ) : null}
