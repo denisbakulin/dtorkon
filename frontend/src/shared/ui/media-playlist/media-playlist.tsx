@@ -1,12 +1,12 @@
 import GraphicEqRoundedIcon from '@mui/icons-material/GraphicEqRounded';
 import MovieRoundedIcon from '@mui/icons-material/MovieRounded';
 import { Box, List, ListItemButton, ListItemIcon, ListItemText, Stack, Typography } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { PublicAttachment } from '../../api/blog-contract';
 import { prettifyMediaName } from '../../lib/media';
 import type { AudioCollection } from '../../lib/persistent-audio';
-import { playPersistentAudio } from '../../lib/persistent-audio';
+import { getPersistentAudioSnapshot, playPersistentAudio, subscribePersistentAudio } from '../../lib/persistent-audio';
 import { MediaPlayer } from '../media-player/media-player';
 
 type MediaPlaylistProps = {
@@ -55,10 +55,37 @@ export function MediaPlaylist({
   }, [attachments, audioCollectionContextLabel, audioCollectionSubtitle, audioCollectionTitle]);
 
   const [activeId, setActiveId] = useState<string>(() => mediaAttachments[0]?.id ?? '');
+  const [audioSnapshot, setAudioSnapshot] = useState(() => getPersistentAudioSnapshot());
+
+  useEffect(() => subscribePersistentAudio(setAudioSnapshot), []);
+
+  useEffect(() => {
+    if (mediaAttachments.length === 0) {
+      setActiveId('');
+      return;
+    }
+
+    if (!mediaAttachments.some((attachment) => attachment.id === activeId)) {
+      setActiveId(mediaAttachments[0].id);
+    }
+  }, [activeId, mediaAttachments]);
+
+  const syncedActiveId = useMemo(() => {
+    if (audioCollection && audioSnapshot.collection?.id === audioCollection.id) {
+      const activeTrack = audioCollection.tracks.find(
+        (track) => track.id === audioSnapshot.trackId || track.src === audioSnapshot.src,
+      );
+      if (activeTrack) {
+        return activeTrack.id;
+      }
+    }
+
+    return activeId;
+  }, [activeId, audioCollection, audioSnapshot.collection?.id, audioSnapshot.src, audioSnapshot.trackId]);
 
   const activeAttachment = useMemo(
-    () => mediaAttachments.find((attachment) => attachment.id === activeId) ?? mediaAttachments[0] ?? null,
-    [activeId, mediaAttachments],
+    () => mediaAttachments.find((attachment) => attachment.id === syncedActiveId) ?? mediaAttachments[0] ?? null,
+    [mediaAttachments, syncedActiveId],
   );
 
   if (mediaAttachments.length === 0) return null;

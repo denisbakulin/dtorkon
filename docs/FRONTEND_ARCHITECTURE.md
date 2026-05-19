@@ -57,6 +57,16 @@ Frontend покрывает две поверхности:
 
 Публичная статья и preview в админке опираются на один markdown renderer.
 
+### Audio UI
+
+Аудио управляется через единый persistent audio state, общий для markdown-аудио, attachments, медиатеки и закрепленного плеера.
+
+- inline `AudioPlayer` отображает активность по глобальному `src/trackId`, а не по локальному состоянию карточки;
+- `MediaPlaylist` синхронизирует выбранный элемент с текущим persistent track, поэтому next/previous из pinned-плеера не расходятся со списком;
+- `PinnedAudioBar` показывает текущий трек, позицию, длительность, seek bar, переходы previous/next и перемотку на 10 секунд;
+- persistent audio layer публикует текущий трек через Media Session API, чтобы мобильные браузеры могли показывать системную карточку воспроизведения и кнопки в шторке уведомлений;
+- audio collection dialog и compact player используют цвета темы, без жестко заданной светлой палитры.
+
 ## Admin UI
 
 Editor shell включает:
@@ -88,4 +98,5 @@ Inline media flow работает так:
 - admin shell хранит draft отдельно для cover, inline assets и attachments;
 - upload flow в админке имеет состояния `idle`, `presigning`, `uploading`, `completing`, `error`, а браузер передает файлы только в backend API;
 - запись голосовых использует `MediaRecorder`, а после остановки отправляет результат в тот же attachment upload flow;
+- theme/accent preference нормализуется при чтении из `localStorage`, чтобы некорректное значение не ломало страницы;
 - при пустом `file.type` frontend восстанавливает MIME по расширению файла, чтобы ограничения совпадали с backend.

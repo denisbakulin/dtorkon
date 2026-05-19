@@ -89,8 +89,6 @@ export function MediaPage() {
       <Box component="main" sx={{ pb: 10, pt: { xs: 0, md: 5 } }}>
         <Container disableGutters maxWidth={false} sx={{ px: { xs: 0, sm: 3, md: 4, lg: 6, xl: 8 } }}>
           <Stack spacing={2.5}>
-           <p>Test github actions</p>
-
             <Paper sx={{ borderRadius: { xs: 0, md: 2 }, overflow: 'hidden' }} variant="outlined">
               <Tabs
                 onChange={(_, value) => setActiveKind(value)}

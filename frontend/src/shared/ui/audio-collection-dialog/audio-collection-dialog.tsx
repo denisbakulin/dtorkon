@@ -51,11 +51,13 @@ export function AudioCollectionDialog({ onClose, open }: AudioCollectionDialogPr
       open={open}
       slotProps={{
         paper: {
-          sx: {
-            backgroundColor: '#f3f7fc',
+          sx: (theme) => ({
+            backgroundColor: theme.palette.background.default,
             backgroundImage:
-              'radial-gradient(circle at top, rgba(87, 153, 233, 0.18), transparent 34%), linear-gradient(180deg, #f6f9fe 0%, #edf3fa 100%)',
-          },
+              theme.palette.mode === 'dark'
+                ? `radial-gradient(circle at top, ${alpha(theme.palette.primary.main, 0.22)}, transparent 34%), linear-gradient(180deg, ${theme.palette.background.default} 0%, ${theme.palette.background.default} 100%)`
+                : `radial-gradient(circle at top, ${alpha(theme.palette.primary.main, 0.14)}, transparent 34%), linear-gradient(180deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
+          }),
         },
       }}
     >
@@ -88,10 +90,13 @@ export function AudioCollectionDialog({ onClose, open }: AudioCollectionDialogPr
         <Stack spacing={2.5} sx={{ flex: 1, overflow: 'auto', px: { xs: 2, sm: 3 }, py: 2.5 }}>
           <Stack
             sx={{
-              backgroundColor: '#fff',
+              backgroundColor: 'background.paper',
               border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.09)}`,
               borderRadius: 3,
-              boxShadow: '0 18px 40px rgba(68, 105, 148, 0.08)',
+              boxShadow: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? '0 18px 40px rgba(2, 6, 23, 0.32)'
+                  : '0 18px 40px rgba(68, 105, 148, 0.08)',
               p: { xs: 2, sm: 2.5 },
             }}
             spacing={2}
@@ -148,7 +153,7 @@ export function AudioCollectionDialog({ onClose, open }: AudioCollectionDialogPr
                     selected={isActive}
                     sx={(theme) => ({
                       alignItems: 'center',
-                      backgroundColor: isActive ? alpha(theme.palette.primary.main, 0.08) : alpha('#ffffff', 0.86),
+                      backgroundColor: isActive ? alpha(theme.palette.primary.main, 0.08) : alpha(theme.palette.background.paper, 0.86),
                       border: `1px solid ${isActive ? alpha(theme.palette.primary.main, 0.22) : alpha(theme.palette.divider, 0.75)}`,
                       borderRadius: 2,
                       gap: 1.5,
@@ -159,7 +164,7 @@ export function AudioCollectionDialog({ onClose, open }: AudioCollectionDialogPr
                     <Box
                       sx={(theme) => ({
                         alignItems: 'center',
-                        backgroundColor: isActive ? alpha(theme.palette.primary.main, 0.12) : alpha(theme.palette.warning.light, 0.24),
+                        backgroundColor: alpha(theme.palette.primary.main, isActive ? 0.14 : 0.08),
                         borderRadius: '50%',
                         color: 'text.primary',
                         display: 'flex',

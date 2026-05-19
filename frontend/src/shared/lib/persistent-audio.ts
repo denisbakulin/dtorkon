@@ -56,11 +56,20 @@ type PersistentAudioTarget = {
 
 const STORAGE_KEY = 'dtorkon:persistentAudio:v2';
 const LEGACY_STORAGE_KEY = 'dtorkon:persistentAudio:v1';
+const MEDIA_SESSION_ARTWORK = [
+  {
+    src: '/favicon.ico',
+    sizes: '256x256',
+    type: 'image/x-icon',
+  },
+];
 
 let audio: HTMLAudioElement | null = null;
 let listeners: Set<AudioListener> | null = null;
 let bound = false;
 let restored = false;
+let mediaSessionBound = false;
+let mediaSessionMetadataKey: string | null = null;
 let persistTimer: number | null = null;
 let persistInFlight = false;
 let pendingSeekRatio: number | null = null;
@@ -212,7 +221,112 @@ function safeParseLegacyPersisted(raw: string | null): PersistedAudioSnapshotV2 
 }
 
 function emitSnapshot() {
+  syncMediaSession();
   listeners?.forEach((listener) => listener(snapshot));
+}
+
+function getMediaSession() {
+  if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) {
+    return null;
+  }
+
+  return navigator.mediaSession;
+}
+
+function setMediaSessionActionHandler(
+  mediaSession: MediaSession,
+  action: MediaSessionAction,
+  handler: MediaSessionActionHandler | null,
+) {
+  try {
+    mediaSession.setActionHandler(action, handler);
+  } catch {
+    // Some browsers expose Media Session but do not support every action.
+  }
+}
+
+function bindMediaSessionActions() {
+  const mediaSession = getMediaSession();
+  if (!mediaSession || mediaSessionBound) return;
+
+  mediaSessionBound = true;
+
+  setMediaSessionActionHandler(mediaSession, 'play', () => {
+    if (!snapshot.src) return;
+    void playPersistentAudio({
+      collection: snapshot.collection,
+      src: snapshot.src,
+      subtitle: snapshot.subtitle,
+      title: snapshot.title,
+      trackId: snapshot.trackId,
+    });
+  });
+  setMediaSessionActionHandler(mediaSession, 'pause', () => pausePersistentAudio());
+  setMediaSessionActionHandler(mediaSession, 'stop', () => clearPersistentAudio());
+  setMediaSessionActionHandler(mediaSession, 'previoustrack', () => playPreviousPersistentAudio());
+  setMediaSessionActionHandler(mediaSession, 'nexttrack', () => playNextPersistentAudio());
+  setMediaSessionActionHandler(mediaSession, 'seekbackward', (details) => {
+    seekPersistentAudioByDelta(-(details.seekOffset ?? 10));
+  });
+  setMediaSessionActionHandler(mediaSession, 'seekforward', (details) => {
+    seekPersistentAudioByDelta(details.seekOffset ?? 10);
+  });
+  setMediaSessionActionHandler(mediaSession, 'seekto', (details) => {
+    if (typeof details.seekTime === 'number') {
+      seekPersistentAudioBySeconds(details.seekTime);
+    }
+  });
+}
+
+function syncMediaSessionPosition(mediaSession: MediaSession) {
+  if (!snapshot.src || typeof mediaSession.setPositionState !== 'function') return;
+
+  const duration = Number.isFinite(audio?.duration) ? audio!.duration : snapshot.duration;
+  if (!Number.isFinite(duration) || duration <= 0) return;
+
+  const currentTime = Number.isFinite(audio?.currentTime) ? audio!.currentTime : snapshot.currentTime;
+
+  try {
+    mediaSession.setPositionState({
+      duration,
+      playbackRate: audio?.playbackRate || 1,
+      position: Math.max(0, Math.min(duration, currentTime || 0)),
+    });
+  } catch {
+    // Position state is best-effort and may reject while metadata is loading.
+  }
+}
+
+function syncMediaSession() {
+  const mediaSession = getMediaSession();
+  if (!mediaSession) return;
+
+  bindMediaSessionActions();
+
+  if (!snapshot.src) {
+    mediaSession.metadata = null;
+    mediaSession.playbackState = 'none';
+    mediaSessionMetadataKey = null;
+    return;
+  }
+
+  const title = snapshot.title || 'Audio';
+  const artist = snapshot.subtitle || snapshot.collection?.contextLabel || 'dtorkon';
+  const album = snapshot.collection?.title || snapshot.collection?.contextLabel || 'dtorkon';
+  const metadataKey = [snapshot.src, title, artist, album].join('|');
+
+  if (mediaSessionMetadataKey !== metadataKey) {
+    mediaSession.metadata = new MediaMetadata({
+      album,
+      artist,
+      artwork: MEDIA_SESSION_ARTWORK,
+      title,
+    });
+    mediaSessionMetadataKey = metadataKey;
+  }
+
+  mediaSession.playbackState = snapshot.isPlaying ? 'playing' : 'paused';
+  syncMediaSessionPosition(mediaSession);
 }
 
 function persistSnapshotNow() {
@@ -508,8 +622,39 @@ export function seekPersistentAudioByRatio(ratio: number) {
     pendingSeekRatio = safeRatio;
     return;
   }
-  audio!.currentTime = Math.max(0, Math.min(audio!.duration, safeRatio * audio!.duration));
+  const nextTime = Math.max(0, Math.min(audio!.duration, safeRatio * audio!.duration));
+  audio!.currentTime = nextTime;
+  snapshot = {
+    ...snapshot,
+    currentTime: nextTime,
+  };
+  emitSnapshot();
   schedulePersistSnapshot();
+}
+
+export function seekPersistentAudioBySeconds(seconds: number) {
+  ensure();
+  if (!Number.isFinite(seconds)) return;
+
+  const duration = Number.isFinite(audio!.duration) ? audio!.duration : snapshot.duration;
+  const maxTime = duration > 0 ? duration : Number.POSITIVE_INFINITY;
+  const nextTime = Math.max(0, Math.min(maxTime, seconds));
+
+  if (!Number.isFinite(nextTime)) return;
+
+  audio!.currentTime = nextTime;
+  snapshot = {
+    ...snapshot,
+    currentTime: nextTime,
+  };
+  emitSnapshot();
+  schedulePersistSnapshot();
+}
+
+export function seekPersistentAudioByDelta(deltaSeconds: number) {
+  ensure();
+  const baseTime = Number.isFinite(audio!.currentTime) ? audio!.currentTime : snapshot.currentTime;
+  seekPersistentAudioBySeconds(baseTime + deltaSeconds);
 }
 
 export function hasPersistentAudioPreviousTrack() {

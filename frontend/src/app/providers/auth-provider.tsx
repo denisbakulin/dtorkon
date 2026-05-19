@@ -36,12 +36,19 @@ function normalizeAccentPreset(value: string | null): AccentPreset {
   return 'sky';
 }
 
+function normalizeThemePreset(value: string | null): ThemePreset {
+  if (value === 'light' || value === 'dark' || value === 'bw' || value === 'high-contrast') {
+    return value;
+  }
+  return 'light';
+}
+
 function readStoredPreferences(): GuestPreferences {
   if (typeof window === 'undefined') {
     return { themePreset: 'light', accentPreset: 'sky' };
   }
 
-  const themePreset = (window.localStorage.getItem(THEME_STORAGE_KEY) as ThemePreset | null) ?? 'light';
+  const themePreset = normalizeThemePreset(window.localStorage.getItem(THEME_STORAGE_KEY));
   const accentPreset = normalizeAccentPreset(window.localStorage.getItem(ACCENT_STORAGE_KEY));
   return { themePreset, accentPreset };
 }
@@ -94,6 +101,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const next = {
         ...current,
         ...preferences,
+        themePreset: preferences.themePreset
+          ? normalizeThemePreset(preferences.themePreset)
+          : current.themePreset,
         accentPreset: preferences.accentPreset
           ? normalizeAccentPreset(preferences.accentPreset)
           : current.accentPreset,
