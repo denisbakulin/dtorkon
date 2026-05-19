@@ -101,16 +101,7 @@ export function AudioCollectionDialog({ onClose, open }: AudioCollectionDialogPr
             }}
             spacing={2}
           >
-            <Stack spacing={0.5}>
-              <Typography sx={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                {activeTrack.title || snapshot.title || 'Текущий трек'}
-              </Typography>
-              {activeTrack.subtitle ? (
-                <Typography color="text.secondary" variant="body2">
-                  {activeTrack.subtitle}
-                </Typography>
-              ) : null}
-            </Stack>
+  
 
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <IconButton aria-label="Предыдущий трек" disabled={!canGoPrevious} onClick={() => playPreviousPersistentAudio()}>
