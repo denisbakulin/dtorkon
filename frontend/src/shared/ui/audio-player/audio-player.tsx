@@ -65,7 +65,7 @@ export function AudioPlayer({
 
   const progress = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
 
-  const formattedTime = useMemo(() => `${formatTime(currentTime)} / ${formatTime(duration)}`, [currentTime, duration]);
+  const formattedTime = useMemo(() => formatTime(duration || 0), [duration]);
 
   useEffect(() => {
     return subscribePersistentAudio(setSnapshot);
@@ -115,9 +115,7 @@ export function AudioPlayer({
               </Typography>
             ) : null}
             {subtitle ? (
-              <Typography color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} variant="caption">
-                {subtitle}
-              </Typography>
+              <></>
             ) : null}
           </Box>
         </Stack>
@@ -125,8 +123,7 @@ export function AudioPlayer({
       <Box
         sx={(t) => ({
           alignItems: 'center',
-          bgcolor: alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.14 : 0.08),
-          border: `1px solid ${alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.2 : 0.14)}`,
+          bgcolor: t.palette.mode === 'dark' ? alpha(t.palette.warning.dark, 0.15) : alpha(t.palette.warning.light, 0.22),
           borderRadius: 2,
           display: 'flex',
           gap: 1.25,
@@ -181,7 +178,7 @@ export function AudioPlayer({
               <Box
                 key={`${i}-${h}`}
                 sx={(t) => ({
-                  bgcolor: filled ? t.palette.primary.main : alpha(t.palette.text.secondary, 0.25),
+                  bgcolor: filled ? alpha(t.palette.success.dark, 0.55) : alpha(t.palette.success.dark, 0.28),
                   borderRadius: 999,
                   flex: '1 1 0',
                   height: h,
@@ -192,9 +189,8 @@ export function AudioPlayer({
             );
           })}
           <Box
-            sx={(t) => ({
-              bgcolor: t.palette.primary.main,
-              boxShadow: `0 0 0 3px ${alpha(t.palette.primary.main, 0.14)}`,
+            sx={{
+              bgcolor: 'text.secondary',
               borderRadius: '50%',
               height: 12,
               left: `${progress * 100}%`,
@@ -203,7 +199,7 @@ export function AudioPlayer({
               top: '50%',
               transform: 'translate(-50%, -50%)',
               width: 12,
-            })}
+            }}
           />
         </Box>
         
