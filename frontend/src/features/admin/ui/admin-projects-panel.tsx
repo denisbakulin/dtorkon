@@ -73,9 +73,9 @@ const EMPTY_DRAFT: ProjectDraft = {
 };
 
 const STATUS_OPTIONS: Array<{ label: string; value: AdminProjectStatusFilter }> = [
-  { label: 'All', value: 'all' },
-  { label: 'Draft', value: 'draft' },
-  { label: 'Published', value: 'published' },
+  { label: 'Все', value: 'all' },
+  { label: 'Черновики', value: 'draft' },
+  { label: 'Опубликованные', value: 'published' },
 ];
 
 function normalizeSlug(value: string) {
@@ -178,7 +178,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
         onAuthExpired();
         return;
       }
-      setListError(getApiErrorMessage(error, 'Unable to load projects.'));
+      setListError(getApiErrorMessage(error, 'Не получилось загрузить проекты.'));
     } finally {
       if (!signal?.aborted) {
         setIsLoadingList(false);
@@ -216,7 +216,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
           onAuthExpired();
           return;
         }
-        setEditorError(getApiErrorMessage(error, 'Unable to load the selected project.'));
+        setEditorError(getApiErrorMessage(error, 'Не получилось загрузить выбранный проект.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -244,7 +244,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
     const mimeType = resolveFileMimeType(file);
     const kind = getAttachmentKindFromMimeType(mimeType);
     if (kind !== 'image') {
-      throw new Error('Projects only accept image covers and screenshots.');
+      throw new Error('Для проектов можно загружать только изображения для обложки и скриншотов.');
     }
 
     const presigned = await presignAdminUpload({
@@ -279,13 +279,13 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
       setEditorSuccess(null);
       const asset = await uploadImage(file);
       setDraft((current) => ({ ...current, coverAsset: asset }));
-      setEditorSuccess(`Cover image "${file.name}" uploaded.`);
+      setEditorSuccess(`Обложка "${file.name}" загружена.`);
     } catch (error: unknown) {
       if (isUnauthorized(error)) {
         onAuthExpired();
         return;
       }
-      setEditorError(getApiErrorMessage(error, 'Unable to upload the cover image.'));
+      setEditorError(getApiErrorMessage(error, 'Не получилось загрузить обложку.'));
     } finally {
       if (coverInputRef.current) {
         coverInputRef.current.value = '';
@@ -314,13 +314,13 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
         ...current,
         screenshots: [...current.screenshots, ...uploaded],
       }));
-      setEditorSuccess(`${uploaded.length} screenshot(s) uploaded.`);
+      setEditorSuccess(`Загружено скриншотов: ${uploaded.length}.`);
     } catch (error: unknown) {
       if (isUnauthorized(error)) {
         onAuthExpired();
         return;
       }
-      setEditorError(getApiErrorMessage(error, 'Unable to upload screenshots.'));
+      setEditorError(getApiErrorMessage(error, 'Не получилось загрузить скриншоты.'));
     } finally {
       if (screenshotsInputRef.current) {
         screenshotsInputRef.current.value = '';
@@ -341,14 +341,14 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
       setDraft(buildDraft(detail));
       setIsCreateMode(false);
       setSelectedProjectId(detail.id);
-      setEditorSuccess(isCreateMode ? 'Project created.' : 'Project saved.');
+      setEditorSuccess(isCreateMode ? 'Проект создан.' : 'Проект сохранён.');
       await loadProjects();
     } catch (error: unknown) {
       if (isUnauthorized(error)) {
         onAuthExpired();
         return;
       }
-      setEditorError(getApiErrorMessage(error, 'Unable to save the project.'));
+      setEditorError(getApiErrorMessage(error, 'Не получилось сохранить проект.'));
     } finally {
       setIsSaving(false);
     }
@@ -358,7 +358,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
     if (!selectedProjectId || isCreateMode) {
       return;
     }
-    if (!window.confirm('Delete this project? Uploaded assets will stay in storage.')) {
+    if (!window.confirm('Удалить этот проект? Загруженные ассеты останутся в storage.')) {
       return;
     }
 
@@ -369,14 +369,14 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
       await deleteAdminProject(selectedProjectId);
       setDraft(EMPTY_DRAFT);
       setSelectedProjectId(null);
-      setEditorSuccess('Project deleted.');
+      setEditorSuccess('Проект удалён.');
       await loadProjects();
     } catch (error: unknown) {
       if (isUnauthorized(error)) {
         onAuthExpired();
         return;
       }
-      setEditorError(getApiErrorMessage(error, 'Unable to delete the project.'));
+      setEditorError(getApiErrorMessage(error, 'Не получилось удалить проект.'));
     } finally {
       setIsDeleting(false);
     }
@@ -395,22 +395,22 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
           <Stack spacing={2}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
-                <Typography variant="h6">Projects</Typography>
+                <Typography variant="h6">Проекты</Typography>
                 <Typography color="text.secondary" variant="body2">
-                  Portfolio items with GitHub, README notes and screenshots.
+                  Портфолио-проекты с GitHub, README-заметками и галереей скриншотов.
                 </Typography>
               </Box>
-              <IconButton aria-label="Refresh projects" color="primary" onClick={() => void loadProjects()} size="small">
+              <IconButton aria-label="Обновить проекты" color="primary" onClick={() => void loadProjects()} size="small">
                 <RefreshRoundedIcon />
               </IconButton>
             </Stack>
 
             <Button onClick={handleCreateNew} startIcon={<AddRoundedIcon />} variant="contained">
-              New project
+              Новый проект
             </Button>
 
             <TextField
-              label="Search by title or slug"
+              label="Поиск по названию или slug"
               onChange={(event) => setQuery(event.target.value)}
               size="small"
               value={query}
@@ -450,9 +450,9 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
 
             {!isLoadingList && projects.length === 0 ? (
               <Stack spacing={1} sx={{ px: 1.25, py: 2 }}>
-                <Typography variant="subtitle2">No projects yet</Typography>
+                <Typography variant="subtitle2">Проектов пока нет</Typography>
                 <Typography color="text.secondary" variant="body2">
-                  Create the first showcase item and it will appear here immediately.
+                  Создай первый проект, и он сразу появится в списке.
                 </Typography>
               </Stack>
             ) : null}
@@ -506,9 +506,9 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
         <Stack spacing={2}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
-              <Typography variant="h6">{isCreateMode ? 'New project' : selectedProject?.title || 'Project editor'}</Typography>
+              <Typography variant="h6">{isCreateMode ? 'Новый проект' : selectedProject?.title || 'Редактор проекта'}</Typography>
               <Typography color="text.secondary" variant="body2">
-                Manage the public showcase entry, GitHub link and screenshot gallery.
+                Управляй публичной карточкой проекта, ссылкой на GitHub и галереей скриншотов.
               </Typography>
             </Box>
             {selectedProject && !isCreateMode && draft.status === 'published' ? (
@@ -520,7 +520,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
                 target="_blank"
                 variant="outlined"
               >
-                Open public page
+                Открыть публичную страницу
               </Button>
             ) : null}
           </Stack>
@@ -532,7 +532,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
           {!isLoadingDetail ? (
             <>
               <TextField
-                label="Title"
+                label="Название"
                 onChange={(event) => {
                   const nextTitle = event.target.value;
                   setDraft((current) => ({
@@ -552,19 +552,19 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
                 }}
               >
                 <TextField
-                  helperText="Used in the public URL /projects/:slug"
+                  helperText="Используется в публичном URL /projects/:slug"
                   label="Slug"
                   onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))}
                   value={draft.slug}
                 />
                 <TextField
-                  label="Status"
+                  label="Статус"
                   onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as ProjectStatus }))}
                   select
                   value={draft.status}
                 >
-                  <MenuItem value="draft">Draft</MenuItem>
-                  <MenuItem value="published">Published</MenuItem>
+                  <MenuItem value="draft">Черновик</MenuItem>
+                  <MenuItem value="published">Опубликован</MenuItem>
                 </TextField>
               </Box>
 
@@ -575,7 +575,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
               />
 
               <TextField
-                label="Short summary"
+                label="Короткое summary"
                 multiline
                 minRows={2}
                 onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))}
@@ -583,7 +583,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
               />
 
               <TextField
-                label="Public description"
+                label="Публичное описание"
                 multiline
                 minRows={3}
                 onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
@@ -591,7 +591,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
               />
 
               <TextField
-                label="README excerpt (Markdown)"
+                label="Фрагмент README (Markdown)"
                 multiline
                 minRows={8}
                 onChange={(event) => setDraft((current) => ({ ...current, readmeExcerpt: event.target.value }))}
@@ -600,9 +600,9 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
 
               <Stack spacing={1.5}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="subtitle1">Cover</Typography>
+                  <Typography variant="subtitle1">Обложка</Typography>
                   <Button component="label" size="small" startIcon={<CloudUploadRoundedIcon />} variant="outlined">
-                    Upload cover
+                    Загрузить обложку
                     <input hidden accept="image/*" onChange={(event) => void handleUploadCover(event.target.files)} ref={coverInputRef} type="file" />
                   </Button>
                 </Stack>
@@ -620,22 +620,22 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
                         }}
                       />
                       <Button color="inherit" onClick={() => setDraft((current) => ({ ...current, coverAsset: null }))} variant="text">
-                        Remove cover
+                        Убрать обложку
                       </Button>
                     </Stack>
                   </Paper>
                 ) : (
                   <Typography color="text.secondary" variant="body2">
-                    Add a cover image for the list card and project header.
+                    Добавь обложку для карточки проекта и верхнего блока на странице.
                   </Typography>
                 )}
               </Stack>
 
               <Stack spacing={1.5}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="subtitle1">Screenshots</Typography>
+                  <Typography variant="subtitle1">Скриншоты</Typography>
                   <Button component="label" size="small" startIcon={<CloudUploadRoundedIcon />} variant="outlined">
-                    Upload screenshots
+                    Загрузить скриншоты
                     <input
                       hidden
                       accept="image/*"
@@ -649,7 +649,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
 
                 {draft.screenshots.length === 0 ? (
                   <Typography color="text.secondary" variant="body2">
-                    Add a screenshot gallery so the public project page can open them as a carousel.
+                    Добавь галерею скриншотов, чтобы на публичной странице они открывались каруселью.
                   </Typography>
                 ) : (
                   <Stack spacing={1.25}>
@@ -666,7 +666,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
                             }}
                           />
                           <TextField
-                            label={`Screenshot ${index + 1} caption`}
+                            label={`Подпись скриншота ${index + 1}`}
                             onChange={(event) =>
                               setDraft((current) => ({
                                 ...current,
@@ -690,7 +690,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
                               }
                               variant="text"
                             >
-                              Move up
+                              Вверх
                             </Button>
                             <Button
                               disabled={index === draft.screenshots.length - 1}
@@ -703,7 +703,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
                               }
                               variant="text"
                             >
-                              Move down
+                              Вниз
                             </Button>
                             <Box sx={{ flexGrow: 1 }} />
                             <Button
@@ -717,7 +717,7 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
                               startIcon={<DeleteOutlineRoundedIcon />}
                               variant="text"
                             >
-                              Remove
+                              Удалить
                             </Button>
                           </Stack>
                         </Stack>
@@ -729,11 +729,11 @@ export function AdminProjectsPanel({ onAuthExpired }: { onAuthExpired: () => voi
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <Button disabled={isSaving} onClick={() => void handleSave()} startIcon={<SaveRoundedIcon />} variant="contained">
-                  {isSaving ? 'Saving...' : isCreateMode ? 'Create project' : 'Save project'}
+                  {isSaving ? 'Сохраняю...' : isCreateMode ? 'Создать проект' : 'Сохранить проект'}
                 </Button>
                 {!isCreateMode ? (
                   <Button color="error" disabled={isDeleting} onClick={() => void handleDelete()} startIcon={<DeleteOutlineRoundedIcon />} variant="outlined">
-                    {isDeleting ? 'Deleting...' : 'Delete project'}
+                    {isDeleting ? 'Удаляю...' : 'Удалить проект'}
                   </Button>
                 ) : null}
               </Stack>

@@ -73,7 +73,7 @@ export function ProjectPage() {
           setProject(null);
           return;
         }
-        setErrorMessage(getApiErrorMessage(error, 'Unable to load the project.'));
+        setErrorMessage(getApiErrorMessage(error, 'Не получилось загрузить проект.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -115,13 +115,13 @@ export function ProjectPage() {
         <Container maxWidth="lg">
           <Stack spacing={2.5}>
             <Button component={RouterLink} size="small" startIcon={<ArrowBackRoundedIcon />} sx={{ alignSelf: 'flex-start' }} to="/projects" variant="text">
-              Back to projects
+              Назад к проектам
             </Button>
 
             {isLoading ? <ProjectSkeleton /> : null}
             {!isLoading && notFound ? (
               <Paper sx={{ p: { xs: 3, md: 4 } }}>
-                <Typography variant="h5">Project not found</Typography>
+                <Typography variant="h5">Проект не найден</Typography>
               </Paper>
             ) : null}
             {!isLoading && errorMessage ? <Alert severity="warning">{errorMessage}</Alert> : null}
@@ -153,7 +153,7 @@ export function ProjectPage() {
                         target="_blank"
                         variant="outlined"
                       >
-                        Open GitHub
+                        Открыть GitHub
                       </Button>
                     ) : null}
 
@@ -186,6 +186,9 @@ export function ProjectPage() {
                   <Paper sx={{ p: { xs: 3, md: 4 } }}>
                     <Stack spacing={2}>
                       <Typography variant="h6">Screenshots</Typography>
+                      <Typography color="text.secondary" variant="body2">
+                        Скриншоты можно открыть в полноэкранной галерее.
+                      </Typography>
                       <Box
                         sx={{
                           display: 'grid',

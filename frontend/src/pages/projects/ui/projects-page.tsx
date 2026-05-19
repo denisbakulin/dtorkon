@@ -15,6 +15,8 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
+import { useAuth } from '../../../app/providers/auth-provider';
+import { AdminProjectsPanel } from '../../../features/admin/ui/admin-projects-panel';
 import { getApiErrorMessage } from '../../../shared/api/api-error';
 import { getPublicProjects } from '../../../shared/api/blog-api';
 import type { PublicProjectListItem } from '../../../shared/api/blog-contract';
@@ -58,7 +60,7 @@ function ProjectCard({ project }: { project: PublicProjectListItem }) {
 
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <Chip color="primary" label={formatDateLabel(project.publishedAt)} size="small" />
-          <Chip label={`${project.screenshotCount} screenshots`} size="small" variant="outlined" />
+          <Chip label={`${project.screenshotCount} скриншотов`} size="small" variant="outlined" />
         </Stack>
 
         <Stack spacing={1}>
@@ -71,7 +73,7 @@ function ProjectCard({ project }: { project: PublicProjectListItem }) {
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
           <Button component={RouterLink} endIcon={<ArrowOutwardRoundedIcon />} to={`/projects/${project.slug}`} variant="contained">
-            Open project
+            Открыть проект
           </Button>
           {project.githubUrl ? (
             <Button
@@ -93,6 +95,7 @@ function ProjectCard({ project }: { project: PublicProjectListItem }) {
 }
 
 export function ProjectsPage() {
+  const { isAuthenticated, refreshSession } = useAuth();
   const [projects, setProjects] = useState<PublicProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -110,7 +113,7 @@ export function ProjectsPage() {
         if (controller.signal.aborted || axios.isCancel(error)) {
           return;
         }
-        setErrorMessage(getApiErrorMessage(error, 'Unable to load projects.'));
+        setErrorMessage(getApiErrorMessage(error, 'Не получилось загрузить проекты.'));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -129,20 +132,34 @@ export function ProjectsPage() {
             <Paper sx={{ p: { xs: 3, md: 4 } }}>
               <Stack spacing={1.25}>
                 <Typography sx={{ fontSize: { xs: '2rem', md: '3rem' }, fontWeight: 700, lineHeight: 1.03 }}>
-                  Projects
+                  Проекты
                 </Typography>
                 <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
-                  A showcase of shipped work with repository links, screenshots and a short README-style overview for each project.
+                  Витрина рабочих проектов с репозиториями, скриншотами и кратким README-обзором по каждому кейсу.
                 </Typography>
               </Stack>
             </Paper>
+
+            {isAuthenticated ? (
+              <Paper sx={{ p: { xs: 3, md: 4 } }}>
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="h6">Управление проектами</Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Ты авторизован как админ, поэтому можно добавлять и редактировать проекты прямо отсюда, не переходя в `/admin`.
+                    </Typography>
+                  </Box>
+                  <AdminProjectsPanel onAuthExpired={() => void refreshSession()} />
+                </Stack>
+              </Paper>
+            ) : null}
 
             {errorMessage ? <Alert severity="warning">{errorMessage}</Alert> : null}
             {isLoading ? <ProjectsSkeleton /> : null}
 
             {!isLoading && projects.length === 0 ? (
               <Paper sx={{ p: { xs: 3, md: 4 } }}>
-                <Typography color="text.secondary">No published projects yet.</Typography>
+                <Typography color="text.secondary">Опубликованных проектов пока нет.</Typography>
               </Paper>
             ) : null}
 

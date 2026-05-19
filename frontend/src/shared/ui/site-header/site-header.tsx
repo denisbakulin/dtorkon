@@ -33,9 +33,9 @@ import { getAdminCreatePostPath, getAdminOverviewPath } from '../../lib/admin-ac
 const navigationItems = [
   { label: 'Главная', to: '/' },
   { label: 'Блог', to: '/blog' },
-  { label: 'Projects', to: '/projects' },
+  { label: 'Проекты', to: '/projects' },
   { label: 'Медиа', to: '/media' },
-  { label: 'Status', to: '/status' },
+  { label: 'Статус', to: '/status' },
   { label: 'Связь', to: '/contact' },
 ];
 
@@ -45,6 +45,16 @@ function isRouteActive(pathname: string, href: string) {
   }
 
   return pathname.startsWith(href);
+}
+
+function getNavigationOrder(href: string) {
+  if (href === '/projects') {
+    return 100;
+  }
+  if (href === '/status') {
+    return 101;
+  }
+  return 0;
 }
 
 export function SiteHeader() {
@@ -102,6 +112,14 @@ export function SiteHeader() {
       overviewHref: getAdminOverviewPath(),
     };
   }, [isAuthenticated]);
+
+  const orderedNavigationItems = useMemo(
+    () =>
+      [...navigationItems].sort((left, right) => {
+        return getNavigationOrder(left.to) - getNavigationOrder(right.to);
+      }),
+    [],
+  );
 
   return (
     <>
@@ -207,7 +225,7 @@ export function SiteHeader() {
                 ml: 3,
               }}
             >
-              {navigationItems.map((item) => {
+              {orderedNavigationItems.map((item) => {
                 const active = isRouteActive(location.pathname, item.to);
 
                 return (
@@ -310,7 +328,7 @@ export function SiteHeader() {
           </Stack>
 
           <List disablePadding>
-            {navigationItems.map((item) => (
+            {orderedNavigationItems.map((item) => (
               <ListItemButton
                 component={RouterLink}
                 key={item.to}

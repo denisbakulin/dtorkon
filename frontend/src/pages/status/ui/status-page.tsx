@@ -431,7 +431,7 @@ export function StatusPage() {
                 >
                   <Stack spacing={0.75}>
                     <Typography sx={{ fontSize: { xs: '2.2rem', md: '3rem' }, fontWeight: 700, lineHeight: 1.05 }}>
-                      Status
+                      Статус
                     </Typography>
                     <Typography color="text.secondary" sx={{ maxWidth: 720 }}>
                       Короткий дашборд по backend, серверу и контейнерам без служебных ссылок и технического шума.

@@ -1,5 +1,3 @@
-import io
-
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,11 +53,9 @@ class TranscriptionService:
         await self.session.commit()
 
         try:
-            content = await self.storage.download_object(asset.key)
             transcript = await self._request_transcript(
+                asset_url=asset.url,
                 file_name=asset.original_name,
-                mime_type=asset.mime_type,
-                content=content,
                 groq_api_key=groq_api_key,
             )
             await self.assets.mark_transcript_ready(asset=asset, transcript_text=transcript.strip())
@@ -94,7 +90,27 @@ class TranscriptionService:
         return asset_to_read(asset)
 
     async def _get_transcribable_asset(self, asset_id: str):
-        asset = await self._get_transcribable_asset(asset_id)
+        asset = await self.assets.get_by_id(asset_id)
+        if not asset:
+            raise AppError(
+                status_code=404,
+                code="asset_not_found",
+                message="Asset was not found",
+            )
+        if asset.status is not AssetStatus.READY:
+            raise AppError(
+                status_code=422,
+                code="asset_not_ready",
+                message="Asset must be ready before transcription changes",
+            )
+        if not (
+            asset.mime_type.startswith("audio/") or asset.mime_type.startswith("video/")
+        ):
+            raise AppError(
+                status_code=422,
+                code="asset_not_transcribable",
+                message="Only audio and video assets can be transcribed",
+            )
         return asset
 
     async def _get_groq_api_key(self) -> str | None:
@@ -106,25 +122,30 @@ class TranscriptionService:
     async def _request_transcript(
         self,
         *,
+        asset_url: str,
         file_name: str,
-        mime_type: str,
-        content: bytes,
         groq_api_key: str,
     ) -> str:
         headers = {"Authorization": f"Bearer {groq_api_key}"}
-        files = {
-            "file": (file_name, io.BytesIO(content), mime_type),
-        }
         data = {
             "model": self.settings.groq_speech_model,
+            "response_format": "json",
+            "temperature": "0",
         }
+        if asset_url.strip():
+            data["url"] = asset_url.strip()
+        else:
+            raise AppError(
+                status_code=422,
+                code="asset_url_missing",
+                message="Asset URL is required for transcription",
+            )
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=600.0) as client:
             response = await client.post(
                 f"{self.settings.groq_api_base.rstrip('/')}/audio/transcriptions",
                 headers=headers,
                 data=data,
-                files=files,
             )
             response.raise_for_status()
             payload = response.json()

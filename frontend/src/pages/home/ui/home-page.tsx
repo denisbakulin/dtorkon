@@ -99,8 +99,8 @@ export function HomePage() {
             >
               {[
                 {
-                  title: 'Projects',
-                  description: 'Portfolio of shipped work with GitHub links, screenshots and short technical notes.',
+                  title: 'Проекты',
+                  description: 'Витрина рабочих проектов с GitHub, скриншотами и коротким обзором.',
                   icon: <WorkspacesRoundedIcon color="primary" />,
                   to: '/projects',
                 },
