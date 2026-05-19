@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import AssetStatus, ErrorEventSource, PostStatus, TranscriptStatus
 from app.http.schemas import AdminAnalyticsRead, AnalyticsBreakdownItem, AnalyticsTimelinePoint, error_event_to_read
+from app.application.yandex_storage_analytics_service import YandexStorageAnalyticsService
 from app.infrastructure.config import Settings
 from app.infrastructure.models import Asset, Post
 from app.infrastructure.repositories import AssetRepository, ErrorEventRepository, PostRepository
@@ -51,6 +52,14 @@ class AnalyticsService:
         published_posts = [post for post in posts if post.status is PostStatus.PUBLISHED]
         draft_posts = [post for post in posts if post.status is PostStatus.DRAFT]
         ready_assets = [asset for asset in assets if asset.status is AssetStatus.READY]
+        storage_analytics = await YandexStorageAnalyticsService(
+            settings=self.settings,
+            key_display_names={
+                asset.key: asset.original_name
+                for asset in assets
+                if asset.key and asset.original_name
+            },
+        ).get_snapshot()
 
         return AdminAnalyticsRead(
             total_posts=len(posts),
@@ -69,6 +78,7 @@ class AnalyticsService:
             total_errors=total_errors,
             last_error_at=recent_errors[0].created_at if recent_errors else None,
             recent_errors=[error_event_to_read(event) for event in recent_errors],
+            storage_analytics=storage_analytics,
         )
 
     def _build_post_timeline(self, posts: list[Post]) -> list[AnalyticsTimelinePoint]:

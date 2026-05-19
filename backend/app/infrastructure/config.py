@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     s3_endpoint_url: str | None = None
     s3_region: str = "ru-central1"
     public_storage_base_url: str | None = None
+    yandex_cloud_folder_id: str | None = None
+    yandex_cloud_api_key: str | None = None
+    yandex_cloud_iam_token: str | None = None
+    yandex_storage_log_bucket_name: str | None = None
+    yandex_storage_log_object_prefix: str = "logs/"
 
     max_image_size_bytes: int = 10 * 1024 * 1024
     max_audio_size_bytes: int = 20 * 1024 * 1024
@@ -118,6 +123,26 @@ class Settings(BaseSettings):
             self.public_storage_base_url,
         ]
         return all(value and not _is_placeholder(value) for value in values)
+
+    @property
+    def yandex_cloud_api_enabled(self) -> bool:
+        if not self.yandex_cloud_folder_id:
+            return False
+
+        token = self.yandex_cloud_iam_token
+        api_key = self.yandex_cloud_api_key
+        return bool(
+            (token and not _is_placeholder(token))
+            or (api_key and not _is_placeholder(api_key))
+        )
+
+    @property
+    def yandex_storage_logs_enabled(self) -> bool:
+        return bool(
+            self.s3_enabled
+            and self.yandex_storage_log_bucket_name
+            and not _is_placeholder(self.yandex_storage_log_bucket_name)
+        )
 
     @property
     def resolved_admin_password(self) -> str:

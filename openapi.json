@@ -2740,6 +2740,9 @@
             },
             "type": "array",
             "title": "Recenterrors"
+          },
+          "storageAnalytics": {
+            "$ref": "#/components/schemas/StorageAnalyticsRead"
           }
         },
         "type": "object",
@@ -2757,14 +2760,11 @@
           "publicationActivity",
           "uploadActivity",
           "assetBreakdown",
-          "totalErrors"
+          "totalErrors",
+          "storageAnalytics"
         ],
         "title": "AdminAnalyticsRead"
       },
-      "AdminErrorEventRead": {
-        "properties": {
-          "id": {
-            "type": "string",
       "AdminCredentialsRead": {
         "properties": {
           "adminUsername": {
@@ -2788,6 +2788,10 @@
         ],
         "title": "AdminCredentialsRead"
       },
+      "AdminErrorEventRead": {
+        "properties": {
+          "id": {
+            "type": "string",
             "title": "Id"
           },
           "source": {
@@ -4741,6 +4745,273 @@
         ],
         "title": "StatusResponse"
       },
+      "StorageAnalyticsRead": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "metricsConfigured": {
+            "type": "boolean",
+            "title": "Metricsconfigured"
+          },
+          "logsConfigured": {
+            "type": "boolean",
+            "title": "Logsconfigured"
+          },
+          "bucketName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bucketname"
+          },
+          "logBucketName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logbucketname"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "usedSizeBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usedsizebytes"
+          },
+          "objectCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objectcount"
+          },
+          "publicReadEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publicreadenabled"
+          },
+          "publicListEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publiclistenabled"
+          },
+          "totalIncomingBytes": {
+            "type": "integer",
+            "title": "Totalincomingbytes",
+            "default": 0
+          },
+          "totalOutgoingBytes": {
+            "type": "integer",
+            "title": "Totaloutgoingbytes",
+            "default": 0
+          },
+          "totalRequests": {
+            "type": "integer",
+            "title": "Totalrequests",
+            "default": 0
+          },
+          "readRequests": {
+            "type": "integer",
+            "title": "Readrequests",
+            "default": 0
+          },
+          "writeRequests": {
+            "type": "integer",
+            "title": "Writerequests",
+            "default": 0
+          },
+          "lastLogAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastlogat"
+          },
+          "trafficTimeline": {
+            "items": {
+              "$ref": "#/components/schemas/StorageTrafficPoint"
+            },
+            "type": "array",
+            "title": "Traffictimeline"
+          },
+          "methodBreakdown": {
+            "items": {
+              "$ref": "#/components/schemas/StorageMethodBreakdownItem"
+            },
+            "type": "array",
+            "title": "Methodbreakdown"
+          },
+          "topObjects": {
+            "items": {
+              "$ref": "#/components/schemas/StorageTopObjectRead"
+            },
+            "type": "array",
+            "title": "Topobjects"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "metricsConfigured",
+          "logsConfigured"
+        ],
+        "title": "StorageAnalyticsRead"
+      },
+      "StorageMethodBreakdownItem": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "incomingBytes": {
+            "type": "integer",
+            "title": "Incomingbytes",
+            "default": 0
+          },
+          "outgoingBytes": {
+            "type": "integer",
+            "title": "Outgoingbytes",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "requests"
+        ],
+        "title": "StorageMethodBreakdownItem"
+      },
+      "StorageTopObjectRead": {
+        "properties": {
+          "objectKey": {
+            "type": "string",
+            "title": "Objectkey"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "outgoingBytes": {
+            "type": "integer",
+            "title": "Outgoingbytes",
+            "default": 0
+          },
+          "incomingBytes": {
+            "type": "integer",
+            "title": "Incomingbytes",
+            "default": 0
+          },
+          "lastRequestedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastrequestedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "objectKey",
+          "displayName",
+          "requests"
+        ],
+        "title": "StorageTopObjectRead"
+      },
+      "StorageTrafficPoint": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "incomingBytes": {
+            "type": "integer",
+            "title": "Incomingbytes",
+            "default": 0
+          },
+          "outgoingBytes": {
+            "type": "integer",
+            "title": "Outgoingbytes",
+            "default": 0
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests",
+            "default": 0
+          },
+          "readRequests": {
+            "type": "integer",
+            "title": "Readrequests",
+            "default": 0
+          },
+          "writeRequests": {
+            "type": "integer",
+            "title": "Writerequests",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "StorageTrafficPoint"
+      },
       "TelegramSettingsRead": {
         "properties": {
           "botConfigured": {
@@ -4802,6 +5073,36 @@
           "groqSpeechModel"
         ],
         "title": "TranscriptionSettingsRead"
+      },
+      "UpdateAdminCredentialsRequest": {
+        "properties": {
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "title": "UpdateAdminCredentialsRequest"
       },
       "UpdateAssetTranscriptRequest": {
         "properties": {
@@ -5074,36 +5375,6 @@
                 "type": "null"
               }
             ],
-      "UpdateAdminCredentialsRequest": {
-        "properties": {
-          "username": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Username"
-          },
-          "password": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "title": "UpdateAdminCredentialsRequest"
-      },
             "title": "Authorname"
           },
           "authorBio": {

@@ -481,6 +481,53 @@ class AnalyticsBreakdownItem(CamelModel):
     value: int
 
 
+class StorageTrafficPoint(CamelModel):
+    label: str
+    incoming_bytes: int = 0
+    outgoing_bytes: int = 0
+    requests: int = 0
+    read_requests: int = 0
+    write_requests: int = 0
+
+
+class StorageMethodBreakdownItem(CamelModel):
+    method: str
+    requests: int
+    incoming_bytes: int = 0
+    outgoing_bytes: int = 0
+
+
+class StorageTopObjectRead(CamelModel):
+    object_key: str
+    display_name: str
+    requests: int
+    outgoing_bytes: int = 0
+    incoming_bytes: int = 0
+    last_requested_at: str | None = None
+
+
+class StorageAnalyticsRead(CamelModel):
+    enabled: bool
+    metrics_configured: bool
+    logs_configured: bool
+    bucket_name: str | None = None
+    log_bucket_name: str | None = None
+    message: str | None = None
+    used_size_bytes: int | None = None
+    object_count: int | None = None
+    public_read_enabled: bool | None = None
+    public_list_enabled: bool | None = None
+    total_incoming_bytes: int = 0
+    total_outgoing_bytes: int = 0
+    total_requests: int = 0
+    read_requests: int = 0
+    write_requests: int = 0
+    last_log_at: str | None = None
+    traffic_timeline: list[StorageTrafficPoint] = Field(default_factory=list)
+    method_breakdown: list[StorageMethodBreakdownItem] = Field(default_factory=list)
+    top_objects: list[StorageTopObjectRead] = Field(default_factory=list)
+
+
 class AdminErrorEventRead(CamelModel):
     id: str
     source: Literal["backend"]
@@ -513,6 +560,7 @@ class AdminAnalyticsRead(CamelModel):
     total_errors: int
     last_error_at: str | None = None
     recent_errors: list[AdminErrorEventRead] = Field(default_factory=list)
+    storage_analytics: StorageAnalyticsRead
 
 
 def asset_to_read(asset: Asset | None) -> AssetRead | None:
