@@ -1,7 +1,6 @@
 import MemoryRoundedIcon from '@mui/icons-material/MemoryRounded';
 import MonitorHeartRoundedIcon from '@mui/icons-material/MonitorHeartRounded';
 import RouterRoundedIcon from '@mui/icons-material/RouterRounded';
-import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
 import {
   Alert,
   Box,
@@ -162,6 +161,33 @@ function DashboardMetric({
   );
 }
 
+function SummaryCard({
+  title,
+  icon,
+  primary,
+  secondary,
+}: {
+  title: string;
+  icon: ReactNode;
+  primary: string;
+  secondary: string;
+}) {
+  return (
+    <Paper sx={{ p: 2.5 }}>
+      <Stack spacing={1.2}>
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+          {icon}
+          <Typography variant="subtitle1">{title}</Typography>
+        </Stack>
+        <Typography sx={{ fontSize: '1.65rem', fontWeight: 700, lineHeight: 1.1 }}>{primary}</Typography>
+        <Typography color="text.secondary" variant="body2">
+          {secondary}
+        </Typography>
+      </Stack>
+    </Paper>
+  );
+}
+
 function SnapshotBarChart({
   items,
 }: {
@@ -223,10 +249,15 @@ function SnapshotBarChart({
   );
 }
 
-function ContainerDashboardCard({ container, maxMemoryBytes }: { container: ContainerStatus; maxMemoryBytes: number }) {
+function ContainerDashboardCard({ container }: { container: ContainerStatus }) {
   const cpuValue = container.cpuUsagePercent ?? null;
-  const memoryBytes = container.memoryWorkingSetBytes ?? container.memoryUsageBytes ?? 0;
-  const memoryValue = maxMemoryBytes > 0 ? (memoryBytes / maxMemoryBytes) * 100 : null;
+  const memoryBytes = container.memoryWorkingSetBytes ?? container.memoryUsageBytes;
+  const hasLiveMetrics =
+    cpuValue != null ||
+    memoryBytes != null ||
+    container.filesystemUsageBytes != null ||
+    (container.networkReceiveBytes ?? 0) > 0 ||
+    (container.networkTransmitBytes ?? 0) > 0;
 
   return (
     <Paper sx={{ border: 1, borderColor: 'divider', p: 2, boxShadow: 'none' }} variant="outlined">
@@ -235,20 +266,30 @@ function ContainerDashboardCard({ container, maxMemoryBytes }: { container: Cont
           <Stack spacing={0.25}>
             <Typography variant="subtitle2">{container.service}</Typography>
             <Typography color="text.secondary" variant="body2">
-              CPU {formatPercent(container.cpuUsagePercent)} • RAM {formatBytes(memoryBytes)}
+              {container.name}
             </Typography>
           </Stack>
           <Chip
-            color={statusChipColor(container.cpuUsagePercent != null ? 'ok' : 'default')}
-            label={container.cpuUsagePercent != null ? 'live' : 'warmup'}
+            color={statusChipColor(hasLiveMetrics ? 'ok' : 'default')}
+            label={hasLiveMetrics ? 'live' : 'warmup'}
             size="small"
             variant="outlined"
           />
         </Stack>
 
-        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { xs: 'flex-start', sm: 'center' } }}>
           <GaugeDial label="CPU" size={76} value={cpuValue} />
-          <GaugeDial label="RAM" size={76} value={memoryValue} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography color="text.secondary" variant="caption">
+              Current RAM
+            </Typography>
+            <Typography sx={{ fontSize: '1.45rem', fontWeight: 700, lineHeight: 1.15 }}>
+              {formatBytes(memoryBytes)}
+            </Typography>
+            <Typography color="text.secondary" variant="body2">
+              working set, not a relative share
+            </Typography>
+          </Box>
         </Stack>
 
         <Box
@@ -257,10 +298,16 @@ function ContainerDashboardCard({ container, maxMemoryBytes }: { container: Cont
             gap: 1.25,
             gridTemplateColumns: {
               xs: 'repeat(2, minmax(0, 1fr))',
-              sm: 'repeat(3, minmax(0, 1fr))',
+              sm: 'repeat(4, minmax(0, 1fr))',
             },
           }}
         >
+          <Box>
+            <Typography color="text.secondary" variant="caption">
+              CPU now
+            </Typography>
+            <Typography variant="body2">{formatPercent(container.cpuUsagePercent)}</Typography>
+          </Box>
           <Box>
             <Typography color="text.secondary" variant="caption">
               Filesystem
@@ -363,14 +410,6 @@ export function StatusPage() {
     return (runtimeStatus.host.diskUsedBytes / runtimeStatus.host.diskTotalBytes) * 100;
   }, [runtimeStatus]);
 
-  const containerMaxMemoryBytes = useMemo(() => {
-    const values =
-      runtimeStatus?.containers
-        .filter((container) => LANDING_CONTAINER_SERVICES.has(container.service))
-        .map((container) => container.memoryWorkingSetBytes ?? container.memoryUsageBytes ?? 0) ?? [];
-    return values.length > 0 ? Math.max(...values) : 0;
-  }, [runtimeStatus]);
-
   const topContainers = useMemo(() => {
     return [...(runtimeStatus?.containers ?? [])]
       .filter((container) => LANDING_CONTAINER_SERVICES.has(container.service))
@@ -429,50 +468,27 @@ export function StatusPage() {
                 gap: 2,
                 gridTemplateColumns: {
                   xs: '1fr',
-                  md: 'repeat(2, minmax(0, 1fr))',
-                  xl: 'repeat(4, minmax(0, 1fr))',
+                  md: 'repeat(3, minmax(0, 1fr))',
                 },
               }}
             >
-              <DashboardMetric
+              <SummaryCard
                 icon={<RouterRoundedIcon color="primary" />}
                 primary={runtimeStatus?.backendStatus === 'ok' ? 'Online' : 'Unavailable'}
                 secondary="Базовое состояние API."
                 title="Backend"
-                value={runtimeStatus?.backendStatus === 'ok' ? 100 : 0}
               />
-              <DashboardMetric
+              <SummaryCard
+                icon={<MonitorHeartRoundedIcon color="primary" />}
+                primary={formatDuration(runtimeStatus?.host?.uptimeSeconds)}
+                secondary="Сколько сервер работает без перезапуска."
+                title="Uptime"
+              />
+              <SummaryCard
                 icon={<MemoryRoundedIcon color="primary" />}
-                primary={formatPercent(runtimeStatus?.host?.cpuUsagePercent)}
-                secondary={
-                  runtimeStatus?.host?.load1 != null
-                    ? `Load ${runtimeStatus.host.load1.toFixed(2)} / ${runtimeStatus.host.load5?.toFixed(2) ?? '-'} / ${runtimeStatus.host.load15?.toFixed(2) ?? '-'}`
-                    : 'CPU и load появятся после node_exporter.'
-                }
-                title="CPU"
-                value={runtimeStatus?.host?.cpuUsagePercent ?? null}
-              />
-              <DashboardMetric
-                icon={<StorageRoundedIcon color="primary" />}
-                primary={
-                  runtimeStatus?.host?.memoryUsedBytes != null && runtimeStatus.host.memoryTotalBytes != null
-                    ? `${formatBytes(runtimeStatus.host.memoryUsedBytes)} / ${formatBytes(runtimeStatus.host.memoryTotalBytes)}`
-                    : '-'
-                }
-                secondary={hostMemoryPercent != null ? `${formatPercent(hostMemoryPercent)} used` : 'Память появится после node_exporter.'}
-                title="Memory"
-                value={hostMemoryPercent}
-              />
-              <DashboardMetric
-                icon={<StorageRoundedIcon color="primary" />}
-                primary={
-                  runtimeStatus?.host?.diskUsedBytes != null && runtimeStatus.host.diskTotalBytes != null
-                    ? `${formatBytes(runtimeStatus.host.diskUsedBytes)} / ${formatBytes(runtimeStatus.host.diskTotalBytes)}`
-                    : '-'
-                }
-                secondary={hostDiskPercent != null ? `${formatPercent(hostDiskPercent)} used` : 'Диск появится после node_exporter.'}
-                title="Disk"
-                value={hostDiskPercent}
+                primary={`${topContainers.length}/${LANDING_CONTAINER_SERVICES.size}`}
+                secondary="На странице оставлены только контейнеры лендинга: api и web."
+                title="Landing containers"
               />
             </Box>
 
@@ -483,9 +499,9 @@ export function StatusPage() {
                   spacing={1}
                   sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
                 >
-                  <Typography variant="h6">Host dashboard</Typography>
+                  <Typography variant="h6">Server graph</Typography>
                   <Typography color="text.secondary" variant="body2">
-                    Uptime: {formatDuration(runtimeStatus?.host?.uptimeSeconds)}
+                    CPU, memory, disk and load snapshot
                   </Typography>
                 </Stack>
 
@@ -556,11 +572,7 @@ export function StatusPage() {
                     }}
                   >
                     {topContainers.map((container) => (
-                      <ContainerDashboardCard
-                        container={container}
-                        key={`${container.service}-${container.name}`}
-                        maxMemoryBytes={containerMaxMemoryBytes}
-                      />
+                      <ContainerDashboardCard container={container} key={`${container.service}-${container.name}`} />
                     ))}
                   </Box>
                 ) : (
@@ -569,25 +581,23 @@ export function StatusPage() {
               </Stack>
             </Paper>
 
-            <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
-              <Stack spacing={2}>
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  spacing={1}
-                  sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
-                >
-                  <Typography variant="h6">External checks</Typography>
-                  {runtimeStatus?.uptimeKuma ? (
+            {runtimeStatus?.uptimeKuma ? (
+              <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+                <Stack spacing={2}>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1}
+                    sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+                  >
+                    <Typography variant="h6">External checks</Typography>
                     <Chip
                       color={statusChipColor(runtimeStatus.uptimeKuma.downMonitors > 0 ? 'degraded' : 'ok')}
                       label={`${runtimeStatus.uptimeKuma.upMonitors}/${runtimeStatus.uptimeKuma.totalMonitors} up`}
                       size="small"
                       variant="outlined"
                     />
-                  ) : null}
-                </Stack>
+                  </Stack>
 
-                {runtimeStatus?.uptimeKuma ? (
                   <Stack spacing={1.5}>
                     <Box
                       sx={{
@@ -649,11 +659,9 @@ export function StatusPage() {
                       ))}
                     </Box>
                   </Stack>
-                ) : (
-                  <Alert severity="info">Внешние проверки появятся после подключения `Uptime Kuma`.</Alert>
-                )}
-              </Stack>
-            </Paper>
+                </Stack>
+              </Paper>
+            ) : null}
           </Stack>
         </Container>
       </Box>
