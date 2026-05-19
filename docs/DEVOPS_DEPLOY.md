@@ -63,7 +63,8 @@ docker compose -f docker-compose.global.yml up -d --build
 docker compose -f docker-compose.global.yml --profile monitoring up -d --build
 ```
 
-GitHub Actions deploy workflow для ветки `master` использует именно этот вариант и автоматически поднимает profile `monitoring` на VPS.
+GitHub Actions deploy workflow для ветки `master` по умолчанию поднимает только `web + api`, не включает profile `monitoring` и после деплоя чистит старые Docker image/builder cache.
+`monitoring` на VPS включается отдельной командой только если runtime-метрики на `/status` действительно нужны и сервер выдерживает дополнительную нагрузку.
 
 ## Ответственность сервисов
 
@@ -154,3 +155,9 @@ GitHub Actions deploy workflow для ветки `master` использует �
 1. Заполнить `CADVISOR_BASE_URL` и `NODE_EXPORTER_BASE_URL` либо оставить internal Docker URLs.
 2. Поднять compose с профилем `monitoring`.
 3. Опционально подключить публичную status page из `Uptime Kuma` через `UPTIME_KUMA_BASE_URL` и `UPTIME_KUMA_STATUS_SLUG`.
+
+### Docker hygiene
+
+- production compose ограничивает `json-file` логи контейнеров через `max-size` и `max-file`;
+- deploy workflow делает `docker image prune` и `docker builder prune` с фильтром `until=24h`, чтобы после регулярных `--build` не копились старые слои;
+- если после включения `monitoring` растёт нагрузка `dockerd`, первым кандидатом на отключение считать `cAdvisor`.
