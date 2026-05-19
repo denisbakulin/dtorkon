@@ -79,22 +79,7 @@ export function PinnedAudioBar() {
                 >
                   {safeTitle}
                 </Typography>
-                {trackPositionLabel ? (
-                  <Typography
-                    color="text.secondary"
-                    sx={(t) => ({
-                      border: `1px solid ${alpha(t.palette.divider, 0.72)}`,
-                      borderRadius: 999,
-                      flex: '0 0 auto',
-                      fontVariantNumeric: 'tabular-nums',
-                      lineHeight: 1.35,
-                      px: 0.75,
-                    })}
-                    variant="caption"
-                  >
-                    {trackPositionLabel}
-                  </Typography>
-                ) : null}
+
               </Stack>
               {safeSubtitle ? (
                 <Typography
