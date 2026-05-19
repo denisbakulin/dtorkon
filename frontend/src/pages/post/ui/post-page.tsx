@@ -374,10 +374,18 @@ export function PostPage() {
           disableGutters
           maxWidth={false}
           sx={{
+            display: 'flex',
+            justifyContent: 'center',
             px: { xs: 0, sm: 3, md: 4, lg: 6, xl: 8 },
           }}
         >
-          <Stack spacing={{ xs: 0, md: 2.5 }}>
+          <Stack
+            spacing={{ xs: 0, md: 2.5 }}
+            sx={{
+              maxWidth: { xs: '100%', lg: '50%' },
+              width: { xs: '100%', lg: '50%' },
+            }}
+          >
             <Button
               component={RouterLink}
               size="small"
