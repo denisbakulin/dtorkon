@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   clearPersistentAudio,
+  cyclePersistentAudioPlaybackRate,
   getPersistentAudioSnapshot,
   hasPersistentAudioNextTrack,
   hasPersistentAudioPreviousTrack,
@@ -26,6 +27,7 @@ export function PinnedAudioBar() {
   const hasTrack = !!snapshot.src;
 
   const safeTitle = useMemo(() => snapshot.title || 'Audio', [snapshot.title]);
+  const playbackRateLabel = useMemo(() => formatPlaybackRate(snapshot.playbackRate), [snapshot.playbackRate]);
   const safeSubtitle = useMemo(() => {
     const parts: string[] = [];
     if (snapshot.collection?.contextLabel) {
@@ -79,7 +81,37 @@ export function PinnedAudioBar() {
                 >
                   {safeTitle}
                 </Typography>
-
+                <Tooltip title="Скорость воспроизведения">
+                  <Box
+                    aria-label={`Скорость воспроизведения ${playbackRateLabel}`}
+                    component="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      cyclePersistentAudioPlaybackRate();
+                    }}
+                    sx={(t) => ({
+                      border: `1px solid ${alpha(t.palette.divider, 0.72)}`,
+                      borderRadius: 999,
+                      bgcolor: alpha(t.palette.background.paper, t.palette.mode === 'dark' ? 0.2 : 0.55),
+                      color: 'text.secondary',
+                      cursor: 'pointer',
+                      flex: '0 0 auto',
+                      font: 'inherit',
+                      fontSize: 12,
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 1.35,
+                      px: 0.75,
+                      py: 0.1,
+                      '&:hover': {
+                        bgcolor: alpha(t.palette.primary.main, 0.1),
+                        color: 'primary.main',
+                      },
+                    })}
+                    type="button"
+                  >
+                    {playbackRateLabel}
+                  </Box>
+                </Tooltip>
               </Stack>
               {safeSubtitle ? (
                 <Typography
@@ -152,4 +184,8 @@ export function PinnedAudioBar() {
       <AudioCollectionDialog onClose={() => setIsAlbumOpen(false)} open={isAlbumOpen} />
     </>
   );
+}
+
+function formatPlaybackRate(rate: number) {
+  return `${Number.isInteger(rate) ? rate.toFixed(0) : rate.toFixed(2).replace(/0$/, '')}x`;
 }

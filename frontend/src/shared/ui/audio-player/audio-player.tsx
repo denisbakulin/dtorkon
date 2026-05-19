@@ -1,7 +1,7 @@
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { alpha, Box, IconButton, Stack, Typography } from '@mui/material';
-import { type KeyboardEventHandler, type PointerEventHandler, useEffect, useMemo, useState } from 'react';
+import { type KeyboardEventHandler, type PointerEventHandler, useEffect, useId, useMemo, useState } from 'react';
 
 import {
   type AudioCollection,
@@ -32,9 +32,10 @@ export function AudioPlayer({
   onOpenAlbum,
 }: AudioPlayerProps) {
   const [snapshot, setSnapshot] = useState(() => getPersistentAudioSnapshot());
+  const waveformId = useId();
 
   const bars = useMemo(() => {
-    const barCount = 50;
+    const barCount = 72;
     let hash = 0;
     for (let i = 0; i < src.length; i += 1) {
       hash = (hash * 31 + src.charCodeAt(i)) >>> 0;
@@ -58,6 +59,8 @@ export function AudioPlayer({
     }
     return result;
   }, [src]);
+  const waveformClipId = useMemo(() => `audio-wave-${waveformId.replace(/[^a-zA-Z0-9_-]/g, '')}`, [waveformId]);
+  const waveformPath = useMemo(() => createWaveformPath(bars), [bars]);
 
   const isActive = snapshot.src === src;
   const isPlaying = isActive && snapshot.isPlaying;
@@ -156,6 +159,7 @@ export function AudioPlayer({
           borderRadius: 2,
           display: 'flex',
           gap: 1.25,
+          position: 'relative',
           px: 1.25,
           py: 0.9,
           width: '100%',
@@ -192,36 +196,35 @@ export function AudioPlayer({
             cursor: 'pointer',
             display: 'flex',
             flex: 1,
-            gap: '2px',
             height: 28,
-            justifyContent: 'space-between',
             minWidth: 0,
             outline: 'none',
             position: 'relative',
             touchAction: 'none',
             userSelect: 'none',
+            '--audio-wave-empty': alpha(t.palette.success.dark, t.palette.mode === 'dark' ? 0.32 : 0.26),
+            '--audio-wave-filled': alpha(t.palette.success.dark, t.palette.mode === 'dark' ? 0.74 : 0.58),
             '&:focus-visible': {
               boxShadow: `0 0 0 2px ${alpha(t.palette.primary.main, 0.35)}`,
               borderRadius: 2,
             },
           })}
         >
-          {bars.map((h, i) => {
-            const filled = i / (bars.length - 1) <= progress;
-            return (
-              <Box
-                key={`${i}-${h}`}
-                sx={(t) => ({
-                  bgcolor: filled ? alpha(t.palette.success.dark, 0.55) : alpha(t.palette.success.dark, 0.28),
-                  borderRadius: 999,
-                  flex: '1 1 0',
-                  height: h,
-                  maxWidth: 4,
-                  minWidth: 0,
-                })}
-              />
-            );
-          })}
+          <Box
+            aria-hidden="true"
+            component="svg"
+            preserveAspectRatio="none"
+            sx={{ display: 'block', height: 28, overflow: 'visible', width: '100%' }}
+            viewBox="0 0 100 28"
+          >
+            <defs>
+              <clipPath id={waveformClipId}>
+                <rect height="28" width={progress * 100} x="0" y="0" />
+              </clipPath>
+            </defs>
+            <path d={waveformPath} fill="var(--audio-wave-empty)" />
+            <path clipPath={`url(#${waveformClipId})`} d={waveformPath} fill="var(--audio-wave-filled)" />
+          </Box>
           <Box
             sx={{
               bgcolor: 'text.secondary',
@@ -239,8 +242,18 @@ export function AudioPlayer({
         
 
         <Typography
-          sx={{ flex: '0 0 auto', fontVariantNumeric: 'tabular-nums', minWidth: { xs: 86, sm: 92 }, textAlign: 'right' }}
-          variant="body2"
+          sx={(t) => ({
+            bgcolor: alpha(t.palette.background.paper, t.palette.mode === 'dark' ? 0.42 : 0.62),
+            borderRadius: 999,
+            bottom: 4,
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1.35,
+            px: 0.75,
+            pointerEvents: 'none',
+            position: 'absolute',
+            right: 8,
+          })}
+          variant="caption"
         >
           {formattedTime}
         </Typography>
@@ -254,4 +267,43 @@ function formatTime(totalSeconds: number) {
   const minutes = Math.floor(safe / 60);
   const seconds = Math.floor(safe % 60);
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function createWaveformPath(samples: number[]) {
+  const width = 100;
+  const center = 14;
+  const maxSample = 24;
+  const maxAmplitude = 10;
+
+  const points = samples.map((sample, index) => {
+    const x = samples.length > 1 ? (index / (samples.length - 1)) * width : 0;
+    const amplitude = Math.max(3, Math.min(maxAmplitude, (sample / maxSample) * maxAmplitude));
+    return { amplitude, x };
+  });
+
+  const top = points.map(({ amplitude, x }) => ({ x, y: center - amplitude }));
+  const bottom = points.map(({ amplitude, x }) => ({ x, y: center + amplitude })).reverse();
+
+  return `${createSmoothPath(top, true)} ${createSmoothPath(bottom, false)} Z`;
+}
+
+function createSmoothPath(points: Array<{ x: number; y: number }>, moveToStart: boolean) {
+  if (points.length === 0) return '';
+
+  let path = `${moveToStart ? 'M' : 'L'} ${formatPoint(points[0].x)} ${formatPoint(points[0].y)}`;
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const midX = (previous.x + point.x) / 2;
+    const midY = (previous.y + point.y) / 2;
+    path += ` Q ${formatPoint(previous.x)} ${formatPoint(previous.y)} ${formatPoint(midX)} ${formatPoint(midY)}`;
+  }
+
+  const last = points[points.length - 1];
+  return `${path} L ${formatPoint(last.x)} ${formatPoint(last.y)}`;
+}
+
+function formatPoint(value: number) {
+  return Number(value.toFixed(2));
 }

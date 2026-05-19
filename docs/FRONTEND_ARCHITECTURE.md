@@ -63,7 +63,7 @@ Frontend покрывает две поверхности:
 
 - inline `AudioPlayer` отображает активность по глобальному `src/trackId`, а не по локальному состоянию карточки;
 - `MediaPlaylist` синхронизирует выбранный элемент с текущим persistent track, поэтому next/previous из pinned-плеера не расходятся со списком;
-- `PinnedAudioBar` сохраняет компактный waveform UI, поддерживает click/drag seek по waveform, время `прошло / всего`, позицию трека и переходы previous/next;
+- `PinnedAudioBar` сохраняет компактный waveform UI, поддерживает click/drag seek по waveform, время `прошло / всего`, скорость воспроизведения и переходы previous/next;
 - persistent audio layer публикует текущий трек через Media Session API, чтобы мобильные браузеры могли показывать системную карточку воспроизведения и кнопки в шторке уведомлений;
 - audio collection dialog и compact player используют цвета темы, без жестко заданной светлой палитры.
 

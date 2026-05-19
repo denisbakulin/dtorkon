@@ -22,6 +22,7 @@ export type AudioSnapshot = {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  playbackRate: number;
 };
 
 type AudioListener = (snapshot: AudioSnapshot) => void;
@@ -35,6 +36,7 @@ type PersistedAudioSnapshotV2 = {
   collection: AudioCollection | null;
   isPlaying: boolean;
   currentTime: number;
+  playbackRate: number;
 };
 
 type PersistedAudioSnapshotV1 = {
@@ -56,6 +58,7 @@ type PersistentAudioTarget = {
 
 const STORAGE_KEY = 'dtorkon:persistentAudio:v2';
 const LEGACY_STORAGE_KEY = 'dtorkon:persistentAudio:v1';
+const PLAYBACK_RATES = [1, 1.25, 1.5, 2] as const;
 const MEDIA_SESSION_ARTWORK = [
   {
     src: '/favicon.ico',
@@ -83,11 +86,20 @@ let snapshot: AudioSnapshot = {
   isPlaying: false,
   currentTime: 0,
   duration: 0,
+  playbackRate: 1,
 };
 
 function normalizeText(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function normalizePlaybackRate(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 1;
+
+  return PLAYBACK_RATES.reduce((closest, rate) =>
+    Math.abs(rate - value) < Math.abs(closest - value) ? rate : closest,
+  );
 }
 
 function normalizeCollectionTrack(track: AudioCollectionTrack): AudioCollectionTrack {
@@ -186,6 +198,7 @@ function safeParsePersisted(raw: string | null): PersistedAudioSnapshotV2 | null
       collection,
       isPlaying: Boolean(data.isPlaying),
       currentTime: typeof data.currentTime === 'number' && Number.isFinite(data.currentTime) ? data.currentTime : 0,
+      playbackRate: normalizePlaybackRate(data.playbackRate),
     };
   } catch {
     return null;
@@ -214,6 +227,7 @@ function safeParseLegacyPersisted(raw: string | null): PersistedAudioSnapshotV2 
       collection: createStandaloneCollection(track),
       isPlaying: Boolean(data.isPlaying),
       currentTime: typeof data.currentTime === 'number' && Number.isFinite(data.currentTime) ? data.currentTime : 0,
+      playbackRate: 1,
     };
   } catch {
     return null;
@@ -289,7 +303,7 @@ function syncMediaSessionPosition(mediaSession: MediaSession) {
   try {
     mediaSession.setPositionState({
       duration,
-      playbackRate: audio?.playbackRate || 1,
+      playbackRate: audio?.playbackRate || snapshot.playbackRate,
       position: Math.max(0, Math.min(duration, currentTime || 0)),
     });
   } catch {
@@ -351,6 +365,7 @@ function persistSnapshotNow() {
     collection: snapshot.collection,
     isPlaying: snapshot.isPlaying,
     currentTime: Number.isFinite(audio.currentTime) ? audio.currentTime : snapshot.currentTime || 0,
+    playbackRate: snapshot.playbackRate,
   };
 
   try {
@@ -380,6 +395,11 @@ function syncDuration() {
     ...snapshot,
     duration: Number.isFinite(audio?.duration) ? audio!.duration : 0,
   };
+}
+
+function applyPlaybackRate() {
+  if (!audio) return;
+  audio.playbackRate = normalizePlaybackRate(snapshot.playbackRate);
 }
 
 function applyPendingSeek() {
@@ -414,6 +434,7 @@ function ensure() {
   if (!audio) {
     audio = new Audio();
     audio.preload = 'metadata';
+    applyPlaybackRate();
   }
   if (!listeners) {
     listeners = new Set();
@@ -439,9 +460,11 @@ function ensure() {
         collection: persisted.collection,
         isPlaying: false,
         currentTime: persisted.currentTime,
+        playbackRate: persisted.playbackRate,
       };
 
       audio.src = persisted.src;
+      applyPlaybackRate();
       audio.load();
 
       const applyTimeAndMaybePlay = () => {
@@ -480,6 +503,7 @@ function ensure() {
       ...snapshot,
       isPlaying: !audio!.paused && !audio!.ended,
       currentTime: audio!.currentTime || 0,
+      playbackRate: normalizePlaybackRate(audio!.playbackRate),
     };
     emitSnapshot();
     schedulePersistSnapshot();
@@ -494,6 +518,7 @@ function ensure() {
   audio.addEventListener('timeupdate', notify);
   audio.addEventListener('play', notify);
   audio.addEventListener('pause', notify);
+  audio.addEventListener('ratechange', notify);
   audio.addEventListener('ended', () => {
     const currentIndex = getCurrentTrackIndex();
     const hasNextTrack = currentIndex >= 0 && !!snapshot.collection?.tracks[currentIndex + 1];
@@ -540,6 +565,7 @@ export async function playPersistentAudio(params: PersistentAudioTarget) {
     duration: isSameSrc ? snapshot.duration : 0,
   };
 
+  applyPlaybackRate();
   emitSnapshot();
   schedulePersistSnapshot();
 
@@ -578,7 +604,9 @@ export function clearPersistentAudio() {
     isPlaying: false,
     currentTime: 0,
     duration: 0,
+    playbackRate: 1,
   };
+  applyPlaybackRate();
   emitSnapshot();
   schedulePersistSnapshot();
 }
@@ -655,6 +683,21 @@ export function seekPersistentAudioByDelta(deltaSeconds: number) {
   ensure();
   const baseTime = Number.isFinite(audio!.currentTime) ? audio!.currentTime : snapshot.currentTime;
   seekPersistentAudioBySeconds(baseTime + deltaSeconds);
+}
+
+export function cyclePersistentAudioPlaybackRate() {
+  ensure();
+  const currentRate = normalizePlaybackRate(snapshot.playbackRate);
+  const currentIndex = PLAYBACK_RATES.findIndex((rate) => rate === currentRate);
+  const nextRate = PLAYBACK_RATES[(currentIndex + 1) % PLAYBACK_RATES.length];
+
+  snapshot = {
+    ...snapshot,
+    playbackRate: nextRate,
+  };
+  applyPlaybackRate();
+  emitSnapshot();
+  schedulePersistSnapshot();
 }
 
 export function hasPersistentAudioPreviousTrack() {
