@@ -436,6 +436,17 @@ class UpdateGroqApiKeyRequest(CamelModel):
     api_key: str | None = Field(default=None, min_length=0)
 
 
+class AdminCredentialsRead(CamelModel):
+    admin_username: str
+    username_overridden: bool
+    password_overridden: bool
+
+
+class UpdateAdminCredentialsRequest(CamelModel):
+    username: str | None = Field(default=None, min_length=0)
+    password: str | None = Field(default=None, min_length=0)
+
+
 class TelegramSettingsRead(CamelModel):
     bot_configured: bool
     admin_chat_id: str | None = None

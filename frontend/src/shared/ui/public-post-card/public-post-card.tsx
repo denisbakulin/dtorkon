@@ -19,6 +19,7 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
   return (
     <Paper
       sx={{
+        borderRadius: { xs: 0, sm: 2 },
         color: 'inherit',
         display: 'block',
         overflow: 'hidden',
@@ -36,7 +37,7 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
         sx={{
           color: 'inherit',
           display: 'block',
-          p: featured ? 3 : 2.25,
+          p: featured ? { xs: 2.25, md: 3 } : { xs: 2, md: 2.25 },
           textDecoration: 'none',
         }}
         to={`/posts/${post.slug}`}
@@ -95,7 +96,14 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
       </Stack>
 
       {isAuthenticated ? (
-        <Stack direction="row" spacing={1} sx={{ px: featured ? 3 : 2.25, pb: featured ? 3 : 2.25 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            pb: featured ? { xs: 2.25, md: 3 } : { xs: 2, md: 2.25 },
+            px: featured ? { xs: 2.25, md: 3 } : { xs: 2, md: 2.25 },
+          }}
+        >
           <Button
             component={RouterLink}
             onClick={(event) => event.stopPropagation()}

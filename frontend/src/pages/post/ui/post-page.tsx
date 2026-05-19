@@ -377,7 +377,7 @@ export function PostPage() {
             px: { xs: 0, sm: 3, md: 4, lg: 6, xl: 8 },
           }}
         >
-          <Stack spacing={2.5}>
+          <Stack spacing={{ xs: 0, md: 2.5 }}>
             <Button
               component={RouterLink}
               size="small"
@@ -418,7 +418,7 @@ export function PostPage() {
 
             {post ? (
               <>
-                <Paper sx={{ overflow: 'hidden', p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+                <Paper sx={{ overflow: 'hidden', p: { xs: 2, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                   <Stack spacing={2.25}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                       <Chip color="primary" label={formatDateLabel(post.publishedAt)} size="small" />
@@ -457,7 +457,7 @@ export function PostPage() {
                   </Stack>
                 </Paper>
 
-                <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+                <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                   <MarkdownRenderer
                     audioCollection={markdownAudioCollection}
                     content={post.bodyMarkdown}
@@ -467,7 +467,7 @@ export function PostPage() {
                 </Paper>
 
                 {post.attachments.length > 0 ? (
-                  <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+                  <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                     <Stack spacing={2}>
                       <Typography variant="h6">Вложения</Typography>
                       <MediaPlaylist

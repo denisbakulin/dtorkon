@@ -1492,6 +1492,116 @@
         ]
       }
     },
+    "/api/admin/settings/credentials": {
+      "get": {
+        "tags": [
+          "Admin Settings"
+        ],
+        "summary": "Read admin login credentials status",
+        "operationId": "get_admin_credentials_api_admin_settings_credentials_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCredentialsRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Admin Settings"
+        ],
+        "summary": "Update admin login and password overrides stored in SQLite",
+        "operationId": "update_admin_credentials_api_admin_settings_credentials_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminCredentialsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCredentialsRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
     "/api/admin/settings/transcription": {
       "get": {
         "tags": [
@@ -2655,6 +2765,29 @@
         "properties": {
           "id": {
             "type": "string",
+      "AdminCredentialsRead": {
+        "properties": {
+          "adminUsername": {
+            "type": "string",
+            "title": "Adminusername"
+          },
+          "usernameOverridden": {
+            "type": "boolean",
+            "title": "Usernameoverridden"
+          },
+          "passwordOverridden": {
+            "type": "boolean",
+            "title": "Passwordoverridden"
+          }
+        },
+        "type": "object",
+        "required": [
+          "adminUsername",
+          "usernameOverridden",
+          "passwordOverridden"
+        ],
+        "title": "AdminCredentialsRead"
+      },
             "title": "Id"
           },
           "source": {
@@ -4941,6 +5074,36 @@
                 "type": "null"
               }
             ],
+      "UpdateAdminCredentialsRequest": {
+        "properties": {
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "title": "UpdateAdminCredentialsRequest"
+      },
             "title": "Authorname"
           },
           "authorBio": {

@@ -88,3 +88,9 @@ Backend — обязательный runtime-компонент продукта
 - public routes live under `/api/projects` and private CRUD lives under `/api/admin/projects`;
 - project records reuse the shared asset pipeline for cover images and screenshot galleries;
 - asset deletion checks now treat project covers and screenshots as in-use references.
+## Admin credentials overrides
+
+- auth still starts from `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env`;
+- admin can now store SQLite overrides for login/password in `app_secrets`;
+- login validation and `GET /api/auth/session` use the effective credential set, where SQLite overrides take precedence over `.env`;
+- clearing an override returns auth back to the bootstrap credential from `.env`.

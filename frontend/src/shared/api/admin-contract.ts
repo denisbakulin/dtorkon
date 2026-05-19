@@ -161,6 +161,53 @@ export type AnalyticsBreakdownItem = {
   value: number;
 };
 
+export type StorageTrafficPoint = {
+  label: string;
+  incomingBytes: number;
+  outgoingBytes: number;
+  requests: number;
+  readRequests: number;
+  writeRequests: number;
+};
+
+export type StorageMethodBreakdownItem = {
+  method: string;
+  requests: number;
+  incomingBytes: number;
+  outgoingBytes: number;
+};
+
+export type StorageTopObject = {
+  objectKey: string;
+  displayName: string;
+  requests: number;
+  outgoingBytes: number;
+  incomingBytes: number;
+  lastRequestedAt: string | null;
+};
+
+export type StorageAnalytics = {
+  enabled: boolean;
+  metricsConfigured: boolean;
+  logsConfigured: boolean;
+  bucketName: string | null;
+  logBucketName: string | null;
+  message: string | null;
+  usedSizeBytes: number | null;
+  objectCount: number | null;
+  publicReadEnabled: boolean | null;
+  publicListEnabled: boolean | null;
+  totalIncomingBytes: number;
+  totalOutgoingBytes: number;
+  totalRequests: number;
+  readRequests: number;
+  writeRequests: number;
+  lastLogAt: string | null;
+  trafficTimeline: StorageTrafficPoint[];
+  methodBreakdown: StorageMethodBreakdownItem[];
+  topObjects: StorageTopObject[];
+};
+
 export type AdminErrorEvent = {
   id: string;
   source: 'backend';
@@ -193,12 +240,19 @@ export type AdminAnalytics = {
   totalErrors: number;
   lastErrorAt: string | null;
   recentErrors: AdminErrorEvent[];
+  storageAnalytics: StorageAnalytics;
 };
 
 export type TranscriptionSettings = {
   groqConfigured: boolean;
   groqApiBase: string;
   groqSpeechModel: string;
+};
+
+export type AdminCredentialsSettings = {
+  adminUsername: string;
+  usernameOverridden: boolean;
+  passwordOverridden: boolean;
 };
 
 export type TelegramSettings = {

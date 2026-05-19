@@ -92,6 +92,7 @@ import { LightboxImage } from '../../../shared/ui/lightbox-image/lightbox-image'
 import { MediaPlayer } from '../../../shared/ui/media-player/media-player';
 import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 import { AdminAnalyticsPanel } from './admin-analytics-panel';
+import { CredentialsSettingsPanel } from './credentials-settings-panel';
 import { AdminErrorEventsPanel } from './admin-error-events-panel';
 import { AdminProjectsPanel } from './admin-projects-panel';
 import { TranscriptionSettingsPanel } from './transcription-settings-panel';
@@ -359,7 +360,7 @@ type OverviewPaneProps = {
   siteProfile: SiteProfile | null;
 };
 
-type OverviewTab = 'dashboard' | 'projects' | 'errors' | 'siteProfile' | 'transcription' | 'telegram';
+type OverviewTab = 'dashboard' | 'projects' | 'errors' | 'siteProfile' | 'credentials' | 'transcription' | 'telegram';
 
 type EditableProfileLink = {
   kind: 'email' | 'phone' | 'telegram' | 'vk' | 'link';
@@ -1115,6 +1116,7 @@ function OverviewPane({
           <Tab label="Projects" value="projects" />
           <Tab label={`Errors (${analytics?.totalErrors ?? 0})`} value="errors" />
           <Tab label="Site profile" value="siteProfile" />
+          <Tab label="Admin access" value="credentials" />
           <Tab label="Transcription" value="transcription" />
           <Tab label="Связь" value="telegram" />
         </Tabs>
@@ -1129,6 +1131,8 @@ function OverviewPane({
       {activeTab === 'errors' ? (
         <AdminErrorEventsPanel analytics={analytics} isLoading={isLoadingAnalytics} />
       ) : null}
+
+      {activeTab === 'credentials' ? <CredentialsSettingsPanel /> : null}
 
       {activeTab === 'transcription' ? <TranscriptionSettingsPanel /> : null}
 

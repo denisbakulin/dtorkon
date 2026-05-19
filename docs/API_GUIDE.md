@@ -239,6 +239,25 @@ Query-параметры:
 
 `recentErrors[]` и агрегаты ошибок в admin analytics сейчас backend-only: frontend runtime/network ошибки не принимаются и не включаются в эти значения.
 
+Дополнительно ответ теперь включает `storageAnalytics` для Yandex Object Storage:
+
+- `enabled`, `metricsConfigured`, `logsConfigured`
+- `bucketName`, `logBucketName`, `message`
+- `usedSizeBytes`, `objectCount`
+- `publicReadEnabled`, `publicListEnabled`
+- `totalIncomingBytes`, `totalOutgoingBytes`
+- `totalRequests`, `readRequests`, `writeRequests`
+- `lastLogAt`
+- `trafficTimeline[]` с входящим/исходящим трафиком и request counters по дням
+- `methodBreakdown[]`
+- `topObjects[]`
+
+Практически это работает так:
+
+- bucket size и traffic графики backend читает из Yandex Monitoring API и Object Storage bucket stats API;
+- top requested files и request-method breakdown backend собирает из access logs бакета;
+- если настроена только часть интеграции, endpoint всё равно отвечает, а `message` объясняет, чего не хватает.
+
 ## Admin: посты и редактор
 
 ### `GET /api/admin/posts`
@@ -442,3 +461,29 @@ Payload:
 - public `/blog` использует `q` для быстрого поиска по постам;
 - audio и video лучше рендерить из `kind` и `mimeType`, а не только по названию файла;
 - theme/accent остаются локальными настройками браузера и больше не завязаны на пользовательский профиль.
+## Admin credentials overrides
+
+### `GET /api/admin/settings/credentials`
+
+Returns the effective admin login plus whether the current login/password come from SQLite overrides instead of `.env`.
+
+Response fields:
+
+- `adminUsername`
+- `usernameOverridden`
+- `passwordOverridden`
+
+### `PUT /api/admin/settings/credentials`
+
+Updates the admin login and/or password override stored in `app_secrets`.
+
+Payload:
+
+- `username`
+- `password`
+
+Notes:
+
+- a non-empty value stores a new override in SQLite;
+- an empty string clears the override and falls back to the bootstrap credential from `.env`;
+- auth endpoints now validate credentials against the effective value, where SQLite overrides win over `.env`.

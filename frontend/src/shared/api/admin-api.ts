@@ -1,6 +1,7 @@
 import { httpClient } from './http-client';
 import type {
   AdminAnalytics,
+  AdminCredentialsSettings,
   AdminPostDetail,
   AdminPostListResponse,
   AdminPostStatusFilter,
@@ -201,6 +202,19 @@ export async function getAdminTranscriptionSettings(signal?: AbortSignal) {
   const response = await httpClient.get<TranscriptionSettings>('/api/admin/settings/transcription', {
     signal,
   });
+  return response.data;
+}
+
+export async function getAdminCredentialsSettings(signal?: AbortSignal) {
+  const response = await httpClient.get<AdminCredentialsSettings>('/api/admin/settings/credentials', { signal });
+  return response.data;
+}
+
+export async function updateAdminCredentialsSettings(payload: {
+  username?: string | null;
+  password?: string | null;
+}) {
+  const response = await httpClient.put<AdminCredentialsSettings>('/api/admin/settings/credentials', payload);
   return response.data;
 }
 

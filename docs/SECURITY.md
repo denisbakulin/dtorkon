@@ -44,3 +44,9 @@ Upload flow должен проверять:
 - публичная раздача идет через `PUBLIC_STORAGE_BASE_URL`;
 - access keys не должны попадать во frontend bundle;
 - backend не должен отдавать raw credentials клиенту.
+## Admin credentials rotation
+
+- `.env` remains the bootstrap source for `ADMIN_USERNAME` and `ADMIN_PASSWORD`;
+- runtime overrides stored in SQLite let the admin rotate login/password without redeploying the server;
+- SQLite overrides must be treated as sensitive secrets with the same protection level as `.env` credentials;
+- clearing an override falls back to the bootstrap credential from `.env`.

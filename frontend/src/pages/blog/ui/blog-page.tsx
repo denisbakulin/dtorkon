@@ -1,14 +1,5 @@
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Paper,
-  Skeleton,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Container, Paper, Skeleton, Stack, Typography } from '@mui/material';
 import axios from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
@@ -91,7 +82,7 @@ export function BlogPage() {
         setErrorMessage(
           getApiErrorMessage(
             error,
-            'Не получилось загрузить публикации. Попробуй обновить страницу.',
+            'РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСѓР±Р»РёРєР°С†РёРё. РџРѕРїСЂРѕР±СѓР№ РѕР±РЅРѕРІРёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ.',
           ),
         );
       })
@@ -167,7 +158,7 @@ export function BlogPage() {
           })
           .catch((error: unknown) => {
             setErrorMessage(
-              getApiErrorMessage(error, 'Не получилось загрузить старые публикации. Попробуй повторить.'),
+              getApiErrorMessage(error, 'РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃС‚Р°СЂС‹Рµ РїСѓР±Р»РёРєР°С†РёРё. РџРѕРїСЂРѕР±СѓР№ РїРѕРІС‚РѕСЂРёС‚СЊ.'),
             );
             scrollRestoreRef.current = null;
           })
@@ -186,6 +177,44 @@ export function BlogPage() {
     return () => observer.disconnect();
   }, [hasOlderPosts, isLoading, isLoadingOlder, nextPage, pagination, searchQuery]);
 
+  const handleRetryOlder = () => {
+    const feed = feedRef.current;
+    if (!feed || !hasOlderPosts || isLoadingOlder) {
+      return;
+    }
+
+    setIsLoadingOlder(true);
+    scrollRestoreRef.current = {
+      prevScrollHeight: feed.scrollHeight,
+      prevScrollTop: feed.scrollTop,
+    };
+
+    getPublicPosts({
+      page: nextPage,
+      pageSize: PAGE_SIZE,
+      q: searchQuery || undefined,
+    })
+      .then((response) => {
+        const normalizedItems = [...response.items].reverse();
+        setItems((prev) => [...normalizedItems, ...prev]);
+        setPagination(response.pagination);
+        setNextPage(response.pagination.page + 1);
+        setErrorMessage(null);
+      })
+      .catch((error: unknown) => {
+        setErrorMessage(
+          getApiErrorMessage(
+            error,
+            'РќРµ РїРѕР»СѓС‡РёР»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃС‚Р°СЂС‹Рµ РїСѓР±Р»РёРєР°С†РёРё. РџРѕРїСЂРѕР±СѓР№ РїРѕРІС‚РѕСЂРёС‚СЊ.',
+          ),
+        );
+        scrollRestoreRef.current = null;
+      })
+      .finally(() => {
+        setIsLoadingOlder(false);
+      });
+  };
+
   return (
     <SiteShell lockViewport>
       <Box
@@ -200,172 +229,122 @@ export function BlogPage() {
         }}
       >
         <Container
-          maxWidth="lg"
+          disableGutters
+          maxWidth={false}
           sx={{
             display: 'flex',
             flex: 1,
             minHeight: 0,
+            px: { xs: 0, sm: 2, md: 3, lg: 4 },
           }}
         >
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ flex: 1, minHeight: 0 }}
+          <Box
+            sx={{
+              display: 'flex',
+              flex: 1,
+              flexDirection: 'column',
+              minHeight: 0,
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
           >
-           
-
-            <Paper
-              sx={{
-                display: 'flex',
-                flex: 1,
-                flexDirection: 'column',
-                minHeight: 0,
-                minWidth: 0,
-                overflow: 'hidden',
-                p: 1.25,
-              }}
-            >
-              <Box sx={{ display: { xs: 'block', md: 'none' }, px: 0.5, pt: 0.5 }}>
-                
-                {pagination ? (
-                  <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
-                    Найдено публикаций: {pagination.totalItems}
-                  </Typography>
-                ) : null}
-              </Box>
-
-              {errorMessage && items.length === 0 ? (
-                <Alert
-                  action={
-                    <Button
-                      color="inherit"
-                      onClick={() => window.location.reload()}
-                      size="small"
-                      startIcon={<RefreshRoundedIcon />}
-                    >
-                      Обновить
-                    </Button>
-                  }
-                  severity="warning"
-                  sx={{ mb: 2 }}
-                >
-                  {errorMessage}
-                </Alert>
-              ) : null}
-
-              {isLoading && items.length === 0 ? <BlogListSkeleton /> : null}
-
-              {!isLoading && pagination && items.length === 0 ? (
-                <Box sx={{ p: 2 }}>
-                  <Stack spacing={1}>
-                    <Typography variant="h6">Ничего не найдено</Typography>
-                    <Typography color="text.secondary">
-                      Попробуй изменить запрос или сбросить фильтр поиска.
-                    </Typography>
-                  </Stack>
-                </Box>
-              ) : null}
-
-              {items.length > 0 ? (
-                <Box
-                  ref={feedRef}
-                  sx={{
-                    flex: 1,
-                    minHeight: 0,
-                    overflowY: 'auto',
-                    px: { xs: 1, md: 1.5 },
-                    py: 1.25,
-                  }}
-                >
-                  <Stack spacing={2}>
-                    <Box
-                      ref={topSentinelRef}
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        pt: 0.5,
-                      }}
-                    >
-                      {hasOlderPosts ? (
-                        <Typography color="text.secondary" variant="body2">
-                          {isLoadingOlder ? 'Загружаю старые публикации…' : 'Прокрути вверх, чтобы загрузить ещё'}
-                        </Typography>
-                      ) : (
-                        <Typography color="text.secondary" variant="body2">
-                          Это начало ленты
-                        </Typography>
-                      )}
-                    </Box>
-
-                    {items.map((post, index) => (
-                      <PublicPostCard key={post.id} featured={index === items.length - 1} post={post} />
-                    ))}
-
-                    {errorMessage && items.length > 0 ? (
-                      <Alert
-                        action={
-                          <Button
-                            color="inherit"
-                            disabled={!hasOlderPosts || isLoadingOlder || isLoading}
-                            onClick={() => {
-                              const feed = feedRef.current;
-                              if (!feed || !hasOlderPosts || isLoadingOlder) {
-                                return;
-                              }
-
-                              setIsLoadingOlder(true);
-                              scrollRestoreRef.current = {
-                                prevScrollHeight: feed.scrollHeight,
-                                prevScrollTop: feed.scrollTop,
-                              };
-
-                              getPublicPosts({
-                                page: nextPage,
-                                pageSize: PAGE_SIZE,
-                                q: searchQuery || undefined,
-                              })
-                                .then((response) => {
-                                  const normalizedItems = [...response.items].reverse();
-                                  setItems((prev) => [...normalizedItems, ...prev]);
-                                  setPagination(response.pagination);
-                                  setNextPage(response.pagination.page + 1);
-                                  setErrorMessage(null);
-                                })
-                                .catch((error: unknown) => {
-                                  setErrorMessage(
-                                    getApiErrorMessage(
-                                      error,
-                                      'Не получилось загрузить старые публикации. Попробуй повторить.',
-                                    ),
-                                  );
-                                  scrollRestoreRef.current = null;
-                                })
-                                .finally(() => {
-                                  setIsLoadingOlder(false);
-                                });
-                            }}
-                            size="small"
-                          >
-                            Повторить
-                          </Button>
-                        }
-                        severity="warning"
-                      >
-                        {errorMessage}
-                      </Alert>
-                    ) : null}
-                    
-                  </Stack>
-                </Box>
-                
-              ) : null}
-              {isAuthenticated ? (
-                  <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
-                    Новый пост
+            {errorMessage && items.length === 0 ? (
+              <Alert
+                action={
+                  <Button
+                    color="inherit"
+                    onClick={() => window.location.reload()}
+                    size="small"
+                    startIcon={<RefreshRoundedIcon />}
+                  >
+                    РћР±РЅРѕРІРёС‚СЊ
                   </Button>
-                ) : null}
-            </Paper>
-          </Stack>
+                }
+                severity="warning"
+                sx={{ mb: 2, mx: { xs: 2, sm: 0 } }}
+              >
+                {errorMessage}
+              </Alert>
+            ) : null}
+
+            {isLoading && items.length === 0 ? <BlogListSkeleton /> : null}
+
+            {!isLoading && pagination && items.length === 0 ? (
+              <Box sx={{ p: 2, px: { xs: 2, sm: 0 } }}>
+                <Stack spacing={1}>
+                  <Typography variant="h6">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</Typography>
+                  <Typography color="text.secondary">
+                    РџРѕРїСЂРѕР±СѓР№ РёР·РјРµРЅРёС‚СЊ Р·Р°РїСЂРѕСЃ РёР»Рё СЃР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂ РїРѕРёСЃРєР°.
+                  </Typography>
+                </Stack>
+              </Box>
+            ) : null}
+
+            {items.length > 0 ? (
+              <Box
+                ref={feedRef}
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  px: { xs: 0, md: 1 },
+                  py: { xs: 0.75, md: 1.25 },
+                }}
+              >
+                <Stack spacing={2}>
+                  <Box
+                    ref={topSentinelRef}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      pt: 0.5,
+                    }}
+                  >
+                    {hasOlderPosts ? (
+                      <Typography color="text.secondary" variant="body2">
+                        {isLoadingOlder ? 'Р—Р°РіСЂСѓР¶Р°СЋ СЃС‚Р°СЂС‹Рµ РїСѓР±Р»РёРєР°С†РёРёвЂ¦' : 'РџСЂРѕРєСЂСѓС‚Рё РІРІРµСЂС…, С‡С‚РѕР±С‹ Р·Р°РіСЂСѓР·РёС‚СЊ РµС‰С‘'}
+                      </Typography>
+                    ) : (
+                      <Typography color="text.secondary" variant="body2">
+                        Р­С‚Рѕ РЅР°С‡Р°Р»Рѕ Р»РµРЅС‚С‹
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {items.map((post, index) => (
+                    <PublicPostCard key={post.id} featured={index === items.length - 1} post={post} />
+                  ))}
+
+                  {errorMessage && items.length > 0 ? (
+                    <Alert
+                      action={
+                        <Button
+                          color="inherit"
+                          disabled={!hasOlderPosts || isLoadingOlder || isLoading}
+                          onClick={handleRetryOlder}
+                          size="small"
+                        >
+                          РџРѕРІС‚РѕСЂРёС‚СЊ
+                        </Button>
+                      }
+                      severity="warning"
+                      sx={{ mx: { xs: 2, sm: 0 } }}
+                    >
+                      {errorMessage}
+                    </Alert>
+                  ) : null}
+                </Stack>
+              </Box>
+            ) : null}
+
+            {isAuthenticated ? (
+              <Box sx={{ px: { xs: 2, sm: 0 }, pt: 1.25 }}>
+                <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
+                  РќРѕРІС‹Р№ РїРѕСЃС‚
+                </Button>
+              </Box>
+            ) : null}
+          </Box>
         </Container>
       </Box>
     </SiteShell>
