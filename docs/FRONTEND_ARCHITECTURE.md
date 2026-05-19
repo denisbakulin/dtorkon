@@ -96,7 +96,15 @@ Inline media flow работает так:
 - public pages получают данные из backend API;
 - auth state опирается на session cookie;
 - admin shell хранит draft отдельно для cover, inline assets и attachments;
+- create-post draft дополнительно переживает случайный reload вкладки через `sessionStorage`, включая title, slug, excerpt, body, cover, inline assets и attachments;
 - upload flow в админке имеет состояния `idle`, `presigning`, `uploading`, `completing`, `error`, а браузер передает файлы только в backend API;
 - запись голосовых использует `MediaRecorder`, а после остановки отправляет результат в тот же attachment upload flow;
+- для audio/video attachments transcript можно перезапустить, вручную поправить или полностью очистить прямо из editor UI;
 - theme/accent preference нормализуется при чтении из `localStorage`, чтобы некорректное значение не ломало страницы;
 - при пустом `file.type` frontend восстанавливает MIME по расширению файла, чтобы ограничения совпадали с backend.
+## Projects Showcase Update
+
+- public navigation now includes a dedicated `/projects` section and `/projects/:slug` detail page;
+- project pages reuse shared image gallery/lightbox primitives for screenshot carousel viewing;
+- `/admin` keeps project management inside the existing overview workspace via a dedicated projects tab;
+- the admin projects tab reuses the same upload pipeline as post editing for cover images and screenshots.

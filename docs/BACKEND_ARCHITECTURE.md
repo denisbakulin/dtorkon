@@ -82,3 +82,9 @@ Backend — обязательный runtime-компонент продукта
 - post не может ссылаться на asset со статусом отличным от `ready`;
 - `DELETE /api/admin/assets/{asset_id}` запрещен, если asset используется как cover, attachment или inline media;
 - inline media отслеживается отдельной связью, а не парсингом `body_markdown`.
+## Projects Showcase Update
+
+- backend now has a dedicated `ProjectService` plus `ProjectRepository` for the portfolio showcase;
+- public routes live under `/api/projects` and private CRUD lives under `/api/admin/projects`;
+- project records reuse the shared asset pipeline for cover images and screenshot galleries;
+- asset deletion checks now treat project covers and screenshots as in-use references.

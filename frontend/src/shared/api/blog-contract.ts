@@ -63,6 +63,48 @@ export type PublicPostDetail = {
   publishedAt: string;
 };
 
+export type ProjectStatus = 'draft' | 'published';
+
+export type ProjectScreenshot = {
+  id: string;
+  assetId: string;
+  title: string;
+  sortOrder: number;
+  asset: PublicAsset;
+};
+
+export type PublicProjectListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  githubUrl: string;
+  coverAsset: PublicAsset | null;
+  screenshotCount: number;
+  publishedAt: string;
+};
+
+export type PublicProjectListResponse = {
+  items: PublicProjectListItem[];
+};
+
+export type PublicProjectDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  readmeExcerpt: string;
+  githubUrl: string;
+  status: ProjectStatus;
+  coverAsset: PublicAsset | null;
+  screenshots: ProjectScreenshot[];
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string;
+};
+
 export type PublicMediaItem = {
   id: string;
   kind: AttachmentKind;

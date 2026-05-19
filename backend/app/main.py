@@ -25,7 +25,7 @@ def create_app() -> FastAPI:
         version="0.1.0-fastapi",
         description=(
             "FastAPI backend for the dtorkon mini-blog. The service handles "
-            "admin session auth, public/admin posts, site profile editing, "
+            "admin session auth, public/admin posts and projects, site profile editing, "
             "analytics, SQLite persistence, searchable publishing, and backend-mediated uploads "
             "to Yandex Object Storage over the S3 API."
         ),
@@ -36,9 +36,11 @@ def create_app() -> FastAPI:
             {"name": "Auth", "description": "Admin session endpoints."},
             {"name": "Site Profile", "description": "Public author and contact endpoints."},
             {"name": "Public Posts", "description": "Public blog endpoints."},
+            {"name": "Public Projects", "description": "Public portfolio showcase endpoints."},
             {"name": "Contact", "description": "Public contact form delivery endpoints."},
             {"name": "Admin Analytics", "description": "Admin dashboard metrics and activity."},
             {"name": "Admin Posts", "description": "Authoring endpoints for posts."},
+            {"name": "Admin Projects", "description": "Authoring endpoints for the project showcase."},
             {"name": "Admin Site Profile", "description": "Admin author and contact editing endpoints."},
             {"name": "Admin Settings", "description": "Admin-only runtime configuration endpoints."},
             {"name": "Admin Uploads", "description": "Backend upload and asset lifecycle endpoints."},

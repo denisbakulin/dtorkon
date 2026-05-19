@@ -6,6 +6,7 @@ from app.domain.enums import (
     AttachmentKind,
     ErrorEventLevel,
     ErrorEventSource,
+    ProjectStatus,
     PostStatus,
     SiteProfileLinkKind,
     TranscriptStatus,
@@ -52,6 +53,34 @@ class Post(Base):
     )
 
 
+class Project(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    slug: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    readme_excerpt: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    github_url: Mapped[str] = mapped_column(String, nullable=False, default="")
+    status: Mapped[ProjectStatus] = mapped_column(
+        Enum(ProjectStatus, native_enum=False, values_callable=enum_values),
+        nullable=False,
+    )
+    cover_asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"), nullable=True)
+    published_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+    updated_at: Mapped[str] = mapped_column(String, nullable=False)
+
+    cover_asset: Mapped["Asset | None"] = relationship("Asset", foreign_keys=[cover_asset_id], lazy="selectin")
+    screenshots: Mapped[list["ProjectScreenshot"]] = relationship(
+        "ProjectScreenshot",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
 class Asset(Base):
     __tablename__ = "assets"
 
@@ -80,6 +109,11 @@ class Asset(Base):
 
     attachments: Mapped[list["Attachment"]] = relationship("Attachment", back_populates="asset", lazy="selectin")
     inline_posts: Mapped[list["PostInlineAsset"]] = relationship("PostInlineAsset", back_populates="asset", lazy="selectin")
+    screenshot_projects: Mapped[list["ProjectScreenshot"]] = relationship(
+        "ProjectScreenshot",
+        back_populates="asset",
+        lazy="selectin",
+    )
 
 
 class Attachment(Base):
@@ -114,6 +148,23 @@ class PostInlineAsset(Base):
 
     post: Mapped[Post] = relationship("Post", back_populates="inline_assets", lazy="selectin")
     asset: Mapped[Asset] = relationship("Asset", back_populates="inline_posts", lazy="selectin")
+
+
+class ProjectScreenshot(Base):
+    __tablename__ = "project_screenshots"
+    __table_args__ = (
+        UniqueConstraint("project_id", "asset_id", name="uq_project_screenshots_project_asset"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False, default="")
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+
+    project: Mapped[Project] = relationship("Project", back_populates="screenshots", lazy="selectin")
+    asset: Mapped[Asset] = relationship("Asset", back_populates="screenshot_projects", lazy="selectin")
 
 
 class SiteProfile(Base):

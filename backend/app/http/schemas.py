@@ -8,11 +8,22 @@ from app.domain.enums import (
     AttachmentKind,
     ErrorEventLevel,
     ErrorEventSource,
+    ProjectStatus,
     PostStatus,
     SiteProfileLinkKind,
     TranscriptStatus,
 )
-from app.infrastructure.models import ErrorEvent, Asset, Attachment, Post, SessionRecord, SiteProfile, SiteProfileLink
+from app.infrastructure.models import (
+    ErrorEvent,
+    Asset,
+    Attachment,
+    Post,
+    Project,
+    ProjectScreenshot,
+    SessionRecord,
+    SiteProfile,
+    SiteProfileLink,
+)
 
 
 def to_camel(value: str) -> str:
@@ -180,6 +191,52 @@ class PublicPostDetail(CamelModel):
     published_at: str
 
 
+class ProjectScreenshotRead(CamelModel):
+    id: str
+    asset_id: str
+    title: str
+    sort_order: int
+    asset: AssetRead
+
+
+class ProjectScreenshotInput(CamelModel):
+    asset_id: str
+    title: str = ""
+    sort_order: int
+
+
+class PublicProjectListItem(CamelModel):
+    id: str
+    slug: str
+    title: str
+    summary: str
+    description: str
+    github_url: str
+    cover_asset: AssetRead | None = None
+    screenshot_count: int
+    published_at: str
+
+
+class PublicProjectListResponse(CamelModel):
+    items: list[PublicProjectListItem]
+
+
+class PublicProjectDetail(CamelModel):
+    id: str
+    slug: str
+    title: str
+    summary: str
+    description: str
+    readme_excerpt: str
+    github_url: str
+    status: ProjectStatus
+    cover_asset: AssetRead | None = None
+    screenshots: list[ProjectScreenshotRead]
+    created_at: str
+    updated_at: str
+    published_at: str
+
+
 class PublicMediaItem(CamelModel):
     id: str
     kind: AttachmentKind
@@ -265,6 +322,37 @@ class AdminPostDetail(CamelModel):
     published_at: str | None = None
 
 
+class AdminProjectSummary(CamelModel):
+    id: str
+    slug: str
+    title: str
+    status: ProjectStatus
+    github_url: str
+    updated_at: str
+    published_at: str | None = None
+
+
+class AdminProjectListResponse(CamelModel):
+    items: list[AdminProjectSummary]
+
+
+class AdminProjectDetail(CamelModel):
+    id: str
+    slug: str
+    title: str
+    summary: str
+    description: str
+    readme_excerpt: str
+    github_url: str
+    status: ProjectStatus
+    cover_asset_id: str | None = None
+    cover_asset: AssetRead | None = None
+    screenshots: list[ProjectScreenshotRead] = Field(default_factory=list)
+    created_at: str
+    updated_at: str
+    published_at: str | None = None
+
+
 class CreatePostRequest(CamelModel):
     title: str
     slug: str
@@ -285,6 +373,30 @@ class UpdatePostRequest(CamelModel):
     cover_asset_id: str | None = None
     inline_asset_ids: list[str] | None = None
     attachments: list[AttachmentInput] | None = None
+
+
+class CreateProjectRequest(CamelModel):
+    title: str
+    slug: str
+    summary: str = ""
+    description: str = ""
+    readme_excerpt: str = ""
+    github_url: str = ""
+    status: ProjectStatus
+    cover_asset_id: str | None = None
+    screenshots: list[ProjectScreenshotInput] = Field(default_factory=list)
+
+
+class UpdateProjectRequest(CamelModel):
+    title: str | None = None
+    slug: str | None = None
+    summary: str | None = None
+    description: str | None = None
+    readme_excerpt: str | None = None
+    github_url: str | None = None
+    status: ProjectStatus | None = None
+    cover_asset_id: str | None = None
+    screenshots: list[ProjectScreenshotInput] | None = None
 
 
 class PresignUploadRequest(CamelModel):
@@ -308,6 +420,10 @@ class CompleteUploadRequest(CamelModel):
     asset_id: str
     width: int | None = None
     height: int | None = None
+
+
+class UpdateAssetTranscriptRequest(CamelModel):
+    transcript_text: str = Field(min_length=1)
 
 
 class TranscriptionSettingsRead(CamelModel):
@@ -420,6 +536,16 @@ def attachment_to_read(attachment: Attachment) -> AttachmentRead:
     )
 
 
+def project_screenshot_to_read(screenshot: ProjectScreenshot) -> ProjectScreenshotRead:
+    return ProjectScreenshotRead(
+        id=screenshot.id,
+        asset_id=screenshot.asset_id,
+        title=screenshot.title,
+        sort_order=screenshot.sort_order,
+        asset=asset_to_read(screenshot.asset),
+    )
+
+
 def site_profile_to_read(profile: SiteProfile) -> SiteProfileRead:
     return SiteProfileRead(
         site_title=profile.site_title,
@@ -473,6 +599,41 @@ def to_public_post_detail(post: Post) -> PublicPostDetail:
     )
 
 
+def to_public_project_list_item(project: Project) -> PublicProjectListItem:
+    return PublicProjectListItem(
+        id=project.id,
+        slug=project.slug,
+        title=project.title,
+        summary=project.summary,
+        description=project.description,
+        github_url=project.github_url,
+        cover_asset=asset_to_read(project.cover_asset),
+        screenshot_count=len(project.screenshots),
+        published_at=project.published_at or project.updated_at,
+    )
+
+
+def to_public_project_detail(project: Project) -> PublicProjectDetail:
+    return PublicProjectDetail(
+        id=project.id,
+        slug=project.slug,
+        title=project.title,
+        summary=project.summary,
+        description=project.description,
+        readme_excerpt=project.readme_excerpt,
+        github_url=project.github_url,
+        status=project.status,
+        cover_asset=asset_to_read(project.cover_asset),
+        screenshots=[
+            project_screenshot_to_read(item)
+            for item in sorted(project.screenshots, key=lambda row: row.sort_order)
+        ],
+        created_at=project.created_at,
+        updated_at=project.updated_at,
+        published_at=project.published_at or project.updated_at,
+    )
+
+
 def to_admin_post_summary(post: Post) -> AdminPostSummary:
     return AdminPostSummary(
         id=post.id,
@@ -503,6 +664,40 @@ def to_admin_post_detail(post: Post) -> AdminPostDetail:
         created_at=post.created_at,
         updated_at=post.updated_at,
         published_at=post.published_at,
+    )
+
+
+def to_admin_project_summary(project: Project) -> AdminProjectSummary:
+    return AdminProjectSummary(
+        id=project.id,
+        slug=project.slug,
+        title=project.title,
+        status=project.status,
+        github_url=project.github_url,
+        updated_at=project.updated_at,
+        published_at=project.published_at,
+    )
+
+
+def to_admin_project_detail(project: Project) -> AdminProjectDetail:
+    return AdminProjectDetail(
+        id=project.id,
+        slug=project.slug,
+        title=project.title,
+        summary=project.summary,
+        description=project.description,
+        readme_excerpt=project.readme_excerpt,
+        github_url=project.github_url,
+        status=project.status,
+        cover_asset_id=project.cover_asset_id,
+        cover_asset=asset_to_read(project.cover_asset),
+        screenshots=[
+            project_screenshot_to_read(item)
+            for item in sorted(project.screenshots, key=lambda row: row.sort_order)
+        ],
+        created_at=project.created_at,
+        updated_at=project.updated_at,
+        published_at=project.published_at,
     )
 
 

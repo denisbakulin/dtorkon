@@ -43,6 +43,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../app/providers/auth-provider';
 import { useSiteProfile } from '../../../app/providers/site-profile-provider';
 import {
+  clearAdminAssetTranscript,
   completeAdminUpload,
   createAdminPost,
   deleteAdminAsset,
@@ -53,6 +54,7 @@ import {
   getAdminSiteProfile,
   presignAdminUpload,
   transcribeAdminAsset,
+  updateAdminAssetTranscript,
   updateAdminPost,
   updateAdminSiteProfile,
   uploadAdminAssetContent,
@@ -91,6 +93,7 @@ import { MediaPlayer } from '../../../shared/ui/media-player/media-player';
 import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 import { AdminAnalyticsPanel } from './admin-analytics-panel';
 import { AdminErrorEventsPanel } from './admin-error-events-panel';
+import { AdminProjectsPanel } from './admin-projects-panel';
 import { TranscriptionSettingsPanel } from './transcription-settings-panel';
 import { TelegramSettingsPanel } from './telegram-settings-panel';
 import { VoiceRecorderPanel } from './voice-recorder-panel';
@@ -349,13 +352,14 @@ type OverviewPaneProps = {
   analytics: AdminAnalytics | null;
   isLoadingAnalytics: boolean;
   isLoadingMeta: boolean;
+  onAuthExpired: () => void;
   onCreatePost: () => void;
   onSaveSiteProfile: (payload: UpdateSiteProfileRequest) => Promise<SiteProfile>;
   posts: AdminPostSummary[];
   siteProfile: SiteProfile | null;
 };
 
-type OverviewTab = 'dashboard' | 'errors' | 'siteProfile' | 'transcription' | 'telegram';
+type OverviewTab = 'dashboard' | 'projects' | 'errors' | 'siteProfile' | 'transcription' | 'telegram';
 
 type EditableProfileLink = {
   kind: 'email' | 'phone' | 'telegram' | 'vk' | 'link';
@@ -387,6 +391,8 @@ const EMPTY_DRAFT: PostDraft = {
   status: 'draft',
   title: '',
 };
+
+const CREATE_DRAFT_STORAGE_KEY = 'dtorkon.admin.create-post-draft.v1';
 
 const editorSectionSx = {
   bgcolor: 'rgba(247, 251, 255, 0.86)',
@@ -468,6 +474,147 @@ function buildDraftFromDetail(detail: AdminPostDetail): PostDraft {
     status: detail.status,
     title: detail.title,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function restorePersistedAsset(value: unknown): PublicAsset | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = typeof value.id === 'string' ? value.id : '';
+  const key = typeof value.key === 'string' ? value.key : '';
+  const url = typeof value.url === 'string' ? value.url : '';
+  const mimeType = typeof value.mimeType === 'string' ? value.mimeType : '';
+  const size = typeof value.size === 'number' ? value.size : 0;
+  const originalName = typeof value.originalName === 'string' ? value.originalName : '';
+  const status = value.status === 'pending' || value.status === 'ready' || value.status === 'orphaned' ? value.status : null;
+  const transcriptStatus =
+    value.transcriptStatus === 'idle' ||
+    value.transcriptStatus === 'processing' ||
+    value.transcriptStatus === 'ready' ||
+    value.transcriptStatus === 'failed'
+      ? value.transcriptStatus
+      : null;
+
+  if (!id || !key || !url || !mimeType || !originalName || !status || !transcriptStatus) {
+    return null;
+  }
+
+  return {
+    height: typeof value.height === 'number' ? value.height : null,
+    id,
+    key,
+    mimeType,
+    originalName,
+    size,
+    status,
+    transcriptError: typeof value.transcriptError === 'string' ? value.transcriptError : null,
+    transcriptStatus,
+    transcriptText: typeof value.transcriptText === 'string' ? value.transcriptText : null,
+    transcribedAt: typeof value.transcribedAt === 'string' ? value.transcribedAt : null,
+    url,
+    width: typeof value.width === 'number' ? value.width : null,
+  };
+}
+
+function restoreDraftOrigin(value: unknown): DraftOrigin {
+  return value === 'persisted' ? 'persisted' : 'session';
+}
+
+function restoreCreateDraftSnapshot(): { draft: PostDraft; slugWasEdited: boolean } | null {
+  try {
+    const raw = window.sessionStorage.getItem(CREATE_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!isRecord(parsed) || !isRecord(parsed.draft)) {
+      return null;
+    }
+
+    const draftValue = parsed.draft;
+    const coverAsset = restorePersistedAsset(isRecord(draftValue.cover) ? draftValue.cover.asset : null);
+    const inlineAssets = Array.isArray(draftValue.inlineAssets)
+      ? draftValue.inlineAssets
+          .map((item) => {
+            if (!isRecord(item)) {
+              return null;
+            }
+            const asset = restorePersistedAsset(item.asset);
+            if (!asset) {
+              return null;
+            }
+            return {
+              asset,
+              origin: restoreDraftOrigin(item.origin),
+            };
+          })
+          .filter((item): item is DraftInlineAsset => item !== null)
+      : [];
+    const attachments = Array.isArray(draftValue.attachments)
+      ? draftValue.attachments
+          .map((item) => {
+            if (!isRecord(item)) {
+              return null;
+            }
+            const asset = restorePersistedAsset(item.asset);
+            const kind =
+              item.kind === 'image' || item.kind === 'audio' || item.kind === 'video' || item.kind === 'file'
+                ? item.kind
+                : null;
+            if (!asset || !kind) {
+              return null;
+            }
+            return {
+              asset,
+              kind,
+              origin: restoreDraftOrigin(item.origin),
+              title: typeof item.title === 'string' ? item.title : '',
+            };
+          })
+          .filter((item): item is DraftAttachment => item !== null)
+      : [];
+
+    return {
+      draft: {
+        attachments,
+        bodyMarkdown: typeof draftValue.bodyMarkdown === 'string' ? draftValue.bodyMarkdown : '',
+        cover: coverAsset
+          ? {
+              asset: coverAsset,
+              origin: restoreDraftOrigin(isRecord(draftValue.cover) ? draftValue.cover.origin : null),
+            }
+          : null,
+        excerpt: typeof draftValue.excerpt === 'string' ? draftValue.excerpt : '',
+        inlineAssets,
+        slug: typeof draftValue.slug === 'string' ? draftValue.slug : '',
+        status: draftValue.status === 'published' ? 'published' : 'draft',
+        title: typeof draftValue.title === 'string' ? draftValue.title : '',
+      },
+      slugWasEdited: parsed.slugWasEdited === true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistCreateDraftSnapshot(draft: PostDraft, slugWasEdited: boolean) {
+  window.sessionStorage.setItem(
+    CREATE_DRAFT_STORAGE_KEY,
+    JSON.stringify({
+      draft,
+      slugWasEdited,
+    }),
+  );
+}
+
+function clearCreateDraftSnapshot() {
+  window.sessionStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
 }
 
 function buildPostPayload(draft: PostDraft): CreateAdminPostRequest {
@@ -783,6 +930,7 @@ function OverviewPane({
   analytics,
   isLoadingAnalytics,
   isLoadingMeta,
+  onAuthExpired,
   onCreatePost,
   onSaveSiteProfile,
   posts,
@@ -964,6 +1112,7 @@ function OverviewPane({
           variant="scrollable"
         >
           <Tab label="Dashboard" value="dashboard" />
+          <Tab label="Projects" value="projects" />
           <Tab label={`Errors (${analytics?.totalErrors ?? 0})`} value="errors" />
           <Tab label="Site profile" value="siteProfile" />
           <Tab label="Transcription" value="transcription" />
@@ -974,6 +1123,8 @@ function OverviewPane({
       {activeTab === 'dashboard' ? (
         <AdminAnalyticsPanel analytics={analytics} isLoading={isLoadingAnalytics} />
       ) : null}
+
+      {activeTab === 'projects' ? <AdminProjectsPanel onAuthExpired={onAuthExpired} /> : null}
 
       {activeTab === 'errors' ? (
         <AdminErrorEventsPanel analytics={analytics} isLoading={isLoadingAnalytics} />
@@ -1305,7 +1456,8 @@ function OverviewPane({
 
 function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }: EditorPaneProps) {
   const navigate = useNavigate();
-  const [draft, setDraft] = useState<PostDraft>(EMPTY_DRAFT);
+  const initialCreateDraftRef = useRef(mode === 'create' ? restoreCreateDraftSnapshot() : null);
+  const [draft, setDraft] = useState<PostDraft>(() => initialCreateDraftRef.current?.draft ?? EMPTY_DRAFT);
   const [isLoading, setIsLoading] = useState(mode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1314,10 +1466,11 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
-  const [slugWasEdited, setSlugWasEdited] = useState(mode === 'edit');
+  const [slugWasEdited, setSlugWasEdited] = useState(mode === 'edit' || initialCreateDraftRef.current?.slugWasEdited === true);
   const [pendingImageEdit, setPendingImageEdit] = useState<PendingImageEdit | null>(null);
   const localImageFilesRef = useRef(new Map<string, File>());
   const [activeTranscriptAssetId, setActiveTranscriptAssetId] = useState<string | null>(null);
+  const [transcriptDrafts, setTranscriptDrafts] = useState<Record<string, string>>({});
   const [isNavigating, startNavigation] = useTransition();
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const inlineInputRef = useRef<HTMLInputElement | null>(null);
@@ -1329,16 +1482,27 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
 
   useEffect(() => {
     if (mode === 'create') {
-      setDraft(EMPTY_DRAFT);
+      const restored = restoreCreateDraftSnapshot();
+      setDraft(restored?.draft ?? EMPTY_DRAFT);
       setIsLoading(false);
       setLoadError(null);
       setSaveError(null);
       setSuccessMessage(null);
       setUploadState({ status: 'idle' });
       setUploadQueue([]);
-      setSlugWasEdited(false);
+      setSlugWasEdited(restored?.slugWasEdited ?? false);
+      setTranscriptDrafts({});
     }
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== 'create') {
+      clearCreateDraftSnapshot();
+      return;
+    }
+
+    persistCreateDraftSnapshot(draft, slugWasEdited);
+  }, [draft, mode, slugWasEdited]);
 
   useEffect(() => {
     if (mode !== 'edit' || !postId) {
@@ -1351,6 +1515,7 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
     setLoadError(null);
     setSaveError(null);
     setSuccessMessage(null);
+    setTranscriptDrafts({});
     setUploadQueue([]);
 
     getAdminPost(postId, controller.signal)
@@ -1940,6 +2105,11 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       ...current,
       attachments: current.attachments.filter((item) => item.asset.id !== assetId),
     }));
+    setTranscriptDrafts((current) => {
+      const next = { ...current };
+      delete next[assetId];
+      return next;
+    });
 
     localImageFilesRef.current.delete(assetId);
     await deleteUploadedAssetIfNeeded(attachment.asset, attachment.origin);
@@ -1978,6 +2148,11 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
             : attachment,
         ),
       }));
+      setTranscriptDrafts((current) => {
+        const next = { ...current };
+        delete next[assetId];
+        return next;
+      });
       setSuccessMessage(`Transcript updated for ${nextAsset.originalName}.`);
     } catch (error: unknown) {
       if (isUnauthorized(error)) {
@@ -1986,6 +2161,100 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
       }
 
       setSaveError(getApiErrorMessage(error, 'Unable to transcribe this asset.'));
+    } finally {
+      setActiveTranscriptAssetId(null);
+    }
+  };
+
+  const handleTranscriptDraftChange = (assetId: string, value: string) => {
+    setTranscriptDrafts((current) => ({
+      ...current,
+      [assetId]: value,
+    }));
+  };
+
+  const handleSaveTranscript = async (assetId: string) => {
+    const attachment = draft.attachments.find((item) => item.asset.id === assetId);
+    const nextTranscript = transcriptDrafts[assetId]?.trim() ?? '';
+    if (!attachment) {
+      return;
+    }
+    if (!nextTranscript) {
+      setSaveError('Transcript text cannot be empty. Use Clear transcript if you want to remove it.');
+      return;
+    }
+
+    setActiveTranscriptAssetId(assetId);
+    setSaveError(null);
+    setSuccessMessage(null);
+
+    try {
+      const nextAsset = await updateAdminAssetTranscript(assetId, nextTranscript);
+      setDraft((current) => ({
+        ...current,
+        attachments: current.attachments.map((item) =>
+          item.asset.id === assetId
+            ? {
+                ...item,
+                asset: nextAsset,
+              }
+            : item,
+        ),
+      }));
+      setTranscriptDrafts((current) => {
+        const next = { ...current };
+        delete next[assetId];
+        return next;
+      });
+      setSuccessMessage(`Transcript saved for ${nextAsset.originalName}.`);
+    } catch (error: unknown) {
+      if (isUnauthorized(error)) {
+        onAuthExpired();
+        return;
+      }
+
+      setSaveError(getApiErrorMessage(error, 'Unable to save transcript changes.'));
+    } finally {
+      setActiveTranscriptAssetId(null);
+    }
+  };
+
+  const handleClearTranscript = async (assetId: string) => {
+    const attachment = draft.attachments.find((item) => item.asset.id === assetId);
+    if (!attachment) {
+      return;
+    }
+
+    setActiveTranscriptAssetId(assetId);
+    setSaveError(null);
+    setSuccessMessage(null);
+
+    try {
+      const nextAsset = await clearAdminAssetTranscript(assetId);
+      setDraft((current) => ({
+        ...current,
+        attachments: current.attachments.map((item) =>
+          item.asset.id === assetId
+            ? {
+                ...item,
+                asset: nextAsset,
+              }
+            : item,
+        ),
+      }));
+      setTranscriptDrafts((current) => {
+        const next = { ...current };
+        delete next[assetId];
+        return next;
+      });
+      setSuccessMessage(`Transcript cleared for ${nextAsset.originalName}.`);
+    } catch (error: unknown) {
+      if (isUnauthorized(error)) {
+        onAuthExpired();
+        return;
+      }
+
+      setSaveError(getApiErrorMessage(error, 'Unable to clear this transcript.'));
     } finally {
       setActiveTranscriptAssetId(null);
     }
@@ -2016,10 +2285,12 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
 
       setDraft(buildDraftFromDetail(detail));
       setSlugWasEdited(true);
+      setTranscriptDrafts({});
       setSuccessMessage(mode === 'create' ? 'Post created.' : 'Changes saved.');
       onPostSaved();
 
       if (mode === 'create') {
+        clearCreateDraftSnapshot();
         startNavigation(() => {
           navigate(getAdminEditPostPath(detail.id), { replace: true });
         });
@@ -2456,6 +2727,13 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                       {draft.attachments.map((attachment) => {
                         const canTranscribe =
                           attachment.kind === 'audio' || attachment.kind === 'video';
+                        const transcriptValue =
+                          transcriptDrafts[attachment.asset.id] ?? attachment.asset.transcriptText ?? '';
+                        const hasTranscript =
+                          attachment.asset.transcriptStatus !== 'idle' || transcriptValue.trim().length > 0;
+                        const isTranscriptDirty =
+                          transcriptValue.trim() !== (attachment.asset.transcriptText ?? '').trim();
+                        const isTranscriptBusy = activeTranscriptAssetId === attachment.asset.id;
 
                         return (
                           <Box key={attachment.asset.id} sx={editorCardSx}>
@@ -2486,12 +2764,12 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                                   {canTranscribe ? (
                                     <Button
                                       disabled={
-                                        activeTranscriptAssetId === attachment.asset.id ||
+                                        isTranscriptBusy ||
                                         attachment.asset.transcriptStatus === 'processing'
                                       }
                                       onClick={() => void handleTranscribe(attachment.asset.id)}
                                       startIcon={
-                                        activeTranscriptAssetId === attachment.asset.id ? (
+                                        isTranscriptBusy ? (
                                           <CircularProgress color="inherit" size={18} />
                                         ) : (
                                           <TranscribeRoundedIcon />
@@ -2575,6 +2853,41 @@ function EditorPane({ mode, onAuthExpired, onPostDeleted, onPostSaved, postId }:
                                   {attachment.asset.mimeType} • {Math.round(attachment.asset.size / 1024)} KB
                                 </Typography>
                               )}
+
+                              {canTranscribe && hasTranscript ? (
+                                <Stack spacing={1.25}>
+                                  <TextField
+                                    disabled={attachment.asset.transcriptStatus === 'processing'}
+                                    label="Transcript"
+                                    minRows={4}
+                                    multiline
+                                    onChange={(event) => handleTranscriptDraftChange(attachment.asset.id, event.target.value)}
+                                    sx={editorFieldSx}
+                                    value={transcriptValue}
+                                  />
+
+                                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                                    <Button
+                                      disabled={!isTranscriptDirty || !transcriptValue.trim() || isTranscriptBusy}
+                                      onClick={() => void handleSaveTranscript(attachment.asset.id)}
+                                      startIcon={
+                                        isTranscriptBusy ? <CircularProgress color="inherit" size={18} /> : <SaveRoundedIcon />
+                                      }
+                                      variant="contained"
+                                    >
+                                      Save transcript
+                                    </Button>
+                                    <Button
+                                      color="inherit"
+                                      disabled={isTranscriptBusy || attachment.asset.transcriptStatus === 'processing'}
+                                      onClick={() => void handleClearTranscript(attachment.asset.id)}
+                                      variant="text"
+                                    >
+                                      Clear transcript
+                                    </Button>
+                                  </Stack>
+                                </Stack>
+                              ) : null}
 
                               {attachment.asset.transcriptStatus === 'failed' && attachment.asset.transcriptError ? (
                                 <Alert severity="warning">{attachment.asset.transcriptError}</Alert>
@@ -2934,6 +3247,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
                     analytics={analytics}
                     isLoadingAnalytics={isRefreshingAnalytics}
                     isLoadingMeta={isRefreshingMeta}
+                    onAuthExpired={handleAuthExpired}
                     onCreatePost={() => navigate(getAdminCreatePostPath())}
                     onSaveSiteProfile={handleSaveSiteProfile}
                     posts={sortedPosts}

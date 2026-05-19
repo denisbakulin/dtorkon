@@ -1,3 +1,40 @@
+## Projects Showcase Update
+
+### Таблица `projects`
+
+- `id TEXT PRIMARY KEY`
+- `slug TEXT NOT NULL UNIQUE`
+- `title TEXT NOT NULL`
+- `summary TEXT NOT NULL DEFAULT ''`
+- `description TEXT NOT NULL DEFAULT ''`
+- `readme_excerpt TEXT NOT NULL DEFAULT ''`
+- `github_url TEXT NOT NULL DEFAULT ''`
+- `status TEXT NOT NULL CHECK(status IN ('draft', 'published'))`
+- `cover_asset_id TEXT NULL REFERENCES assets(id)`
+- `published_at TEXT NULL`
+- `created_at TEXT NOT NULL`
+- `updated_at TEXT NOT NULL`
+
+Stores the public/private project showcase entries that power `/projects` and the admin projects tab.
+
+### Таблица `project_screenshots`
+
+- `id TEXT PRIMARY KEY`
+- `project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE`
+- `asset_id TEXT NOT NULL REFERENCES assets(id)`
+- `title TEXT NOT NULL DEFAULT ''`
+- `sort_order INTEGER NOT NULL`
+- `created_at TEXT NOT NULL`
+- `UNIQUE(project_id, asset_id)`
+
+Stores ordered screenshot gallery items for each project.
+
+### Дополнительные связи
+
+- `projects.cover_asset_id -> assets.id`
+- `project_screenshots.project_id -> projects.id`
+- `project_screenshots.asset_id -> assets.id`
+
 # DATABASE
 
 ## База данных

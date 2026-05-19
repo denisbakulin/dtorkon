@@ -1,3 +1,73 @@
+## Projects Showcase Update
+
+### `GET /api/projects`
+
+Returns the published project showcase list. Each item includes:
+
+- `slug`
+- `title`
+- `summary`
+- `description`
+- `githubUrl`
+- `coverAsset`
+- `screenshotCount`
+- `publishedAt`
+
+### `GET /api/projects/{slug}`
+
+Returns one published project entry with the full showcase payload:
+
+- `summary`
+- `description`
+- `readmeExcerpt`
+- `githubUrl`
+- `coverAsset`
+- `screenshots[]`
+
+Screenshots are image-only assets and are rendered as a gallery/carousel on the public project page.
+
+### `GET /api/admin/projects`
+
+Returns admin-side project cards for the private showcase editor.
+
+Query params:
+
+- `status = all | draft | published`
+- `q`
+
+### `GET /api/admin/projects/{project_id}`
+
+Returns the full editable project record for `/admin`, including:
+
+- `coverAsset`
+- `screenshots[]`
+- `readmeExcerpt`
+- `githubUrl`
+
+### `POST /api/admin/projects`
+
+Creates a new showcase project.
+
+Main payload fields:
+
+- `title`
+- `slug`
+- `summary`
+- `description`
+- `readmeExcerpt`
+- `githubUrl`
+- `status`
+- `coverAssetId`
+- `screenshots[]`
+
+### `PATCH /api/admin/projects/{project_id}`
+
+Partially updates an existing project. Supports the same fields as create.
+
+### `DELETE /api/admin/projects/{project_id}`
+
+Deletes the project record. Referenced uploaded assets remain in storage unless deleted separately.
+
 # API_GUIDE
 
 ## Каноничность
@@ -283,6 +353,26 @@ Payload:
 Результат сохраняется прямо в asset:
 
 - `transcriptStatus`
+- `transcriptText`
+- `transcriptError`
+- `transcribedAt`
+
+### `PATCH /api/admin/assets/{asset_id}/transcript`
+
+Позволяет вручную отредактировать уже сохраненный transcript у audio/video asset.
+
+Payload:
+
+- `transcriptText`
+
+После обновления backend возвращает тот же asset с `transcriptStatus = ready`, очищенным `transcriptError` и новым `transcribedAt`.
+
+### `DELETE /api/admin/assets/{asset_id}/transcript`
+
+Сбрасывает transcript у audio/video asset обратно в состояние `idle`.
+
+Backend очищает:
+
 - `transcriptText`
 - `transcriptError`
 - `transcribedAt`

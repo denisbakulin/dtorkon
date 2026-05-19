@@ -5,6 +5,8 @@ import type {
   PublicMediaResponse,
   PublicPostDetail,
   PublicPostListResponse,
+  PublicProjectDetail,
+  PublicProjectListResponse,
   RuntimeStatusResponse,
   SiteProfile,
 } from './blog-contract';
@@ -59,6 +61,16 @@ export async function getPublicMedia(options: {
     signal,
   });
 
+  return response.data;
+}
+
+export async function getPublicProjects(signal?: AbortSignal) {
+  const response = await httpClient.get<PublicProjectListResponse>('/api/projects', { signal });
+  return response.data;
+}
+
+export async function getPublicProject(slug: string, signal?: AbortSignal) {
+  const response = await httpClient.get<PublicProjectDetail>(`/api/projects/${slug}`, { signal });
   return response.data;
 }
 

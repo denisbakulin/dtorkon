@@ -33,6 +33,7 @@ import { getAdminCreatePostPath, getAdminOverviewPath } from '../../lib/admin-ac
 const navigationItems = [
   { label: 'Главная', to: '/' },
   { label: 'Блог', to: '/blog' },
+  { label: 'Projects', to: '/projects' },
   { label: 'Медиа', to: '/media' },
   { label: 'Status', to: '/status' },
   { label: 'Связь', to: '/contact' },

@@ -2,6 +2,7 @@ import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
 import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
+import WorkspacesRoundedIcon from '@mui/icons-material/WorkspacesRounded';
 import {
   Alert,
   Box,
@@ -97,6 +98,12 @@ export function HomePage() {
               }}
             >
               {[
+                {
+                  title: 'Projects',
+                  description: 'Portfolio of shipped work with GitHub links, screenshots and short technical notes.',
+                  icon: <WorkspacesRoundedIcon color="primary" />,
+                  to: '/projects',
+                },
                 {
                   title: 'Блог',
                   description: 'Публичная лента статей и поиск по публикациям.',

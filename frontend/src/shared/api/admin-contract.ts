@@ -1,5 +1,7 @@
 import type {
   AttachmentKind,
+  ProjectScreenshot,
+  ProjectStatus,
   PostStatus,
   PublicAsset,
   PublicAttachment,
@@ -71,6 +73,59 @@ export type CreateAdminPostRequest = {
 export type UpdateAdminPostRequest = Partial<CreateAdminPostRequest>;
 
 export type AdminPostStatusFilter = PostStatus | 'all';
+
+export type AdminProjectSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  status: ProjectStatus;
+  githubUrl: string;
+  updatedAt: string;
+  publishedAt: string | null;
+};
+
+export type AdminProjectListResponse = {
+  items: AdminProjectSummary[];
+};
+
+export type AdminProjectDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  readmeExcerpt: string;
+  githubUrl: string;
+  status: ProjectStatus;
+  coverAssetId: string | null;
+  coverAsset: AdminAsset | null;
+  screenshots: ProjectScreenshot[];
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+};
+
+export type AdminProjectScreenshotInput = {
+  assetId: string;
+  title: string;
+  sortOrder: number;
+};
+
+export type CreateAdminProjectRequest = {
+  title: string;
+  slug: string;
+  summary: string;
+  description: string;
+  readmeExcerpt: string;
+  githubUrl: string;
+  status: ProjectStatus;
+  coverAssetId: string | null;
+  screenshots: AdminProjectScreenshotInput[];
+};
+
+export type UpdateAdminProjectRequest = Partial<CreateAdminProjectRequest>;
+
+export type AdminProjectStatusFilter = ProjectStatus | 'all';
 
 export type PresignUploadRequest = {
   originalName: string;

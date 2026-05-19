@@ -1,9 +1,10 @@
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import NavigateBeforeRoundedIcon from '@mui/icons-material/NavigateBeforeRounded';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import { alpha, Box, Dialog, IconButton, List, ListItemButton, Stack, Typography } from '@mui/material';
+import { alpha, Box, Dialog, IconButton, List, ListItemButton, Stack, Tooltip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -15,6 +16,7 @@ import {
   playPreviousPersistentAudio,
   subscribePersistentAudio,
 } from '../../lib/persistent-audio';
+import { triggerBrowserDownload } from '../../lib/download';
 import { AudioPlayer } from '../audio-player/audio-player';
 
 type AudioCollectionDialogProps = {
@@ -173,17 +175,42 @@ export function AudioCollectionDialog({ onClose, open }: AudioCollectionDialogPr
                       </Typography>
                       {track.subtitle ? (
                         <Typography color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} variant="caption">
-                          {track.subtitle}
-                        </Typography>
-                      ) : null}
-                    </Box>
-                  </ListItemButton>
-                );
-              })}
+                      {track.subtitle}
+                    </Typography>
+                  ) : null}
+                </Box>
+                <Tooltip title="Скачать">
+                  <IconButton
+                    aria-label="Скачать"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      triggerBrowserDownload(track.src, getAudioFilename(track, index));
+                    }}
+                    size="small"
+                  >
+                    <DownloadRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </ListItemButton>
+            );
+          })}
             </List>
           </Stack>
         </Stack>
       </Stack>
     </Dialog>
   );
+}
+
+function getAudioFilename(track: { src: string; title: string | null }, index: number) {
+  const src = track.src || '';
+  const pathname = src.split('?')[0] || '';
+  const lastSegment = pathname.split('/').filter(Boolean).pop() || '';
+  const inferredExt = lastSegment.includes('.') ? `.${lastSegment.split('.').pop()}` : '';
+
+  const base = (track.title || '').trim() || `track-${index + 1}`;
+  const safeBase = base.replace(/[\\/:*?"<>|]/g, '_');
+
+  return `${safeBase}${inferredExt}`;
 }

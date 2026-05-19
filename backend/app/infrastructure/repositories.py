@@ -9,6 +9,7 @@ from app.domain.enums import (
     AttachmentKind,
     ErrorEventLevel,
     ErrorEventSource,
+    ProjectStatus,
     PostStatus,
     SiteProfileLinkKind,
     TranscriptStatus,
@@ -18,6 +19,8 @@ from app.infrastructure.models import (
     ErrorEvent,
     AppSecret,
     Attachment,
+    Project,
+    ProjectScreenshot,
     Post,
     PostInlineAsset,
     SessionRecord,
@@ -249,6 +252,14 @@ class AssetRepository:
         asset.updated_at = now
         await self.session.flush()
 
+    async def clear_transcript(self, *, asset: Asset) -> None:
+        asset.transcript_status = TranscriptStatus.IDLE
+        asset.transcript_text = None
+        asset.transcript_error = None
+        asset.transcribed_at = None
+        asset.updated_at = utc_now_iso()
+        await self.session.flush()
+
     async def mark_transcript_failed(self, *, asset: Asset, error_message: str) -> None:
         asset.transcript_status = TranscriptStatus.FAILED
         asset.transcript_error = error_message
@@ -258,6 +269,10 @@ class AssetRepository:
     async def is_in_use(self, asset_id: str) -> bool:
         post_result = await self.session.execute(select(Post.id).where(Post.cover_asset_id == asset_id).limit(1))
         if post_result.scalar_one_or_none():
+            return True
+
+        project_result = await self.session.execute(select(Project.id).where(Project.cover_asset_id == asset_id).limit(1))
+        if project_result.scalar_one_or_none():
             return True
 
         site_result = await self.session.execute(
@@ -275,7 +290,13 @@ class AssetRepository:
         inline_asset_result = await self.session.execute(
             select(PostInlineAsset.id).where(PostInlineAsset.asset_id == asset_id).limit(1)
         )
-        return inline_asset_result.scalar_one_or_none() is not None
+        if inline_asset_result.scalar_one_or_none():
+            return True
+
+        screenshot_result = await self.session.execute(
+            select(ProjectScreenshot.id).where(ProjectScreenshot.asset_id == asset_id).limit(1)
+        )
+        return screenshot_result.scalar_one_or_none() is not None
 
     async def delete(self, asset: Asset) -> None:
         await self.session.delete(asset)
@@ -559,4 +580,137 @@ class PostRepository:
 
     async def delete(self, *, post: Post) -> None:
         await self.session.delete(post)
+        await self.session.flush()
+
+
+class ProjectRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    def _detail_options(self):
+        return (
+            selectinload(Project.cover_asset),
+            selectinload(Project.screenshots).selectinload(ProjectScreenshot.asset),
+        )
+
+    def _public_filters(self, *, query: str | None):
+        filters = [Project.status == ProjectStatus.PUBLISHED]
+        if query:
+            filters.append(
+                or_(
+                    Project.title.contains(query),
+                    Project.summary.contains(query),
+                    Project.description.contains(query),
+                    Project.readme_excerpt.contains(query),
+                    Project.github_url.contains(query),
+                )
+            )
+        return filters
+
+    async def list_public(self, *, query: str | None) -> list[Project]:
+        result = await self.session.execute(
+            select(Project)
+            .where(*self._public_filters(query=query))
+            .options(*self._detail_options())
+            .order_by(Project.published_at.desc(), Project.updated_at.desc())
+        )
+        return result.scalars().all()
+
+    async def get_published_by_slug(self, slug: str) -> Project | None:
+        result = await self.session.execute(
+            select(Project)
+            .where(
+                Project.slug == slug,
+                Project.status == ProjectStatus.PUBLISHED,
+            )
+            .options(*self._detail_options())
+        )
+        return result.scalar_one_or_none()
+
+    async def list_admin(self, *, status_filter: str, query: str | None) -> list[Project]:
+        statement = select(Project).options(*self._detail_options()).order_by(Project.updated_at.desc())
+        if status_filter != "all":
+            statement = statement.where(Project.status == ProjectStatus(status_filter))
+        if query:
+            statement = statement.where(
+                or_(
+                    Project.title.contains(query),
+                    Project.slug.contains(query),
+                    Project.summary.contains(query),
+                    Project.github_url.contains(query),
+                )
+            )
+        result = await self.session.execute(statement)
+        return result.scalars().all()
+
+    async def get_by_id(self, project_id: str) -> Project | None:
+        result = await self.session.execute(
+            select(Project)
+            .where(Project.id == project_id)
+            .options(*self._detail_options())
+        )
+        return result.scalar_one_or_none()
+
+    async def slug_exists(self, slug: str, exclude_project_id: str | None = None) -> bool:
+        statement = select(Project.id).where(Project.slug == slug)
+        if exclude_project_id:
+            statement = statement.where(Project.id != exclude_project_id)
+        result = await self.session.execute(statement.limit(1))
+        return result.scalar_one_or_none() is not None
+
+    async def create(
+        self,
+        *,
+        slug: str,
+        title: str,
+        summary: str,
+        description: str,
+        readme_excerpt: str,
+        github_url: str,
+        status: ProjectStatus,
+        cover_asset_id: str | None,
+        created_at: str,
+        updated_at: str,
+        published_at: str | None,
+    ) -> Project:
+        project = Project(
+            id=str(uuid.uuid4()),
+            slug=slug,
+            title=title,
+            summary=summary,
+            description=description,
+            readme_excerpt=readme_excerpt,
+            github_url=github_url,
+            status=status,
+            cover_asset_id=cover_asset_id,
+            created_at=created_at,
+            updated_at=updated_at,
+            published_at=published_at,
+        )
+        self.session.add(project)
+        await self.session.flush()
+        return project
+
+    async def update(self, *, project: Project, updates: dict) -> None:
+        for field_name, value in updates.items():
+            setattr(project, field_name, value)
+        await self.session.flush()
+
+    async def replace_screenshots(self, *, project_id: str, screenshots: list[dict]) -> None:
+        await self.session.execute(delete(ProjectScreenshot).where(ProjectScreenshot.project_id == project_id))
+        created_at = utc_now_iso()
+        for item in sorted(screenshots, key=lambda row: row["sort_order"]):
+            screenshot = ProjectScreenshot(
+                id=str(uuid.uuid4()),
+                project_id=project_id,
+                asset_id=item["asset_id"],
+                title=item.get("title", ""),
+                sort_order=item["sort_order"],
+                created_at=created_at,
+            )
+            self.session.add(screenshot)
+        await self.session.flush()
+
+    async def delete(self, *, project: Project) -> None:
+        await self.session.delete(project)
         await self.session.flush()

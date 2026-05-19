@@ -6,6 +6,11 @@ class PostStatus(str, Enum):
     PUBLISHED = "published"
 
 
+class ProjectStatus(str, Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+
+
 class AttachmentKind(str, Enum):
     IMAGE = "image"
     AUDIO = "audio"

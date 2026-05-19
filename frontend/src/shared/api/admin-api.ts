@@ -4,8 +4,12 @@ import type {
   AdminPostDetail,
   AdminPostListResponse,
   AdminPostStatusFilter,
+  AdminProjectDetail,
+  AdminProjectListResponse,
+  AdminProjectStatusFilter,
   AdminSession,
   CompleteUploadRequest,
+  CreateAdminProjectRequest,
   CreateAdminPostRequest,
   PresignUploadRequest,
   PresignUploadResponse,
@@ -13,6 +17,7 @@ import type {
   TelegramSettings,
   TranscriptionSettings,
   UpdateSiteProfileRequest,
+  UpdateAdminProjectRequest,
   UpdateAdminPostRequest,
 } from './admin-contract';
 import type { PublicAsset } from './blog-contract';
@@ -80,6 +85,41 @@ export async function deleteAdminPost(postId: string) {
   await httpClient.delete(`/api/admin/posts/${postId}`);
 }
 
+export async function getAdminProjects(options: {
+  status?: AdminProjectStatusFilter;
+  query?: string;
+  signal?: AbortSignal;
+} = {}) {
+  const { status = 'all', query, signal } = options;
+  const response = await httpClient.get<AdminProjectListResponse>('/api/admin/projects', {
+    params: {
+      status,
+      q: query?.trim() ? query.trim() : undefined,
+    },
+    signal,
+  });
+  return response.data;
+}
+
+export async function getAdminProject(projectId: string, signal?: AbortSignal) {
+  const response = await httpClient.get<AdminProjectDetail>(`/api/admin/projects/${projectId}`, { signal });
+  return response.data;
+}
+
+export async function createAdminProject(payload: CreateAdminProjectRequest) {
+  const response = await httpClient.post<AdminProjectDetail>('/api/admin/projects', payload);
+  return response.data;
+}
+
+export async function updateAdminProject(projectId: string, payload: UpdateAdminProjectRequest) {
+  const response = await httpClient.patch<AdminProjectDetail>(`/api/admin/projects/${projectId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminProject(projectId: string) {
+  await httpClient.delete(`/api/admin/projects/${projectId}`);
+}
+
 export async function getAdminAnalytics(signal?: AbortSignal) {
   const response = await httpClient.get<AdminAnalytics>('/api/admin/analytics', { signal });
   return response.data;
@@ -138,6 +178,18 @@ export async function completeAdminUpload(payload: CompleteUploadRequest) {
 
 export async function transcribeAdminAsset(assetId: string) {
   const response = await httpClient.post<PublicAsset>(`/api/admin/assets/${assetId}/transcribe`);
+  return response.data;
+}
+
+export async function updateAdminAssetTranscript(assetId: string, transcriptText: string) {
+  const response = await httpClient.patch<PublicAsset>(`/api/admin/assets/${assetId}/transcript`, {
+    transcriptText,
+  });
+  return response.data;
+}
+
+export async function clearAdminAssetTranscript(assetId: string) {
+  const response = await httpClient.delete<PublicAsset>(`/api/admin/assets/${assetId}/transcript`);
   return response.data;
 }
 

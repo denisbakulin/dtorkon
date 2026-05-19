@@ -12,6 +12,7 @@ from app.http.schemas import (
     ErrorResponse,
     PresignUploadRequest,
     PresignUploadResponse,
+    UpdateAssetTranscriptRequest,
     asset_to_read,
 )
 from app.infrastructure.config import Settings, get_settings
@@ -117,6 +118,52 @@ async def transcribe_asset(
 ) -> AssetRead:
     service = TranscriptionService(session=session, settings=settings)
     return await service.transcribe_asset(asset_id=asset_id)
+
+
+@router.patch(
+    "/assets/{asset_id}/transcript",
+    response_model=AssetRead,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Edit a saved transcript for an audio or video asset",
+)
+async def update_asset_transcript(
+    asset_id: str,
+    payload: UpdateAssetTranscriptRequest,
+    _: Annotated[SessionRecord, Depends(get_current_admin_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,
+) -> AssetRead:
+    service = TranscriptionService(session=session, settings=settings)
+    return await service.update_transcript(
+        asset_id=asset_id,
+        transcript_text=payload.transcript_text,
+    )
+
+
+@router.delete(
+    "/assets/{asset_id}/transcript",
+    response_model=AssetRead,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Clear a saved transcript from an audio or video asset",
+)
+async def delete_asset_transcript(
+    asset_id: str,
+    _: Annotated[SessionRecord, Depends(get_current_admin_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,
+) -> AssetRead:
+    service = TranscriptionService(session=session, settings=settings)
+    return await service.clear_transcript(asset_id=asset_id)
 
 
 @router.delete(

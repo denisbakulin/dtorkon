@@ -14,6 +14,8 @@ const LoginPage = lazy(async () => ({ default: (await import('../pages/login/ui/
 const MediaPage = lazy(async () => ({ default: (await import('../pages/media/ui/media-page')).MediaPage }));
 const NotFoundPage = lazy(async () => ({ default: (await import('../pages/not-found/ui/not-found-page')).NotFoundPage }));
 const PostPage = lazy(async () => ({ default: (await import('../pages/post/ui/post-page')).PostPage }));
+const ProjectPage = lazy(async () => ({ default: (await import('../pages/project/ui/project-page')).ProjectPage }));
+const ProjectsPage = lazy(async () => ({ default: (await import('../pages/projects/ui/projects-page')).ProjectsPage }));
 const StatusPage = lazy(async () => ({ default: (await import('../pages/status/ui/status-page')).StatusPage }));
 
 function PageFallback() {
@@ -46,8 +48,10 @@ function route(path: string, element: ReactNode) {
 const routes = [
   route('/', <HomePage />),
   route('/blog', <BlogPage />),
+  route('/projects', <ProjectsPage />),
   route('/media', <MediaPage />),
   route('/posts/:slug', <PostPage />),
+  route('/projects/:slug', <ProjectPage />),
   route('/contact', <ContactPage />),
   route('/status', <StatusPage />),
   route('/admin', <AdminPage />),

@@ -79,6 +79,24 @@ class TranscriptionService:
         asset = await self.assets.get_by_id(asset_id)
         return asset_to_read(asset)
 
+    async def update_transcript(self, *, asset_id: str, transcript_text: str) -> AssetRead:
+        asset = await self._get_transcribable_asset(asset_id)
+        await self.assets.mark_transcript_ready(asset=asset, transcript_text=transcript_text.strip())
+        await self.session.commit()
+        asset = await self.assets.get_by_id(asset_id)
+        return asset_to_read(asset)
+
+    async def clear_transcript(self, *, asset_id: str) -> AssetRead:
+        asset = await self._get_transcribable_asset(asset_id)
+        await self.assets.clear_transcript(asset=asset)
+        await self.session.commit()
+        asset = await self.assets.get_by_id(asset_id)
+        return asset_to_read(asset)
+
+    async def _get_transcribable_asset(self, asset_id: str):
+        asset = await self._get_transcribable_asset(asset_id)
+        return asset
+
     async def _get_groq_api_key(self) -> str | None:
         secret_value = await self.secrets.get_value("groq_api_key")
         if secret_value and secret_value.strip():
