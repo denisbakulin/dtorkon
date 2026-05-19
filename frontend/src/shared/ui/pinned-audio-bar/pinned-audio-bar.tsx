@@ -81,6 +81,23 @@ export function PinnedAudioBar() {
                 >
                   {safeTitle}
                 </Typography>
+                {trackPositionLabel ? (
+                  <Typography
+                    aria-label={`Трек ${trackPositionLabel}`}
+                    color="text.secondary"
+                    sx={(t) => ({
+                      border: `1px solid ${alpha(t.palette.divider, 0.72)}`,
+                      borderRadius: 999,
+                      flex: '0 0 auto',
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 1.35,
+                      px: 0.75,
+                    })}
+                    variant="caption"
+                  >
+                    {trackPositionLabel}
+                  </Typography>
+                ) : null}
                 <Tooltip title="Скорость воспроизведения">
                   <Box
                     aria-label={`Скорость воспроизведения ${playbackRateLabel}`}
