@@ -40,6 +40,13 @@ export function PinnedAudioBar() {
     }
     return parts.join(' · ') || null;
   }, [snapshot.collection, snapshot.subtitle, snapshot.title]);
+  const trackPositionLabel = useMemo(() => {
+    const tracks = snapshot.collection?.tracks ?? [];
+    if (tracks.length <= 1) return null;
+
+    const trackIndex = tracks.findIndex((track) => track.id === snapshot.trackId || track.src === snapshot.src);
+    return trackIndex >= 0 ? `${trackIndex + 1}/${tracks.length}` : null;
+  }, [snapshot.collection, snapshot.src, snapshot.trackId]);
 
   if (!hasTrack || !snapshot.src) return null;
 
@@ -65,12 +72,30 @@ export function PinnedAudioBar() {
         <Stack spacing={0.75} sx={{ width: '100%' }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                variant="body2"
-              >
-                {safeTitle}
-              </Typography>
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', minWidth: 0 }}>
+                <Typography
+                  sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  variant="body2"
+                >
+                  {safeTitle}
+                </Typography>
+                {trackPositionLabel ? (
+                  <Typography
+                    color="text.secondary"
+                    sx={(t) => ({
+                      border: `1px solid ${alpha(t.palette.divider, 0.72)}`,
+                      borderRadius: 999,
+                      flex: '0 0 auto',
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 1.35,
+                      px: 0.75,
+                    })}
+                    variant="caption"
+                  >
+                    {trackPositionLabel}
+                  </Typography>
+                ) : null}
+              </Stack>
               {safeSubtitle ? (
                 <Typography
                   color="text.secondary"

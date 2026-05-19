@@ -1,11 +1,12 @@
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { alpha, Box, IconButton, Stack, Typography } from '@mui/material';
-import { type KeyboardEventHandler, type MouseEventHandler, useEffect, useMemo, useState } from 'react';
+import { type KeyboardEventHandler, type PointerEventHandler, useEffect, useMemo, useState } from 'react';
 
 import {
   type AudioCollection,
   getPersistentAudioSnapshot,
+  playPersistentAudio,
   seekPersistentAudioByRatio,
   subscribePersistentAudio,
   togglePersistentAudio,
@@ -65,7 +66,7 @@ export function AudioPlayer({
 
   const progress = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
 
-  const formattedTime = useMemo(() => formatTime(duration || 0), [duration]);
+  const formattedTime = useMemo(() => `${formatTime(currentTime)} / ${formatTime(duration)}`, [currentTime, duration]);
 
   useEffect(() => {
     return subscribePersistentAudio(setSnapshot);
@@ -75,23 +76,51 @@ export function AudioPlayer({
     togglePersistentAudio({ src, title, subtitle, trackId, collection });
   };
 
-  const onWaveformClick: MouseEventHandler<HTMLDivElement> = (e) => {
+  const seekToRatio = (ratio: number) => {
+    if (isActive) {
+      seekPersistentAudioByRatio(ratio);
+    } else {
+      // Start playback on first interaction, then seek when metadata loads.
+      void playPersistentAudio({ src, title, subtitle, trackId, collection });
+      seekPersistentAudioByRatio(ratio);
+    }
+  };
+
+  const seekFromClientX = (clientX: number, element: HTMLDivElement) => {
+    const rect = element.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const ratio = rect.width > 0 ? x / rect.width : 0;
+    seekToRatio(ratio);
+  };
+
+  const releaseWaveformPointer = (event: Parameters<PointerEventHandler<HTMLDivElement>>[0]) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const onWaveformPointerDown: PointerEventHandler<HTMLDivElement> = (e) => {
     e.stopPropagation();
     if (waveformAction === 'open') {
       onOpenAlbum?.();
       return;
     }
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const ratio = rect.width > 0 ? x / rect.width : 0;
-    if (isActive) {
-      seekPersistentAudioByRatio(ratio);
-    } else {
-      // Start playback on first interaction, then seek when metadata loads.
-      togglePersistentAudio({ src, title, subtitle, trackId, collection });
-      seekPersistentAudioByRatio(ratio);
-    }
+    e.currentTarget.setPointerCapture(e.pointerId);
+    seekFromClientX(e.clientX, e.currentTarget);
+  };
+
+  const onWaveformPointerMove: PointerEventHandler<HTMLDivElement> = (e) => {
+    if (waveformAction === 'open' || e.buttons !== 1) return;
+    e.stopPropagation();
+    seekFromClientX(e.clientX, e.currentTarget);
+  };
+
+  const onWaveformPointerUp: PointerEventHandler<HTMLDivElement> = (e) => {
+    releaseWaveformPointer(e);
+  };
+
+  const onWaveformPointerCancel: PointerEventHandler<HTMLDivElement> = (e) => {
+    releaseWaveformPointer(e);
   };
 
   const onWaveformKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
@@ -151,8 +180,11 @@ export function AudioPlayer({
 
         <Box
           aria-label="Audio waveform"
-          onClick={onWaveformClick}
           onKeyDown={onWaveformKeyDown}
+          onPointerCancel={onWaveformPointerCancel}
+          onPointerDown={onWaveformPointerDown}
+          onPointerMove={onWaveformPointerMove}
+          onPointerUp={onWaveformPointerUp}
           role="button"
           tabIndex={0}
           sx={(t) => ({
@@ -166,6 +198,8 @@ export function AudioPlayer({
             minWidth: 0,
             outline: 'none',
             position: 'relative',
+            touchAction: 'none',
+            userSelect: 'none',
             '&:focus-visible': {
               boxShadow: `0 0 0 2px ${alpha(t.palette.primary.main, 0.35)}`,
               borderRadius: 2,
@@ -204,7 +238,10 @@ export function AudioPlayer({
         </Box>
         
 
-        <Typography sx={{ flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' }} variant="body2">
+        <Typography
+          sx={{ flex: '0 0 auto', fontVariantNumeric: 'tabular-nums', minWidth: { xs: 86, sm: 92 }, textAlign: 'right' }}
+          variant="body2"
+        >
           {formattedTime}
         </Typography>
       </Box>

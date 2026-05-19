@@ -41,7 +41,7 @@
   - редактировать изображения через image editor (crop + draw) по кнопке `Edit` рядом с изображением;
   - редактировать Markdown через `MDXEditor`;
   - просматривать audio/video через кастомный player;
-  - управлять текущим audio через pinned player с seek по waveform и previous/next;
+  - управлять текущим audio через pinned player с click/drag seek по waveform, временем `прошло / всего`, позицией трека и previous/next;
   - видеть текущий audio в системной карточке воспроизведения мобильного браузера через Media Session API;
   - запускать транскрибацию audio/video asset-ов;
   - редактировать публичные данные автора и контакты;
