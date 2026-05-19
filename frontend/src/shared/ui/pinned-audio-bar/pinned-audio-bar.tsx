@@ -2,7 +2,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import LibraryMusicRoundedIcon from '@mui/icons-material/LibraryMusicRounded';
 import NavigateBeforeRoundedIcon from '@mui/icons-material/NavigateBeforeRounded';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
-import { alpha, Box, IconButton, Stack, Tooltip } from '@mui/material';
+import { alpha, Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -62,18 +62,47 @@ export function PinnedAudioBar() {
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         })}
       >
-        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start' }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <AudioPlayer
-              collection={snapshot.collection}
-              src={snapshot.src}
-              subtitle={safeSubtitle}
-              title={safeTitle}
-              trackId={snapshot.trackId}
-              waveformAction="seek"
-            />
-          </Box>
-          <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center', mt: 3.25 }}>
+        <Stack spacing={0.75} sx={{ width: '100%' }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                variant="body2"
+              >
+                {safeTitle}
+              </Typography>
+              {safeSubtitle ? (
+                <Typography
+                  color="text.secondary"
+                  sx={{ display: { xs: 'none', sm: 'block' }, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  variant="caption"
+                >
+                  {safeSubtitle}
+                </Typography>
+              ) : null}
+            </Box>
+            <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center', flex: '0 0 auto' }}>
+              <Tooltip title="Открыть альбом">
+                <IconButton aria-label="Открыть альбом" onClick={() => setIsAlbumOpen(true)} size="small">
+                  <LibraryMusicRoundedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Закрыть плеер">
+                <IconButton
+                  aria-label="Close player"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    clearPersistentAudio();
+                  }}
+                  size="small"
+                >
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
+
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', width: '100%' }}>
             <Tooltip title="Предыдущий трек">
               <span>
                 <IconButton
@@ -86,6 +115,15 @@ export function PinnedAudioBar() {
                 </IconButton>
               </span>
             </Tooltip>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <AudioPlayer
+                collection={snapshot.collection}
+                src={snapshot.src}
+                title={null}
+                trackId={snapshot.trackId}
+                waveformAction="seek"
+              />
+            </Box>
             <Tooltip title="Следующий трек">
               <span>
                 <IconButton
@@ -97,23 +135,6 @@ export function PinnedAudioBar() {
                   <NavigateNextRoundedIcon fontSize="small" />
                 </IconButton>
               </span>
-            </Tooltip>
-            <Tooltip title="Открыть альбом">
-              <IconButton aria-label="Открыть альбом" onClick={() => setIsAlbumOpen(true)} size="small">
-                <LibraryMusicRoundedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Закрыть плеер">
-              <IconButton
-                aria-label="Close player"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  clearPersistentAudio();
-                }}
-                size="small"
-              >
-                <CloseRoundedIcon fontSize="small" />
-              </IconButton>
             </Tooltip>
           </Stack>
         </Stack>
