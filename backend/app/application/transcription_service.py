@@ -9,6 +9,8 @@ from app.infrastructure.repositories import AssetRepository
 from app.infrastructure.repositories import AppSecretRepository
 from app.infrastructure.storage import S3Storage
 
+GROQ_DIRECT_UPLOAD_LIMIT_BYTES = 24 * 1024 * 1024
+
 
 class TranscriptionService:
     def __init__(self, *, session: AsyncSession, settings: Settings) -> None:
@@ -53,14 +55,12 @@ class TranscriptionService:
         await self.session.commit()
 
         try:
-            transcript = await self._request_transcript(
-                asset_url=asset.url,
-                file_name=asset.original_name,
-                groq_api_key=groq_api_key,
-            )
+            transcript = await self._transcribe_with_best_strategy(asset=asset, groq_api_key=groq_api_key)
             await self.assets.mark_transcript_ready(asset=asset, transcript_text=transcript.strip())
             await self.session.commit()
-        except AppError:
+        except AppError as exc:
+            await self.assets.mark_transcript_failed(asset=asset, error_message=exc.message)
+            await self.session.commit()
             raise
         except Exception as exc:
             await self.assets.mark_transcript_failed(asset=asset, error_message=str(exc))
@@ -119,12 +119,48 @@ class TranscriptionService:
             return secret_value
         return self.settings.groq_api_key
 
+    async def _transcribe_with_best_strategy(self, *, asset, groq_api_key: str) -> str:
+        should_try_direct_upload = asset.size_bytes <= GROQ_DIRECT_UPLOAD_LIMIT_BYTES
+
+        if should_try_direct_upload:
+            content = await self.storage.download_object(asset.key)
+            return await self._request_transcript(
+                content=content,
+                file_name=asset.original_name,
+                groq_api_key=groq_api_key,
+                mime_type=asset.mime_type,
+                mode="file",
+            )
+
+        try:
+            return await self._request_transcript(
+                asset_url=asset.url,
+                file_name=asset.original_name,
+                groq_api_key=groq_api_key,
+                mode="url",
+            )
+        except AppError as exc:
+            if exc.status_code not in {400, 404, 415, 422}:
+                raise
+
+            content = await self.storage.download_object(asset.key)
+            return await self._request_transcript(
+                content=content,
+                file_name=asset.original_name,
+                groq_api_key=groq_api_key,
+                mime_type=asset.mime_type,
+                mode="file-fallback",
+            )
+
     async def _request_transcript(
         self,
         *,
-        asset_url: str,
+        asset_url: str | None = None,
+        content: bytes | None = None,
         file_name: str,
+        mime_type: str | None = None,
         groq_api_key: str,
+        mode: str,
     ) -> str:
         headers = {"Authorization": f"Bearer {groq_api_key}"}
         data = {
@@ -132,13 +168,19 @@ class TranscriptionService:
             "response_format": "json",
             "temperature": "0",
         }
-        if asset_url.strip():
+        files = None
+
+        if asset_url and asset_url.strip():
             data["url"] = asset_url.strip()
+        elif content is not None and mime_type:
+            files = {
+                "file": (file_name, content, mime_type),
+            }
         else:
             raise AppError(
                 status_code=422,
-                code="asset_url_missing",
-                message="Asset URL is required for transcription",
+                code="transcription_payload_missing",
+                message="Transcription request payload is incomplete",
             )
 
         async with httpx.AsyncClient(timeout=600.0) as client:
@@ -146,8 +188,23 @@ class TranscriptionService:
                 f"{self.settings.groq_api_base.rstrip('/')}/audio/transcriptions",
                 headers=headers,
                 data=data,
+                files=files,
             )
-            response.raise_for_status()
+
+            if response.is_error:
+                detail = response.text.strip()
+                if not detail:
+                    try:
+                        detail = str(response.json())
+                    except Exception:
+                        detail = f"HTTP {response.status_code}"
+                raise AppError(
+                    status_code=response.status_code,
+                    code="groq_transcription_request_failed",
+                    message=f"Groq rejected the transcription request ({mode})",
+                    details={"reason": detail, "mode": mode},
+                )
+
             payload = response.json()
             text = str(payload.get("text") or "").strip()
             if not text:
