@@ -60,12 +60,16 @@ class YandexStorageAnalyticsService:
         traffic_task = None
         logs_task = None
 
-        if self.settings.yandex_cloud_api_enabled:
+        if self.settings.yandex_cloud_auth_configured:
             stats_task = asyncio.create_task(self._fetch_bucket_stats())
+        else:
+            stats_task = asyncio.create_task(self._fetch_bucket_stats_via_s3())
+
+        if self.settings.yandex_cloud_api_enabled:
             traffic_task = asyncio.create_task(self._fetch_traffic_timeline())
         else:
             message_parts.append(
-                "Cloud API auth is not configured, so bucket size and traffic metrics are unavailable."
+                "Cloud API auth is not configured, so traffic metrics are unavailable."
             )
 
         if self.settings.yandex_storage_logs_enabled and self.storage.client:
@@ -75,12 +79,29 @@ class YandexStorageAnalyticsService:
                 "Bucket access logs are not configured, so top requested objects are unavailable."
             )
 
-        stats = await self._await_task(
-            stats_task,
-            default={},
-            message_parts=message_parts,
-            failure_message="Bucket stats are temporarily unavailable from Yandex Cloud API.",
-        )
+        stats = {}
+        if stats_task:
+            try:
+                stats = await stats_task
+            except Exception as e:
+                import traceback
+                import sys
+                print(f"Failed to fetch bucket stats via Yandex Cloud API: {e}", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+                
+                # If we tried Cloud API and it failed, try the S3 fallback
+                if self.settings.yandex_cloud_auth_configured and self.storage.client:
+                    try:
+                        print("Attempting fallback bucket stats calculation via S3 listing...", file=sys.stderr)
+                        stats = await self._fetch_bucket_stats_via_s3()
+                        message_parts.append("Bucket stats fetched via S3 fallback (Cloud API failed).")
+                    except Exception as fallback_err:
+                        print(f"Fallback bucket stats calculation failed: {fallback_err}", file=sys.stderr)
+                        traceback.print_exc(file=sys.stderr)
+                        message_parts.append("Bucket stats are temporarily unavailable.")
+                else:
+                    message_parts.append("Bucket stats are temporarily unavailable.")
+
         traffic_points = await self._await_task(
             traffic_task,
             default=self._empty_traffic_window(),
@@ -134,6 +155,39 @@ class YandexStorageAnalyticsService:
             method_breakdown=totals["method_breakdown"],
             top_objects=totals["top_objects"],
         )
+
+    async def _fetch_bucket_stats_via_s3(self) -> dict[str, Any]:
+        if not self.storage.client or not self.settings.s3_bucket_name:
+            return {}
+
+        object_count = 0
+        used_size_bytes = 0
+        continuation_token = None
+
+        while True:
+            kwargs: dict[str, Any] = {
+                "Bucket": self.settings.s3_bucket_name,
+                "MaxKeys": 1000,
+            }
+            if continuation_token:
+                kwargs["ContinuationToken"] = continuation_token
+
+            response = await asyncio.to_thread(self.storage.client.list_objects_v2, **kwargs)
+            contents = response.get("Contents") or []
+            object_count += len(contents)
+            for item in contents:
+                used_size_bytes += item.get("Size") or 0
+
+            if not response.get("IsTruncated"):
+                break
+            continuation_token = response.get("NextContinuationToken")
+
+        return {
+            "used_size_bytes": used_size_bytes,
+            "object_count": object_count,
+            "public_read_enabled": None,
+            "public_list_enabled": None,
+        }
 
     async def _fetch_bucket_stats(self) -> dict[str, Any]:
         if not self.settings.s3_bucket_name:
@@ -456,7 +510,11 @@ class YandexStorageAnalyticsService:
             return default
         try:
             return await task
-        except Exception:
+        except Exception as e:
+            import traceback
+            import sys
+            print(f"Analytics task failed: {failure_message}. Error: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
             message_parts.append(failure_message)
             return default
 

@@ -137,6 +137,15 @@ class Settings(BaseSettings):
         )
 
     @property
+    def yandex_cloud_auth_configured(self) -> bool:
+        token = self.yandex_cloud_iam_token
+        api_key = self.yandex_cloud_api_key
+        return bool(
+            (token and not _is_placeholder(token))
+            or (api_key and not _is_placeholder(api_key))
+        )
+
+    @property
     def yandex_storage_logs_enabled(self) -> bool:
         return bool(
             self.s3_enabled

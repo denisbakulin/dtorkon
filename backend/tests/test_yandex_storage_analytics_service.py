@@ -85,3 +85,27 @@ def test_summarize_log_entries_builds_top_objects_and_method_breakdown() -> None
     assert top_object.display_name == "header.png"
     assert top_object.requests == 2
     assert top_object.outgoing_bytes == 1700
+
+
+def test_fetch_bucket_stats_via_s3_calculates_correctly() -> None:
+    import asyncio
+    from unittest.mock import MagicMock
+
+    service = build_service()
+    
+    # Mock storage client list_objects_v2
+    mock_client = MagicMock()
+    mock_client.list_objects_v2.return_value = {
+        "Contents": [
+            {"Key": "file1.txt", "Size": 100},
+            {"Key": "file2.jpg", "Size": 500},
+        ],
+        "IsTruncated": False,
+    }
+    service.storage.client = mock_client
+    
+    stats = asyncio.run(service._fetch_bucket_stats_via_s3())
+    
+    assert stats["object_count"] == 2
+    assert stats["used_size_bytes"] == 600
+    mock_client.list_objects_v2.assert_called_once_with(Bucket="dtdata", MaxKeys=1000)
