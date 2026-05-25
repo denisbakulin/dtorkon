@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,11 +65,16 @@ class SessionRepository:
         )
         return result.scalar_one_or_none()
 
-    async def touch(self, session_id: str) -> None:
-        record = await self.get_valid_by_id(session_id)
-        if record:
-            record.last_seen_at = utc_now_iso()
-            await self.session.flush()
+    def should_touch(self, *, record: SessionRecord, interval_seconds: int) -> bool:
+        if interval_seconds <= 0:
+            return True
+
+        last_seen_at = datetime.fromisoformat(record.last_seen_at)
+        return datetime.now(UTC) - last_seen_at >= timedelta(seconds=interval_seconds)
+
+    async def touch(self, *, record: SessionRecord, touched_at: str | None = None) -> None:
+        record.last_seen_at = touched_at or utc_now_iso()
+        await self.session.flush()
 
     async def delete(self, session_id: str) -> None:
         await self.session.execute(delete(SessionRecord).where(SessionRecord.id == session_id))

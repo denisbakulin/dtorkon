@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request, Security
 from fastapi.security import APIKeyCookie
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.errors import AppError
@@ -41,7 +42,14 @@ async def get_optional_admin_session(
     if not record:
         return None
 
-    await sessions.touch(record.id)
+    if sessions.should_touch(
+        record=record,
+        interval_seconds=settings.session_touch_interval_seconds,
+    ):
+        try:
+            await sessions.touch(record=record)
+        except OperationalError:
+            await session.rollback()
     request.state.session_id = record.id
     return record
 

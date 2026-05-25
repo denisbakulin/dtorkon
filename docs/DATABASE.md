@@ -204,4 +204,6 @@ Session storage теперь хранит только admin-only cookie session
 - `site_profile_links.profile_id -> site_profile.id`
 - `error_events.session_id -> sessions.id`
 
+Runtime note: `sessions.last_seen_at` is updated on a throttled heartbeat interval instead of every authenticated request to keep SQLite write contention low.
+
 Текущее приложение пишет новые записи в `error_events` только из backend-слоя. Значение `frontend` оставлено в схеме для совместимости со старыми локальными базами и не используется активным API-потоком.

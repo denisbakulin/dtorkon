@@ -40,8 +40,10 @@ class Settings(BaseSettings):
     session_secret: str = "replace-me-with-a-long-random-string"
     session_cookie_name: str = "dtorkon_session"
     session_ttl_hours: int = 168
+    session_touch_interval_seconds: int = 300
 
     sqlite_path: str = Field(default_factory=_default_sqlite_path)
+    sqlite_busy_timeout_ms: int = 5000
 
     s3_bucket_name: str | None = None
     s3_access_key_id: str | None = None

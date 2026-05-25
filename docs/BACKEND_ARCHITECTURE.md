@@ -94,3 +94,9 @@ Backend — обязательный runtime-компонент продукта
 - admin can now store SQLite overrides for login/password in `app_secrets`;
 - login validation and `GET /api/auth/session` use the effective credential set, where SQLite overrides take precedence over `.env`;
 - clearing an override returns auth back to the bootstrap credential from `.env`.
+
+## SQLite runtime notes
+
+- SQLite connections enable `foreign_keys=ON` and `busy_timeout` during connect;
+- file-backed runtimes also enable WAL mode with `synchronous=NORMAL` to reduce writer contention;
+- admin session heartbeat updates are throttled by `session_touch_interval_seconds` so read-heavy admin traffic does not write on every request.
