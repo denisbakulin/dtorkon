@@ -536,20 +536,20 @@
         }
       }
     },
-    "/api/admin/analytics": {
+    "/api/admin/analytics/overview": {
       "get": {
         "tags": [
           "Admin Analytics"
         ],
-        "summary": "Get analytics for the admin dashboard",
-        "operationId": "get_admin_analytics_api_admin_analytics_get",
+        "summary": "Get overview counters for the admin dashboard",
+        "operationId": "get_admin_analytics_overview_api_admin_analytics_overview_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminAnalyticsRead"
+                  "$ref": "#/components/schemas/AdminAnalyticsOverviewRead"
                 }
               }
             }
@@ -570,6 +570,184 @@
             "APIKeyCookie": []
           }
         ]
+      }
+    },
+    "/api/admin/analytics/activity": {
+      "get": {
+        "tags": [
+          "Admin Analytics"
+        ],
+        "summary": "Get publication and upload activity for the admin dashboard",
+        "operationId": "get_admin_analytics_activity_api_admin_analytics_activity_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAnalyticsActivityRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ]
+      }
+    },
+    "/api/admin/analytics/storage": {
+      "get": {
+        "tags": [
+          "Admin Analytics"
+        ],
+        "summary": "Get Yandex Object Storage analytics with paginated top objects",
+        "operationId": "get_admin_storage_analytics_api_admin_analytics_storage_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageAnalyticsRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/analytics/errors": {
+      "get": {
+        "tags": [
+          "Admin Analytics"
+        ],
+        "summary": "Get paginated backend error events for the admin dashboard",
+        "operationId": "get_admin_error_events_api_admin_analytics_errors_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorEventListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/admin/posts": {
@@ -2679,7 +2857,39 @@
   },
   "components": {
     "schemas": {
-      "AdminAnalyticsRead": {
+      "AdminAnalyticsActivityRead": {
+        "properties": {
+          "publicationActivity": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsTimelinePoint"
+            },
+            "type": "array",
+            "title": "Publicationactivity"
+          },
+          "uploadActivity": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsTimelinePoint"
+            },
+            "type": "array",
+            "title": "Uploadactivity"
+          },
+          "assetBreakdown": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsBreakdownItem"
+            },
+            "type": "array",
+            "title": "Assetbreakdown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "publicationActivity",
+          "uploadActivity",
+          "assetBreakdown"
+        ],
+        "title": "AdminAnalyticsActivityRead"
+      },
+      "AdminAnalyticsOverviewRead": {
         "properties": {
           "totalPosts": {
             "type": "integer",
@@ -2721,27 +2931,6 @@
             "type": "integer",
             "title": "Transcriptfailed"
           },
-          "publicationActivity": {
-            "items": {
-              "$ref": "#/components/schemas/AnalyticsTimelinePoint"
-            },
-            "type": "array",
-            "title": "Publicationactivity"
-          },
-          "uploadActivity": {
-            "items": {
-              "$ref": "#/components/schemas/AnalyticsTimelinePoint"
-            },
-            "type": "array",
-            "title": "Uploadactivity"
-          },
-          "assetBreakdown": {
-            "items": {
-              "$ref": "#/components/schemas/AnalyticsBreakdownItem"
-            },
-            "type": "array",
-            "title": "Assetbreakdown"
-          },
           "totalErrors": {
             "type": "integer",
             "title": "Totalerrors"
@@ -2756,16 +2945,6 @@
               }
             ],
             "title": "Lasterrorat"
-          },
-          "recentErrors": {
-            "items": {
-              "$ref": "#/components/schemas/AdminErrorEventRead"
-            },
-            "type": "array",
-            "title": "Recenterrors"
-          },
-          "storageAnalytics": {
-            "$ref": "#/components/schemas/StorageAnalyticsRead"
           }
         },
         "type": "object",
@@ -2780,13 +2959,9 @@
           "transcriptReady",
           "transcriptProcessing",
           "transcriptFailed",
-          "publicationActivity",
-          "uploadActivity",
-          "assetBreakdown",
-          "totalErrors",
-          "storageAnalytics"
+          "totalErrors"
         ],
-        "title": "AdminAnalyticsRead"
+        "title": "AdminAnalyticsOverviewRead"
       },
       "AdminCredentialsRead": {
         "properties": {
@@ -2810,6 +2985,41 @@
           "passwordOverridden"
         ],
         "title": "AdminCredentialsRead"
+      },
+      "AdminErrorEventListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminErrorEventRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "totalErrors": {
+            "type": "integer",
+            "title": "Totalerrors"
+          },
+          "lastErrorAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lasterrorat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pagination",
+          "totalErrors"
+        ],
+        "title": "AdminErrorEventListResponse"
       },
       "AdminErrorEventRead": {
         "properties": {
@@ -4919,6 +5129,16 @@
             },
             "type": "array",
             "title": "Topobjects"
+          },
+          "topObjectsPagination": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Pagination"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

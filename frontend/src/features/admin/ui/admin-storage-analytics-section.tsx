@@ -1,4 +1,4 @@
-import { Alert, Box, Chip, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Box, Chip, Pagination, Paper, Stack, Typography } from '@mui/material';
 
 import type { StorageAnalytics, StorageTrafficPoint } from '../../../shared/api/admin-contract';
 import { formatDateLabel } from '../../../shared/lib/format-date';
@@ -74,7 +74,13 @@ function getTrafficSummary(storage: StorageAnalytics) {
   return 'Подключите Monitoring API или access logs, чтобы увидеть сетевую активность бакета.';
 }
 
-export function AdminStorageAnalyticsSection({ storage }: { storage: StorageAnalytics }) {
+export function AdminStorageAnalyticsSection({
+  onTopObjectsPageChange,
+  storage,
+}: {
+  onTopObjectsPageChange?: (page: number) => void;
+  storage: StorageAnalytics;
+}) {
   return (
     <Paper sx={{ p: { xs: 3, md: 4 } }}>
       <Stack spacing={2.5}>
@@ -167,8 +173,15 @@ export function AdminStorageAnalyticsSection({ storage }: { storage: StorageAnal
               <Typography variant="subtitle1">Чаще всего запрашивают</Typography>
               {storage.topObjects.length > 0 ? (
                 <Stack spacing={1.25}>
-                  {storage.topObjects.map((item) => (
-                    <Box key={item.objectKey} sx={{ borderBottom: '1px solid rgba(31, 42, 54, 0.08)', pb: 1.25 }}>
+                  {storage.topObjects.map((item, index) => (
+                    <Box
+                      key={item.objectKey}
+                      sx={{
+                        borderBottom:
+                          index === storage.topObjects.length - 1 ? 'none' : '1px solid rgba(31, 42, 54, 0.08)',
+                        pb: 1.25,
+                      }}
+                    >
                       <Typography sx={{ fontWeight: 600 }} variant="body2">
                         {item.displayName}
                       </Typography>
@@ -189,6 +202,15 @@ export function AdminStorageAnalyticsSection({ storage }: { storage: StorageAnal
                       </Stack>
                     </Box>
                   ))}
+                  {storage.topObjectsPagination && storage.topObjectsPagination.totalPages > 1 ? (
+                    <Pagination
+                      count={storage.topObjectsPagination.totalPages}
+                      onChange={(_, page) => onTopObjectsPageChange?.(page)}
+                      page={storage.topObjectsPagination.page}
+                      shape="rounded"
+                      size="small"
+                    />
+                  ) : null}
                 </Stack>
               ) : (
                 <Typography color="text.secondary" variant="body2">

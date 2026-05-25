@@ -152,6 +152,27 @@ class ErrorEventRepository:
         )
         return result.scalars().all()
 
+    async def list_by_source(
+        self,
+        *,
+        source: ErrorEventSource,
+        page: int,
+        page_size: int,
+    ) -> tuple[list[ErrorEvent], int]:
+        count_result = await self.session.execute(
+            select(func.count(ErrorEvent.id)).where(ErrorEvent.source == source)
+        )
+        total_items = count_result.scalar_one()
+
+        result = await self.session.execute(
+            select(ErrorEvent)
+            .where(ErrorEvent.source == source)
+            .order_by(ErrorEvent.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return result.scalars().all(), total_items
+
 
 class AppSecretRepository:
     def __init__(self, session: AsyncSession) -> None:

@@ -1,7 +1,9 @@
 import { httpClient } from './http-client';
 import type {
-  AdminAnalytics,
+  AdminAnalyticsActivity,
+  AdminAnalyticsOverview,
   AdminCredentialsSettings,
+  AdminErrorEventListResponse,
   AdminPostDetail,
   AdminPostListResponse,
   AdminPostStatusFilter,
@@ -15,6 +17,7 @@ import type {
   PresignUploadRequest,
   PresignUploadResponse,
   SiteProfile,
+  StorageAnalytics,
   TelegramSettings,
   TranscriptionSettings,
   UpdateSiteProfileRequest,
@@ -127,8 +130,45 @@ export async function deleteAdminProject(projectId: string) {
   await httpClient.delete(`/api/admin/projects/${projectId}`);
 }
 
-export async function getAdminAnalytics(signal?: AbortSignal) {
-  const response = await httpClient.get<AdminAnalytics>('/api/admin/analytics', { signal });
+export async function getAdminAnalyticsOverview(signal?: AbortSignal) {
+  const response = await httpClient.get<AdminAnalyticsOverview>('/api/admin/analytics/overview', { signal });
+  return response.data;
+}
+
+export async function getAdminAnalyticsActivity(signal?: AbortSignal) {
+  const response = await httpClient.get<AdminAnalyticsActivity>('/api/admin/analytics/activity', { signal });
+  return response.data;
+}
+
+export async function getAdminStorageAnalytics(options: {
+  page?: number;
+  pageSize?: number;
+  signal?: AbortSignal;
+} = {}) {
+  const { page = 1, pageSize = 10, signal } = options;
+  const response = await httpClient.get<StorageAnalytics>('/api/admin/analytics/storage', {
+    params: {
+      page,
+      page_size: pageSize,
+    },
+    signal,
+  });
+  return response.data;
+}
+
+export async function getAdminErrorEvents(options: {
+  page?: number;
+  pageSize?: number;
+  signal?: AbortSignal;
+} = {}) {
+  const { page = 1, pageSize = 10, signal } = options;
+  const response = await httpClient.get<AdminErrorEventListResponse>('/api/admin/analytics/errors', {
+    params: {
+      page,
+      page_size: pageSize,
+    },
+    signal,
+  });
   return response.data;
 }
 

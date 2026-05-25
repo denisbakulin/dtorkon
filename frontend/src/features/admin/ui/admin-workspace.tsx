@@ -46,12 +46,15 @@ import {
   clearAdminAssetTranscript,
   completeAdminUpload,
   createAdminPost,
+  getAdminAnalyticsActivity,
+  getAdminAnalyticsOverview,
+  getAdminErrorEvents,
   deleteAdminAsset,
   deleteAdminPost,
-  getAdminAnalytics,
   getAdminPost,
   getAdminPosts,
   getAdminSiteProfile,
+  getAdminStorageAnalytics,
   presignAdminUpload,
   transcribeAdminAsset,
   updateAdminAssetTranscript,
@@ -60,12 +63,15 @@ import {
   uploadAdminAssetContent,
 } from '../../../shared/api/admin-api';
 import type {
-  AdminAnalytics,
+  AdminAnalyticsActivity,
+  AdminAnalyticsOverview,
+  AdminErrorEventListResponse,
   AdminPostDetail,
   AdminPostSummary,
   AdminPostStatusFilter,
   CreateAdminPostRequest,
   SiteProfile,
+  StorageAnalytics,
   UpdateSiteProfileRequest,
 } from '../../../shared/api/admin-contract';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../shared/api/api-error';
@@ -351,16 +357,24 @@ const ComposePanel = memo(function ComposePanel({
 
 type OverviewPaneProps = {
   activeTab: OverviewTab;
-  analytics: AdminAnalytics | null;
-  isLoadingAnalytics: boolean;
+  activity: AdminAnalyticsActivity | null;
+  errors: AdminErrorEventListResponse | null;
+  isLoadingActivity: boolean;
+  isLoadingErrors: boolean;
   isLoadingMeta: boolean;
+  isLoadingOverview: boolean;
+  isLoadingStorage: boolean;
   onTabChange: (tab: OverviewTab) => void;
   onAuthExpired: () => void;
   onCreatePost: () => void;
+  onErrorsPageChange: (page: number) => void;
   onSaveSiteProfile: (payload: UpdateSiteProfileRequest) => Promise<SiteProfile>;
+  onStoragePageChange: (page: number) => void;
+  overview: AdminAnalyticsOverview | null;
   posts: AdminPostSummary[];
   postsPagination: PaginationInfo | null;
   siteProfile: SiteProfile | null;
+  storage: StorageAnalytics | null;
 };
 
 type OverviewTab = 'dashboard' | 'projects' | 'errors' | 'siteProfile' | 'credentials' | 'transcription' | 'telegram';
@@ -932,16 +946,24 @@ function PostsSidebar({
 
 function OverviewPane({
   activeTab,
-  analytics,
-  isLoadingAnalytics,
+  activity,
+  errors,
+  isLoadingActivity,
+  isLoadingErrors,
   isLoadingMeta,
+  isLoadingOverview,
+  isLoadingStorage,
   onTabChange,
   onAuthExpired,
   onCreatePost,
+  onErrorsPageChange,
   onSaveSiteProfile,
+  onStoragePageChange,
+  overview,
   posts,
   postsPagination,
   siteProfile,
+  storage,
 }: OverviewPaneProps) {
   const [profileDraft, setProfileDraft] = useState<SiteProfileDraft | null>(
     siteProfile ? { ...siteProfile, links: normalizeProfileLinks(siteProfile) } : null,
@@ -1124,7 +1146,7 @@ function OverviewPane({
         >
           <Tab label="Dashboard" value="dashboard" />
           <Tab label="Projects" value="projects" />
-          <Tab label={`Errors (${analytics?.totalErrors ?? 0})`} value="errors" />
+          <Tab label={`Errors (${overview?.totalErrors ?? errors?.totalErrors ?? 0})`} value="errors" />
           <Tab label="Site profile" value="siteProfile" />
           <Tab label="Admin access" value="credentials" />
           <Tab label="Transcription" value="transcription" />
@@ -1133,13 +1155,21 @@ function OverviewPane({
       </Paper>
 
       {activeTab === 'dashboard' ? (
-        <AdminAnalyticsPanel analytics={analytics} isLoading={isLoadingAnalytics} />
+        <AdminAnalyticsPanel
+          activity={activity}
+          isLoadingActivity={isLoadingActivity}
+          isLoadingOverview={isLoadingOverview}
+          isLoadingStorage={isLoadingStorage}
+          onStoragePageChange={onStoragePageChange}
+          overview={overview}
+          storage={storage}
+        />
       ) : null}
 
       {activeTab === 'projects' ? <AdminProjectsPanel onAuthExpired={onAuthExpired} /> : null}
 
       {activeTab === 'errors' ? (
-        <AdminErrorEventsPanel analytics={analytics} isLoading={isLoadingAnalytics} />
+        <AdminErrorEventsPanel errors={errors} isLoading={isLoadingErrors} onPageChange={onErrorsPageChange} />
       ) : null}
 
       {activeTab === 'credentials' ? <CredentialsSettingsPanel /> : null}
@@ -3050,7 +3080,10 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading, logout, refreshSession, session } = useAuth();
   const { setSiteProfile: setGlobalSiteProfile } = useSiteProfile();
-  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [analyticsOverview, setAnalyticsOverview] = useState<AdminAnalyticsOverview | null>(null);
+  const [analyticsActivity, setAnalyticsActivity] = useState<AdminAnalyticsActivity | null>(null);
+  const [storageAnalytics, setStorageAnalytics] = useState<StorageAnalytics | null>(null);
+  const [errorEvents, setErrorEvents] = useState<AdminErrorEventListResponse | null>(null);
   const [posts, setPosts] = useState<AdminPostSummary[]>([]);
   const [postsPagination, setPostsPagination] = useState<PaginationInfo | null>(null);
   const [siteProfile, setSiteProfile] = useState<SiteProfile | null>(null);
@@ -3058,11 +3091,16 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   const [metaError, setMetaError] = useState<string | null>(null);
   const [isRefreshingPosts, setIsRefreshingPosts] = useState(false);
   const [isRefreshingMeta, setIsRefreshingMeta] = useState(false);
-  const [isRefreshingAnalytics, setIsRefreshingAnalytics] = useState(false);
+  const [isRefreshingOverview, setIsRefreshingOverview] = useState(false);
+  const [isRefreshingActivity, setIsRefreshingActivity] = useState(false);
+  const [isRefreshingStorage, setIsRefreshingStorage] = useState(false);
+  const [isRefreshingErrors, setIsRefreshingErrors] = useState(false);
   const [filter, setFilter] = useState<AdminPostStatusFilter>('all');
   const [searchInput, setSearchInput] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [overviewTab, setOverviewTab] = useState<OverviewTab>('projects');
+  const [storageTopObjectsPage, setStorageTopObjectsPage] = useState(1);
+  const [errorEventsPage, setErrorEventsPage] = useState(1);
   const deferredSearchInput = useDeferredValue(searchInput);
 
   const handleAuthExpired = () => {
@@ -3171,20 +3209,20 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
 
     if (!isAuthenticated || mode !== 'overview' || !analyticsTabIsActive) {
       if (mode === 'overview') {
-        setAnalytics(null);
+        setAnalyticsOverview(null);
       }
-      setIsRefreshingAnalytics(false);
+      setIsRefreshingOverview(false);
       return;
     }
 
     const controller = new AbortController();
 
-    setIsRefreshingAnalytics(true);
+    setIsRefreshingOverview(true);
 
-    getAdminAnalytics(controller.signal)
+    getAdminAnalyticsOverview(controller.signal)
       .then((response) => {
         if (!controller.signal.aborted) {
-          setAnalytics(response);
+          setAnalyticsOverview(response);
         }
       })
       .catch((error: unknown) => {
@@ -3198,12 +3236,125 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
       })
       .finally(() => {
         if (!controller.signal.aborted) {
-          setIsRefreshingAnalytics(false);
+          setIsRefreshingOverview(false);
         }
       });
 
     return () => controller.abort();
   }, [isAuthenticated, mode, overviewTab, refreshKey]);
+
+  useEffect(() => {
+    if (!isAuthenticated || mode !== 'overview' || overviewTab !== 'dashboard') {
+      if (mode === 'overview') {
+        setAnalyticsActivity(null);
+      }
+      setIsRefreshingActivity(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsRefreshingActivity(true);
+
+    getAdminAnalyticsActivity(controller.signal)
+      .then((response) => {
+        if (!controller.signal.aborted) {
+          setAnalyticsActivity(response);
+        }
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || axios.isCancel(error)) {
+          return;
+        }
+        if (isUnauthorized(error)) {
+          handleAuthExpired();
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsRefreshingActivity(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [isAuthenticated, mode, overviewTab, refreshKey]);
+
+  useEffect(() => {
+    if (!isAuthenticated || mode !== 'overview' || overviewTab !== 'dashboard') {
+      if (mode === 'overview') {
+        setStorageAnalytics(null);
+      }
+      setIsRefreshingStorage(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsRefreshingStorage(true);
+
+    getAdminStorageAnalytics({
+      page: storageTopObjectsPage,
+      pageSize: 10,
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!controller.signal.aborted) {
+          setStorageAnalytics(response);
+        }
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || axios.isCancel(error)) {
+          return;
+        }
+        if (isUnauthorized(error)) {
+          handleAuthExpired();
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsRefreshingStorage(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [isAuthenticated, mode, overviewTab, refreshKey, storageTopObjectsPage]);
+
+  useEffect(() => {
+    if (!isAuthenticated || mode !== 'overview' || overviewTab !== 'errors') {
+      if (mode === 'overview') {
+        setErrorEvents(null);
+      }
+      setIsRefreshingErrors(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsRefreshingErrors(true);
+
+    getAdminErrorEvents({
+      page: errorEventsPage,
+      pageSize: 10,
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!controller.signal.aborted) {
+          setErrorEvents(response);
+        }
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || axios.isCancel(error)) {
+          return;
+        }
+        if (isUnauthorized(error)) {
+          handleAuthExpired();
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsRefreshingErrors(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [errorEventsPage, isAuthenticated, mode, overviewTab, refreshKey]);
 
   const handleLogout = async () => {
     await logout();
@@ -3260,16 +3411,24 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
                 {mode === 'overview' ? (
                   <OverviewPane
                     activeTab={overviewTab}
-                    analytics={analytics}
-                    isLoadingAnalytics={isRefreshingAnalytics}
+                    activity={analyticsActivity}
+                    errors={errorEvents}
+                    isLoadingActivity={isRefreshingActivity}
+                    isLoadingErrors={isRefreshingErrors}
                     isLoadingMeta={isRefreshingMeta}
+                    isLoadingOverview={isRefreshingOverview}
+                    isLoadingStorage={isRefreshingStorage}
                     onAuthExpired={handleAuthExpired}
                     onCreatePost={() => navigate(getAdminCreatePostPath())}
+                    onErrorsPageChange={setErrorEventsPage}
                     onSaveSiteProfile={handleSaveSiteProfile}
+                    onStoragePageChange={setStorageTopObjectsPage}
                     onTabChange={setOverviewTab}
+                    overview={analyticsOverview}
                     posts={posts}
                     postsPagination={postsPagination}
                     siteProfile={siteProfile}
+                    storage={storageAnalytics}
                   />
                 ) : (
                   <EditorPane

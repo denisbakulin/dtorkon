@@ -208,6 +208,7 @@ export type StorageAnalytics = {
   trafficTimeline: StorageTrafficPoint[];
   methodBreakdown: StorageMethodBreakdownItem[];
   topObjects: StorageTopObject[];
+  topObjectsPagination: PaginationInfo | null;
 };
 
 export type AdminErrorEvent = {
@@ -225,7 +226,7 @@ export type AdminErrorEvent = {
   createdAt: string;
 };
 
-export type AdminAnalytics = {
+export type AdminAnalyticsOverview = {
   totalPosts: number;
   publishedPosts: number;
   draftPosts: number;
@@ -236,13 +237,21 @@ export type AdminAnalytics = {
   transcriptReady: number;
   transcriptProcessing: number;
   transcriptFailed: number;
+  totalErrors: number;
+  lastErrorAt: string | null;
+};
+
+export type AdminAnalyticsActivity = {
   publicationActivity: AnalyticsTimelinePoint[];
   uploadActivity: AnalyticsTimelinePoint[];
   assetBreakdown: AnalyticsBreakdownItem[];
+};
+
+export type AdminErrorEventListResponse = {
+  items: AdminErrorEvent[];
+  pagination: PaginationInfo;
   totalErrors: number;
   lastErrorAt: string | null;
-  recentErrors: AdminErrorEvent[];
-  storageAnalytics: StorageAnalytics;
 };
 
 export type TranscriptionSettings = {

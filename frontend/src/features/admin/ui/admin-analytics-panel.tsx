@@ -1,18 +1,32 @@
 import { Box, Paper, Skeleton, Stack, Typography } from '@mui/material';
 
-import type { AdminAnalytics } from '../../../shared/api/admin-contract';
+import type {
+  AdminAnalyticsActivity,
+  AdminAnalyticsOverview,
+  StorageAnalytics,
+} from '../../../shared/api/admin-contract';
 import { formatDateLabel } from '../../../shared/lib/format-date';
 import { BarChart, MetricCard } from './admin-analytics-shared';
 import { AdminStorageAnalyticsSection } from './admin-storage-analytics-section';
 
 export function AdminAnalyticsPanel({
-  analytics,
-  isLoading,
+  activity,
+  isLoadingActivity,
+  isLoadingOverview,
+  isLoadingStorage,
+  onStoragePageChange,
+  overview,
+  storage,
 }: {
-  analytics: AdminAnalytics | null;
-  isLoading: boolean;
+  activity: AdminAnalyticsActivity | null;
+  isLoadingActivity: boolean;
+  isLoadingOverview: boolean;
+  isLoadingStorage: boolean;
+  onStoragePageChange: (page: number) => void;
+  overview: AdminAnalyticsOverview | null;
+  storage: StorageAnalytics | null;
 }) {
-  if (isLoading && !analytics) {
+  if ((isLoadingOverview && !overview) || (isLoadingActivity && !activity)) {
     return (
       <Stack spacing={2}>
         <Skeleton height={120} variant="rounded" />
@@ -21,7 +35,7 @@ export function AdminAnalyticsPanel({
     );
   }
 
-  if (!analytics) {
+  if (!overview || !activity) {
     return null;
   }
 
@@ -32,7 +46,7 @@ export function AdminAnalyticsPanel({
           <Box>
             <Typography variant="h6">Analytics</Typography>
             <Typography color="text.secondary" variant="body2">
-              Сводка по публикациям, загрузкам, ошибкам и библиотеке медиа внутри приватной админки.
+              Summary metrics, publication activity, storage traffic and backend errors for the private admin area.
             </Typography>
           </Box>
 
@@ -43,18 +57,18 @@ export function AdminAnalyticsPanel({
               gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
             }}
           >
-            <MetricCard label="Постов" value={analytics.totalPosts} />
-            <MetricCard label="Черновиков" value={analytics.draftPosts} />
-            <MetricCard label="Опубликовано" value={analytics.publishedPosts} />
-            <MetricCard label="Слов в базе" value={analytics.totalWords} />
-            <MetricCard label="Медиа assets" value={analytics.totalAssets} />
-            <MetricCard label="Вложений" value={analytics.totalAttachments} />
-            <MetricCard label="Транскриптов ready" value={analytics.transcriptReady} />
-            <MetricCard label="Транскриптов failed" value={analytics.transcriptFailed} />
-            <MetricCard label="Logged errors" value={analytics.totalErrors} />
+            <MetricCard label="Posts" value={overview.totalPosts} />
+            <MetricCard label="Drafts" value={overview.draftPosts} />
+            <MetricCard label="Published" value={overview.publishedPosts} />
+            <MetricCard label="Words" value={overview.totalWords} />
+            <MetricCard label="Assets" value={overview.totalAssets} />
+            <MetricCard label="Attachments" value={overview.totalAttachments} />
+            <MetricCard label="Ready transcripts" value={overview.transcriptReady} />
+            <MetricCard label="Failed transcripts" value={overview.transcriptFailed} />
+            <MetricCard label="Logged errors" value={overview.totalErrors} />
             <MetricCard
               label="Last error"
-              value={analytics.lastErrorAt ? formatDateLabel(analytics.lastErrorAt, 'short') : 'none'}
+              value={overview.lastErrorAt ? formatDateLabel(overview.lastErrorAt, 'short') : 'none'}
             />
           </Box>
         </Stack>
@@ -70,31 +84,31 @@ export function AdminAnalyticsPanel({
         <Paper sx={{ p: { xs: 3, md: 4 } }}>
           <Stack spacing={2.5}>
             <Box>
-              <Typography variant="subtitle1">Активность за 14 дней</Typography>
+              <Typography variant="subtitle1">Activity over 14 days</Typography>
               <Typography color="text.secondary" variant="body2">
-                Синие столбцы показывают опубликованные посты, тёмные — новые загрузки.
+                Blue bars show published posts, dark bars show new uploads.
               </Typography>
             </Box>
 
             <Stack spacing={2.5}>
               <Box>
                 <Typography sx={{ fontWeight: 600, mb: 1 }} variant="body2">
-                  Публикации
+                  Publications
                 </Typography>
                 <BarChart
                   color="#2aabee"
-                  items={analytics.publicationActivity}
+                  items={activity.publicationActivity}
                   labelAccessor={(item) => item.label}
                   valueAccessor={(item) => item.posts}
                 />
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 600, mb: 1 }} variant="body2">
-                  Загрузки
+                  Uploads
                 </Typography>
                 <BarChart
                   color="#1f2a36"
-                  items={analytics.uploadActivity}
+                  items={activity.uploadActivity}
                   labelAccessor={(item) => item.label}
                   valueAccessor={(item) => item.uploads}
                 />
@@ -106,14 +120,14 @@ export function AdminAnalyticsPanel({
         <Paper sx={{ p: { xs: 3, md: 4 } }}>
           <Stack spacing={2}>
             <Box>
-              <Typography variant="subtitle1">Структура библиотеки</Typography>
+              <Typography variant="subtitle1">Asset mix</Typography>
               <Typography color="text.secondary" variant="body2">
-                Разбивка assets по типам файлов.
+                Breakdown of assets by file type.
               </Typography>
             </Box>
             <Stack spacing={1.5}>
-              {analytics.assetBreakdown.map((item) => {
-                const total = Math.max(1, analytics.totalAssets);
+              {activity.assetBreakdown.map((item) => {
+                const total = Math.max(1, overview.totalAssets);
                 const percent = Math.round((item.value / total) * 100);
 
                 return (
@@ -149,7 +163,8 @@ export function AdminAnalyticsPanel({
         </Paper>
       </Box>
 
-      <AdminStorageAnalyticsSection storage={analytics.storageAnalytics} />
+      {isLoadingStorage && !storage ? <Skeleton height={320} variant="rounded" /> : null}
+      {storage ? <AdminStorageAnalyticsSection onTopObjectsPageChange={onStoragePageChange} storage={storage} /> : null}
     </Stack>
   );
 }

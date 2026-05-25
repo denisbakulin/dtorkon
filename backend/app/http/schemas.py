@@ -527,6 +527,7 @@ class StorageAnalyticsRead(CamelModel):
     traffic_timeline: list[StorageTrafficPoint] = Field(default_factory=list)
     method_breakdown: list[StorageMethodBreakdownItem] = Field(default_factory=list)
     top_objects: list[StorageTopObjectRead] = Field(default_factory=list)
+    top_objects_pagination: Pagination | None = None
 
 
 class AdminErrorEventRead(CamelModel):
@@ -544,7 +545,7 @@ class AdminErrorEventRead(CamelModel):
     created_at: str
 
 
-class AdminAnalyticsRead(CamelModel):
+class AdminAnalyticsOverviewRead(CamelModel):
     total_posts: int
     published_posts: int
     draft_posts: int
@@ -555,13 +556,21 @@ class AdminAnalyticsRead(CamelModel):
     transcript_ready: int
     transcript_processing: int
     transcript_failed: int
+    total_errors: int
+    last_error_at: str | None = None
+
+
+class AdminAnalyticsActivityRead(CamelModel):
     publication_activity: list[AnalyticsTimelinePoint]
     upload_activity: list[AnalyticsTimelinePoint]
     asset_breakdown: list[AnalyticsBreakdownItem]
+
+
+class AdminErrorEventListResponse(CamelModel):
+    items: list[AdminErrorEventRead] = Field(default_factory=list)
+    pagination: Pagination
     total_errors: int
     last_error_at: str | None = None
-    recent_errors: list[AdminErrorEventRead] = Field(default_factory=list)
-    storage_analytics: StorageAnalyticsRead
 
 
 def asset_to_read(asset: Asset | None) -> AssetRead | None:

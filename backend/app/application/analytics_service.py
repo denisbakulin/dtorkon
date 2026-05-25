@@ -4,7 +4,16 @@ from datetime import date, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import AssetStatus, ErrorEventSource, PostStatus, TranscriptStatus
-from app.http.schemas import AdminAnalyticsRead, AnalyticsBreakdownItem, AnalyticsTimelinePoint, error_event_to_read
+from app.http.schemas import (
+    AdminAnalyticsActivityRead,
+    AdminAnalyticsOverviewRead,
+    AdminErrorEventListResponse,
+    AnalyticsBreakdownItem,
+    AnalyticsTimelinePoint,
+    StorageAnalyticsRead,
+    build_pagination,
+    error_event_to_read,
+)
 from app.application.yandex_storage_analytics_service import YandexStorageAnalyticsService
 from app.infrastructure.config import Settings
 from app.infrastructure.models import Asset, Post
@@ -39,7 +48,7 @@ class AnalyticsService:
         self.assets = AssetRepository(session)
         self.error_events = ErrorEventRepository(session)
 
-    async def get_overview(self) -> AdminAnalyticsRead:
+    async def get_overview(self) -> AdminAnalyticsOverviewRead:
         posts = await self.posts.list_all()
         assets = await self.assets.list_all()
         recent_errors = await self.error_events.list_recent_by_source(
@@ -52,16 +61,7 @@ class AnalyticsService:
         published_posts = [post for post in posts if post.status is PostStatus.PUBLISHED]
         draft_posts = [post for post in posts if post.status is PostStatus.DRAFT]
         ready_assets = [asset for asset in assets if asset.status is AssetStatus.READY]
-        storage_analytics = await YandexStorageAnalyticsService(
-            settings=self.settings,
-            key_display_names={
-                asset.key: asset.original_name
-                for asset in assets
-                if asset.key and asset.original_name
-            },
-        ).get_snapshot()
-
-        return AdminAnalyticsRead(
+        return AdminAnalyticsOverviewRead(
             total_posts=len(posts),
             published_posts=len(published_posts),
             draft_posts=len(draft_posts),
@@ -72,13 +72,58 @@ class AnalyticsService:
             transcript_ready=sum(asset.transcript_status is TranscriptStatus.READY for asset in assets),
             transcript_processing=sum(asset.transcript_status is TranscriptStatus.PROCESSING for asset in assets),
             transcript_failed=sum(asset.transcript_status is TranscriptStatus.FAILED for asset in assets),
+            total_errors=total_errors,
+            last_error_at=recent_errors[0].created_at if recent_errors else None,
+        )
+
+    async def get_activity(self) -> AdminAnalyticsActivityRead:
+        posts = await self.posts.list_all()
+        assets = await self.assets.list_all()
+        published_posts = [post for post in posts if post.status is PostStatus.PUBLISHED]
+
+        return AdminAnalyticsActivityRead(
             publication_activity=self._build_post_timeline(published_posts),
             upload_activity=self._build_asset_timeline(assets),
             asset_breakdown=self._build_asset_breakdown(assets),
-            total_errors=total_errors,
+        )
+
+    async def get_storage(self, *, page: int, page_size: int) -> StorageAnalyticsRead:
+        assets = await self.assets.list_all()
+        snapshot = await YandexStorageAnalyticsService(
+            settings=self.settings,
+            key_display_names={
+                asset.key: asset.original_name
+                for asset in assets
+                if asset.key and asset.original_name
+            },
+        ).get_snapshot()
+
+        total_items = len(snapshot.top_objects)
+        start = (page - 1) * page_size
+        end = start + page_size
+        snapshot.top_objects = snapshot.top_objects[start:end]
+        snapshot.top_objects_pagination = build_pagination(
+            page=page,
+            page_size=page_size,
+            total_items=total_items,
+        )
+        return snapshot
+
+    async def get_errors(self, *, page: int, page_size: int) -> AdminErrorEventListResponse:
+        recent_errors = await self.error_events.list_recent_by_source(
+            source=ErrorEventSource.BACKEND,
+            limit=1,
+        )
+        items, total_items = await self.error_events.list_by_source(
+            source=ErrorEventSource.BACKEND,
+            page=page,
+            page_size=page_size,
+        )
+        return AdminErrorEventListResponse(
+            items=[error_event_to_read(event) for event in items],
+            pagination=build_pagination(page=page, page_size=page_size, total_items=total_items),
+            total_errors=total_items,
             last_error_at=recent_errors[0].created_at if recent_errors else None,
-            recent_errors=[error_event_to_read(event) for event in recent_errors],
-            storage_analytics=storage_analytics,
         )
 
     def _build_post_timeline(self, posts: list[Post]) -> list[AnalyticsTimelinePoint]:

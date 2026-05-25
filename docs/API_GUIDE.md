@@ -215,9 +215,9 @@ Query-параметры:
 
 ## Admin: аналитика
 
-### `GET /api/admin/analytics`
+### `GET /api/admin/analytics/overview`
 
-Возвращает агрегаты для admin dashboard.
+Возвращает только counters для admin dashboard.
 
 Ключевые поля:
 
@@ -231,16 +231,20 @@ Query-параметры:
 - `transcriptReady`
 - `transcriptProcessing`
 - `transcriptFailed`
+- `totalErrors`
+- `lastErrorAt`
+
+### `GET /api/admin/analytics/activity`
+
+Возвращает только данные для charts и breakdown blocks.
+
 - `publicationActivity[]`
 - `uploadActivity[]`
 - `assetBreakdown[]`
-- `totalErrors`
-- `lastErrorAt`
-- `recentErrors[]`
 
-`recentErrors[]` и агрегаты ошибок в admin analytics сейчас backend-only: frontend runtime/network ошибки не принимаются и не включаются в эти значения.
+### `GET /api/admin/analytics/storage`
 
-Дополнительно ответ теперь включает `storageAnalytics` для Yandex Object Storage:
+Возвращает analytics для Yandex Object Storage:
 
 - `enabled`, `metricsConfigured`, `logsConfigured`
 - `bucketName`, `logBucketName`, `message`
@@ -252,6 +256,28 @@ Query-параметры:
 - `trafficTimeline[]` с входящим/исходящим трафиком и request counters по дням
 - `methodBreakdown[]`
 - `topObjects[]`
+- `topObjectsPagination`
+
+Query-параметры:
+
+- `page >= 1`
+- `page_size = 1..50`
+
+### `GET /api/admin/analytics/errors`
+
+Возвращает paginated backend error log для admin UI:
+
+- `items[]`
+- `pagination`
+- `totalErrors`
+- `lastErrorAt`
+
+Query-параметры:
+
+- `page >= 1`
+- `page_size = 1..50`
+
+`items[]` и агрегаты ошибок в admin analytics сейчас backend-only: frontend runtime/network ошибки не принимаются и не включаются в эти значения.
 
 Практически это работает так:
 

@@ -5,6 +5,7 @@ import {
   InputLabel,
   Link,
   MenuItem,
+  Pagination,
   Paper,
   Select,
   Skeleton,
@@ -13,7 +14,7 @@ import {
 } from '@mui/material';
 import { useMemo, useState } from 'react';
 
-import type { AdminAnalytics, AdminErrorEvent } from '../../../shared/api/admin-contract';
+import type { AdminErrorEvent, AdminErrorEventListResponse } from '../../../shared/api/admin-contract';
 
 type ErrorGroupBy = 'none' | 'level' | 'code' | 'requestPath';
 type ErrorSortBy = 'newest' | 'oldest' | 'level' | 'code';
@@ -142,18 +143,20 @@ function ErrorEventCard({ event }: { event: AdminErrorEvent }) {
 }
 
 export function AdminErrorEventsPanel({
-  analytics,
+  errors,
   isLoading,
+  onPageChange,
 }: {
-  analytics: AdminAnalytics | null;
+  errors: AdminErrorEventListResponse | null;
   isLoading: boolean;
+  onPageChange: (page: number) => void;
 }) {
   const [groupBy, setGroupBy] = useState<ErrorGroupBy>('level');
   const [sortBy, setSortBy] = useState<ErrorSortBy>('newest');
   const [levelFilter, setLevelFilter] = useState<ErrorLevelFilter>('all');
 
   const groupedErrors = useMemo<ErrorGroup[]>(() => {
-    const items = [...(analytics?.recentErrors ?? [])]
+    const items = [...(errors?.items ?? [])]
       .filter((event) => (levelFilter === 'all' ? true : event.level === levelFilter))
       .sort((left: AdminErrorEvent, right: AdminErrorEvent) => compareErrorEvents(left, right, sortBy));
 
@@ -193,9 +196,9 @@ export function AdminErrorEventsPanel({
 
         return right.items.length - left.items.length || left.label.localeCompare(right.label);
       });
-  }, [analytics?.recentErrors, groupBy, levelFilter, sortBy]);
+  }, [errors?.items, groupBy, levelFilter, sortBy]);
 
-  if (isLoading && !analytics) {
+  if (isLoading && !errors) {
     return (
       <Stack spacing={2}>
         <Skeleton height={140} variant="rounded" />
@@ -204,7 +207,7 @@ export function AdminErrorEventsPanel({
     );
   }
 
-  if (!analytics) {
+  if (!errors) {
     return null;
   }
 
@@ -223,10 +226,14 @@ export function AdminErrorEventsPanel({
 
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
             <Chip label={`Visible ${visibleErrorsCount}`} variant="outlined" />
-            <Chip label={`Total logged ${analytics.totalErrors}`} variant="outlined" />
-            {analytics.lastErrorAt ? (
-              <Chip label={`Last ${new Date(analytics.lastErrorAt).toLocaleString('ru-RU')}`} variant="outlined" />
+            <Chip label={`Total logged ${errors.totalErrors}`} variant="outlined" />
+            {errors.lastErrorAt ? (
+              <Chip label={`Last ${new Date(errors.lastErrorAt).toLocaleString('ru-RU')}`} variant="outlined" />
             ) : null}
+            <Chip
+              label={`Page ${errors.pagination.page} of ${Math.max(1, errors.pagination.totalPages)}`}
+              variant="outlined"
+            />
           </Stack>
 
           <Box
@@ -305,6 +312,15 @@ export function AdminErrorEventsPanel({
                   <ErrorEventCard event={event} key={event.id} />
                 ))}
               </Stack>
+              {errors.pagination.totalPages > 1 ? (
+                <Pagination
+                  count={errors.pagination.totalPages}
+                  onChange={(_, page) => onPageChange(page)}
+                  page={errors.pagination.page}
+                  shape="rounded"
+                  size="small"
+                />
+              ) : null}
             </Stack>
           </Paper>
         ))
