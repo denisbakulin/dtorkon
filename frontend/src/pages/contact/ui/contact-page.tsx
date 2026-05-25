@@ -76,6 +76,31 @@ function resolveLinkIcon(kind: string) {
   return <LinkRoundedIcon color="primary" />;
 }
 
+function ContactListSkeleton() {
+  return (
+    <Stack spacing={1.5}>
+      {Array.from({ length: 3 }, (_, index) => (
+        <Paper key={index} sx={{ p: 2.25 }} variant="outlined">
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+          >
+            <Stack direction="row" spacing={1.5} sx={{ minWidth: 0, width: '100%' }}>
+              <Skeleton height={24} variant="circular" width={24} />
+              <Stack spacing={0.6} sx={{ minWidth: 0, width: '100%' }}>
+                <Skeleton width="28%" />
+                <Skeleton width={index === 1 ? '72%' : '56%'} />
+              </Stack>
+            </Stack>
+            <Skeleton height={32} width={88} />
+          </Stack>
+        </Paper>
+      ))}
+    </Stack>
+  );
+}
+
 export function ContactPage() {
   const [siteProfile, setSiteProfile] = useState<SiteProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -148,11 +173,7 @@ export function ContactPage() {
 
               {errorMessage ? <Alert severity="warning">{errorMessage}</Alert> : null}
 
-              {isLoading ? (
-                <Stack spacing={1.5}>
-                  <Skeleton height={88} variant="rounded" />
-                </Stack>
-              ) : null}
+              {isLoading ? <ContactListSkeleton /> : null}
 
               {!isLoading ? (
                 <Stack spacing={1.5}>

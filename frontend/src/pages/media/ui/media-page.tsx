@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Container, Paper, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { Alert, Box, Button, Container, Paper, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -34,6 +34,41 @@ function groupByDate(items: PublicMediaItem[]) {
   return Array.from(buckets.entries());
 }
 
+function MediaGridSkeleton() {
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gap: 1.5,
+        gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+        px: { xs: 2, sm: 0 },
+      }}
+    >
+      {Array.from({ length: 8 }, (_, index) => (
+        <Skeleton key={index} sx={{ aspectRatio: '1 / 1' }} variant="rounded" />
+      ))}
+    </Box>
+  );
+}
+
+function MediaListSkeleton() {
+  return (
+    <Stack spacing={1.5} sx={{ px: { xs: 2, sm: 0 } }}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <Paper key={index} sx={{ p: 2, borderRadius: { xs: 0, md: 2 } }} variant="outlined">
+          <Stack spacing={1.25}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <Skeleton width="42%" />
+              <Skeleton height={28} width={110} />
+            </Stack>
+            <Skeleton height={72} variant="rounded" />
+          </Stack>
+        </Paper>
+      ))}
+    </Stack>
+  );
+}
+
 export function MediaPage() {
   const [activeKind, setActiveKind] = useState<AttachmentKind>('image');
   const [data, setData] = useState<PublicMediaResponse | null>(null);
@@ -43,6 +78,7 @@ export function MediaPage() {
   useEffect(() => {
     const controller = new AbortController();
     setIsLoading(true);
+    setData(null);
     setErrorMessage(null);
 
     getPublicMedia({ page: 1, pageSize: 48, kind: activeKind, signal: controller.signal })
@@ -108,6 +144,8 @@ export function MediaPage() {
               </Alert>
             ) : null}
 
+            {isLoading ? (activeKind === 'image' ? <MediaGridSkeleton /> : <MediaListSkeleton />) : null}
+
             {!isLoading && (data?.items?.length ?? 0) === 0 ? (
               <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
                 <Stack spacing={1}>
@@ -122,7 +160,8 @@ export function MediaPage() {
               </Paper>
             ) : null}
 
-            {grouped.map(([dateLabel, items]) => (
+            {!isLoading
+              ? grouped.map(([dateLabel, items]) => (
               <Stack key={dateLabel} spacing={1.25}>
                 <Typography sx={{ fontWeight: 800, px: { xs: 2, sm: 0 } }} variant="subtitle2">
                   {dateLabel}
@@ -190,7 +229,8 @@ export function MediaPage() {
                   </Stack>
                 )}
               </Stack>
-            ))}
+                ))
+              : null}
           </Stack>
         </Container>
       </Box>

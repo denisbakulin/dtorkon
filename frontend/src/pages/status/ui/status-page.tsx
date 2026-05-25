@@ -5,9 +5,9 @@ import {
   Alert,
   Box,
   Chip,
-  CircularProgress,
   Container,
   Paper,
+  Skeleton,
   Stack,
   Typography,
 } from '@mui/material';
@@ -348,6 +348,66 @@ function MonitorRow({ monitor }: { monitor: StatusMonitor }) {
   );
 }
 
+function StatusPageSkeleton() {
+  return (
+    <Stack spacing={3}>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: {
+            xs: '1fr',
+            md: 'repeat(3, minmax(0, 1fr))',
+          },
+        }}
+      >
+        {Array.from({ length: 3 }, (_, index) => (
+          <Paper key={index} sx={{ p: 2.5 }}>
+            <Stack spacing={1.2}>
+              <Skeleton width="34%" />
+              <Skeleton height={34} width="56%" />
+              <Skeleton width="82%" />
+            </Stack>
+          </Paper>
+        ))}
+      </Box>
+
+      <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+        <Stack spacing={2}>
+          <Stack spacing={0.75}>
+            <Skeleton width="26%" />
+            <Skeleton width="42%" />
+          </Stack>
+          <Skeleton height={244} variant="rounded" />
+        </Stack>
+      </Paper>
+
+      <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+        <Stack spacing={2}>
+          <Stack spacing={0.75}>
+            <Skeleton width="32%" />
+            <Skeleton width="24%" />
+          </Stack>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.5,
+              gridTemplateColumns: {
+                xs: '1fr',
+                lg: 'repeat(2, minmax(0, 1fr))',
+              },
+            }}
+          >
+            {Array.from({ length: 4 }, (_, index) => (
+              <Skeleton height={196} key={index} variant="rounded" />
+            ))}
+          </Box>
+        </Stack>
+      </Paper>
+    </Stack>
+  );
+}
+
 export function StatusPage() {
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -453,215 +513,216 @@ export function StatusPage() {
 
                 {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
-                {isLoading && !runtimeStatus ? (
-                  <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                    <CircularProgress size={20} />
-                    <Typography color="text.secondary">Загружаю метрики...</Typography>
-                  </Stack>
-                ) : null}
+                {isLoading && !runtimeStatus ? <Skeleton height={22} width="28%" /> : null}
               </Stack>
             </Paper>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 2,
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  md: 'repeat(3, minmax(0, 1fr))',
-                },
-              }}
-            >
-              <SummaryCard
-                icon={<RouterRoundedIcon color="primary" />}
-                primary={runtimeStatus?.backendStatus === 'ok' ? 'Online' : 'Unavailable'}
-                secondary="Базовое состояние API."
-                title="Backend"
-              />
-              <SummaryCard
-                icon={<MonitorHeartRoundedIcon color="primary" />}
-                primary={formatDuration(runtimeStatus?.host?.uptimeSeconds)}
-                secondary="Сколько сервер работает без перезапуска."
-                title="Uptime"
-              />
-              <SummaryCard
-                icon={<MemoryRoundedIcon color="primary" />}
-                primary={`${topContainers.length}/${LANDING_CONTAINER_SERVICES.size}`}
-                secondary="На странице оставлены только контейнеры лендинга: api и web."
-                title="Landing containers"
-              />
-            </Box>
-
-            <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
-              <Stack spacing={2}>
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  spacing={1}
-                  sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+            {runtimeStatus ? (
+              <>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 2,
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      md: 'repeat(3, minmax(0, 1fr))',
+                    },
+                  }}
                 >
-                  <Typography variant="h6">Server graph</Typography>
-                  <Typography color="text.secondary" variant="body2">
-                    CPU, memory, disk and load snapshot
-                  </Typography>
-                </Stack>
+                  <SummaryCard
+                    icon={<RouterRoundedIcon color="primary" />}
+                    primary={runtimeStatus.backendStatus === 'ok' ? 'Online' : 'Unavailable'}
+                    secondary="Базовое состояние API."
+                    title="Backend"
+                  />
+                  <SummaryCard
+                    icon={<MonitorHeartRoundedIcon color="primary" />}
+                    primary={formatDuration(runtimeStatus.host?.uptimeSeconds)}
+                    secondary="Сколько сервер работает без перезапуска."
+                    title="Uptime"
+                  />
+                  <SummaryCard
+                    icon={<MemoryRoundedIcon color="primary" />}
+                    primary={`${topContainers.length}/${LANDING_CONTAINER_SERVICES.size}`}
+                    secondary="На странице оставлены только контейнеры лендинга: api и web."
+                    title="Landing containers"
+                  />
+                </Box>
 
-                <SnapshotBarChart
-                  items={[
-                    {
-                      label: 'CPU',
-                      value: runtimeStatus?.host?.cpuUsagePercent ?? null,
-                      caption:
-                        runtimeStatus?.host?.load1 != null
-                          ? `Load ${runtimeStatus.host.load1.toFixed(2)}`
-                          : 'CPU activity',
-                    },
-                    {
-                      label: 'RAM',
-                      value: hostMemoryPercent,
-                      caption:
-                        runtimeStatus?.host?.memoryUsedBytes != null
-                          ? `${formatBytes(runtimeStatus.host.memoryUsedBytes)} used`
-                          : 'Memory usage',
-                    },
-                    {
-                      label: 'Disk',
-                      value: hostDiskPercent,
-                      caption:
-                        runtimeStatus?.host?.diskUsedBytes != null
-                          ? `${formatBytes(runtimeStatus.host.diskUsedBytes)} used`
-                          : 'Disk usage',
-                    },
-                    {
-                      label: 'Load 5m',
-                      value:
-                        runtimeStatus?.host?.load5 != null
-                          ? Math.max(0, Math.min(runtimeStatus.host.load5 * 25, 100))
-                          : null,
-                      caption:
-                        runtimeStatus?.host?.load5 != null
-                          ? `${runtimeStatus.host.load5.toFixed(2)} avg`
-                          : 'System load',
-                    },
-                  ]}
-                />
-              </Stack>
-            </Paper>
+                <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+                  <Stack spacing={2}>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={1}
+                      sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+                    >
+                      <Typography variant="h6">Server graph</Typography>
+                      <Typography color="text.secondary" variant="body2">
+                        CPU, memory, disk and load snapshot
+                      </Typography>
+                    </Stack>
 
-            <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
-              <Stack spacing={2}>
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  spacing={1}
-                  sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
-                >
-                  <Typography variant="h6">Container dashboard</Typography>
-                  <Typography color="text.secondary" variant="body2">
-                    {topContainers.length} containers
-                  </Typography>
-                </Stack>
-
-                {topContainers.length > 0 ? (
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gap: 1.5,
-                      gridTemplateColumns: {
-                        xs: '1fr',
-                        lg: 'repeat(2, minmax(0, 1fr))',
-                      },
-                    }}
-                  >
-                    {topContainers.map((container) => (
-                      <ContainerDashboardCard container={container} key={`${container.service}-${container.name}`} />
-                    ))}
-                  </Box>
-                ) : (
-                  <Alert severity="info">Контейнерные метрики появятся после подключения `cAdvisor`.</Alert>
-                )}
-              </Stack>
-            </Paper>
-
-            {runtimeStatus?.uptimeKuma ? (
-              <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
-                <Stack spacing={2}>
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={1}
-                    sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
-                  >
-                    <Typography variant="h6">External checks</Typography>
-                    <Chip
-                      color={statusChipColor(runtimeStatus.uptimeKuma.downMonitors > 0 ? 'degraded' : 'ok')}
-                      label={`${runtimeStatus.uptimeKuma.upMonitors}/${runtimeStatus.uptimeKuma.totalMonitors} up`}
-                      size="small"
-                      variant="outlined"
+                    <SnapshotBarChart
+                      items={[
+                        {
+                          label: 'CPU',
+                          value: runtimeStatus.host?.cpuUsagePercent ?? null,
+                          caption:
+                            runtimeStatus.host?.load1 != null
+                              ? `Load ${runtimeStatus.host.load1.toFixed(2)}`
+                              : 'CPU activity',
+                        },
+                        {
+                          label: 'RAM',
+                          value: hostMemoryPercent,
+                          caption:
+                            runtimeStatus.host?.memoryUsedBytes != null
+                              ? `${formatBytes(runtimeStatus.host.memoryUsedBytes)} used`
+                              : 'Memory usage',
+                        },
+                        {
+                          label: 'Disk',
+                          value: hostDiskPercent,
+                          caption:
+                            runtimeStatus.host?.diskUsedBytes != null
+                              ? `${formatBytes(runtimeStatus.host.diskUsedBytes)} used`
+                              : 'Disk usage',
+                        },
+                        {
+                          label: 'Load 5m',
+                          value:
+                            runtimeStatus.host?.load5 != null
+                              ? Math.max(0, Math.min(runtimeStatus.host.load5 * 25, 100))
+                              : null,
+                          caption:
+                            runtimeStatus.host?.load5 != null
+                              ? `${runtimeStatus.host.load5.toFixed(2)} avg`
+                              : 'System load',
+                        },
+                      ]}
                     />
                   </Stack>
+                </Paper>
 
-                  <Stack spacing={1.5}>
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gap: 2,
-                        gridTemplateColumns: {
-                          xs: '1fr',
-                          md: 'repeat(3, minmax(0, 1fr))',
-                        },
-                      }}
+                <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+                  <Stack spacing={2}>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={1}
+                      sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
                     >
-                      <DashboardMetric
-                        icon={<MonitorHeartRoundedIcon color="primary" />}
-                        primary={String(runtimeStatus.uptimeKuma.upMonitors)}
-                        secondary="Мониторы в зелёном состоянии."
-                        title="Up"
-                        value={
-                          runtimeStatus.uptimeKuma.totalMonitors > 0
-                            ? (runtimeStatus.uptimeKuma.upMonitors / runtimeStatus.uptimeKuma.totalMonitors) * 100
-                            : 0
-                        }
-                      />
-                      <DashboardMetric
-                        icon={<MonitorHeartRoundedIcon color="primary" />}
-                        primary={String(runtimeStatus.uptimeKuma.downMonitors)}
-                        secondary="Проблемные внешние проверки."
-                        title="Down"
-                        value={
-                          runtimeStatus.uptimeKuma.totalMonitors > 0
-                            ? (runtimeStatus.uptimeKuma.downMonitors / runtimeStatus.uptimeKuma.totalMonitors) * 100
-                            : 0
-                        }
-                      />
-                      <DashboardMetric
-                        icon={<MonitorHeartRoundedIcon color="primary" />}
-                        primary={String(runtimeStatus.uptimeKuma.maintenanceMonitors)}
-                        secondary="Мониторы в maintenance."
-                        title="Maintenance"
-                        value={
-                          runtimeStatus.uptimeKuma.totalMonitors > 0
-                            ? (runtimeStatus.uptimeKuma.maintenanceMonitors / runtimeStatus.uptimeKuma.totalMonitors) * 100
-                            : 0
-                        }
-                      />
-                    </Box>
+                      <Typography variant="h6">Container dashboard</Typography>
+                      <Typography color="text.secondary" variant="body2">
+                        {topContainers.length} containers
+                      </Typography>
+                    </Stack>
 
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gap: 1.5,
-                        gridTemplateColumns: {
-                          xs: '1fr',
-                          lg: 'repeat(2, minmax(0, 1fr))',
-                        },
-                      }}
-                    >
-                      {runtimeStatus.uptimeKuma.monitors.map((monitor) => (
-                        <MonitorRow key={monitor.name} monitor={monitor} />
-                      ))}
-                    </Box>
+                    {topContainers.length > 0 ? (
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gap: 1.5,
+                          gridTemplateColumns: {
+                            xs: '1fr',
+                            lg: 'repeat(2, minmax(0, 1fr))',
+                          },
+                        }}
+                      >
+                        {topContainers.map((container) => (
+                          <ContainerDashboardCard container={container} key={`${container.service}-${container.name}`} />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Alert severity="info">Контейнерные метрики появятся после подключения `cAdvisor`.</Alert>
+                    )}
                   </Stack>
-                </Stack>
-              </Paper>
+                </Paper>
+
+                {runtimeStatus.uptimeKuma ? (
+                  <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+                    <Stack spacing={2}>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+                      >
+                        <Typography variant="h6">External checks</Typography>
+                        <Chip
+                          color={statusChipColor(runtimeStatus.uptimeKuma.downMonitors > 0 ? 'degraded' : 'ok')}
+                          label={`${runtimeStatus.uptimeKuma.upMonitors}/${runtimeStatus.uptimeKuma.totalMonitors} up`}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Stack>
+
+                      <Stack spacing={1.5}>
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gap: 2,
+                            gridTemplateColumns: {
+                              xs: '1fr',
+                              md: 'repeat(3, minmax(0, 1fr))',
+                            },
+                          }}
+                        >
+                          <DashboardMetric
+                            icon={<MonitorHeartRoundedIcon color="primary" />}
+                            primary={String(runtimeStatus.uptimeKuma.upMonitors)}
+                            secondary="Мониторы в зелёном состоянии."
+                            title="Up"
+                            value={
+                              runtimeStatus.uptimeKuma.totalMonitors > 0
+                                ? (runtimeStatus.uptimeKuma.upMonitors / runtimeStatus.uptimeKuma.totalMonitors) * 100
+                                : 0
+                            }
+                          />
+                          <DashboardMetric
+                            icon={<MonitorHeartRoundedIcon color="primary" />}
+                            primary={String(runtimeStatus.uptimeKuma.downMonitors)}
+                            secondary="Проблемные внешние проверки."
+                            title="Down"
+                            value={
+                              runtimeStatus.uptimeKuma.totalMonitors > 0
+                                ? (runtimeStatus.uptimeKuma.downMonitors / runtimeStatus.uptimeKuma.totalMonitors) * 100
+                                : 0
+                            }
+                          />
+                          <DashboardMetric
+                            icon={<MonitorHeartRoundedIcon color="primary" />}
+                            primary={String(runtimeStatus.uptimeKuma.maintenanceMonitors)}
+                            secondary="Мониторы в maintenance."
+                            title="Maintenance"
+                            value={
+                              runtimeStatus.uptimeKuma.totalMonitors > 0
+                                ? (runtimeStatus.uptimeKuma.maintenanceMonitors / runtimeStatus.uptimeKuma.totalMonitors) * 100
+                                : 0
+                            }
+                          />
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gap: 1.5,
+                            gridTemplateColumns: {
+                              xs: '1fr',
+                              lg: 'repeat(2, minmax(0, 1fr))',
+                            },
+                          }}
+                        >
+                          {runtimeStatus.uptimeKuma.monitors.map((monitor) => (
+                            <MonitorRow key={monitor.name} monitor={monitor} />
+                          ))}
+                        </Box>
+                      </Stack>
+                    </Stack>
+                  </Paper>
+                ) : null}
+              </>
             ) : null}
+
+            {isLoading && !runtimeStatus ? <StatusPageSkeleton /> : null}
           </Stack>
         </Container>
       </Box>
