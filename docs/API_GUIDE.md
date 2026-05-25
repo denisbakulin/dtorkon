@@ -256,6 +256,7 @@ Query-параметры:
 
 - bucket size и traffic графики backend читает из Yandex Monitoring API и Object Storage bucket stats API;
 - top requested files и request-method breakdown backend собирает из access logs бакета;
+- если bucket stats API временно недоступен, backend пытается показать размер бакета и object count через S3 listing fallback и отражает это в `message`;
 - если настроена только часть интеграции, endpoint всё равно отвечает, а `message` объясняет, чего не хватает.
 
 ## Admin: посты и редактор

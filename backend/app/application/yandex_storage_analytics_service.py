@@ -1,6 +1,7 @@
 import asyncio
 import gzip
 import json
+import logging
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -24,6 +25,7 @@ from app.infrastructure.storage import S3Storage
 READ_METHODS = {"GET", "HEAD", "OPTIONS", "LIST"}
 WRITE_METHODS = {"PUT", "POST", "DELETE"}
 DAY_WINDOW = 14
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -33,6 +35,12 @@ class ParsedStorageLogEntry:
     object_key: str | None
     bytes_received: int
     bytes_sent: int
+
+
+@dataclass(slots=True)
+class StorageLogSnapshot:
+    entries: list[ParsedStorageLogEntry]
+    last_log_at: str | None
 
 
 class YandexStorageAnalyticsService:
@@ -56,79 +64,30 @@ class YandexStorageAnalyticsService:
             )
 
         message_parts: list[str] = []
-        stats_task = None
-        traffic_task = None
-        logs_task = None
+        stats_task = asyncio.create_task(self._resolve_bucket_stats(message_parts=message_parts))
+        traffic_task = self._create_traffic_task(message_parts=message_parts)
+        logs_task = self._create_logs_task(message_parts=message_parts)
 
-        if self.settings.yandex_cloud_auth_configured:
-            stats_task = asyncio.create_task(self._fetch_bucket_stats())
-        else:
-            stats_task = asyncio.create_task(self._fetch_bucket_stats_via_s3())
-
-        if self.settings.yandex_cloud_api_enabled:
-            traffic_task = asyncio.create_task(self._fetch_traffic_timeline())
-        else:
-            message_parts.append(
-                "Cloud API auth is not configured, so traffic metrics are unavailable."
-            )
-
-        if self.settings.yandex_storage_logs_enabled and self.storage.client:
-            logs_task = asyncio.create_task(self._load_recent_log_entries())
-        else:
-            message_parts.append(
-                "Bucket access logs are not configured, so top requested objects are unavailable."
-            )
-
-        stats = {}
-        if stats_task:
-            try:
-                stats = await stats_task
-            except Exception as e:
-                import traceback
-                import sys
-                print(f"Failed to fetch bucket stats via Yandex Cloud API: {e}", file=sys.stderr)
-                traceback.print_exc(file=sys.stderr)
-                
-                # If we tried Cloud API and it failed, try the S3 fallback
-                if self.settings.yandex_cloud_auth_configured and self.storage.client:
-                    try:
-                        print("Attempting fallback bucket stats calculation via S3 listing...", file=sys.stderr)
-                        stats = await self._fetch_bucket_stats_via_s3()
-                        message_parts.append("Bucket stats fetched via S3 fallback (Cloud API failed).")
-                    except Exception as fallback_err:
-                        print(f"Fallback bucket stats calculation failed: {fallback_err}", file=sys.stderr)
-                        traceback.print_exc(file=sys.stderr)
-                        message_parts.append("Bucket stats are temporarily unavailable.")
-                else:
-                    message_parts.append("Bucket stats are temporarily unavailable.")
-
+        stats = await stats_task
         traffic_points = await self._await_task(
             traffic_task,
             default=self._empty_traffic_window(),
             message_parts=message_parts,
             failure_message="Traffic metrics are temporarily unavailable from Yandex Monitoring.",
         )
-        log_payload = await self._await_task(
+        log_snapshot = await self._await_task(
             logs_task,
-            default=([], None),
+            default=StorageLogSnapshot(entries=[], last_log_at=None),
             message_parts=message_parts,
             failure_message="Bucket access logs could not be read from Object Storage.",
         )
-        log_entries, last_log_at = log_payload
+        log_entries = log_snapshot.entries
 
         totals = self._summarize_log_entries(log_entries)
-        log_timeline: list[StorageTrafficPoint] = totals["traffic_timeline_from_logs"]
-        traffic_points_by_label = {point.label: point for point in traffic_points}
-        for log_point in log_timeline:
-            point = traffic_points_by_label.get(log_point.label)
-            if not point:
-                continue
-            point.requests = log_point.requests
-            point.read_requests = log_point.read_requests
-            point.write_requests = log_point.write_requests
-            if not self.settings.yandex_cloud_api_enabled:
-                point.incoming_bytes = log_point.incoming_bytes
-                point.outgoing_bytes = log_point.outgoing_bytes
+        self._merge_log_timeline_into_traffic(
+            traffic_points=traffic_points,
+            log_timeline=totals["traffic_timeline_from_logs"],
+        )
         if not message_parts and not stats and not log_entries:
             message_parts.append(
                 "Storage analytics is configured, but Yandex Cloud has not returned enough data yet."
@@ -150,11 +109,62 @@ class YandexStorageAnalyticsService:
             total_requests=totals["requests"],
             read_requests=totals["read_requests"],
             write_requests=totals["write_requests"],
-            last_log_at=last_log_at,
+            last_log_at=log_snapshot.last_log_at,
             traffic_timeline=traffic_points,
             method_breakdown=totals["method_breakdown"],
             top_objects=totals["top_objects"],
         )
+
+    def _create_traffic_task(
+        self,
+        *,
+        message_parts: list[str],
+    ) -> asyncio.Task[list[StorageTrafficPoint]] | None:
+        if not self.settings.yandex_cloud_api_enabled:
+            message_parts.append(
+                "Cloud API auth is not configured, so traffic metrics are unavailable."
+            )
+            return None
+        return asyncio.create_task(self._fetch_traffic_timeline())
+
+    def _create_logs_task(
+        self,
+        *,
+        message_parts: list[str],
+    ) -> asyncio.Task[StorageLogSnapshot] | None:
+        if not self.settings.yandex_storage_logs_enabled or not self.storage.client:
+            message_parts.append(
+                "Bucket access logs are not configured, so top requested objects are unavailable."
+            )
+            return None
+        return asyncio.create_task(self._load_recent_log_entries())
+
+    async def _resolve_bucket_stats(self, *, message_parts: list[str]) -> dict[str, Any]:
+        if self.settings.yandex_cloud_auth_configured:
+            try:
+                return await self._fetch_bucket_stats()
+            except Exception:
+                logger.exception("Failed to fetch bucket stats from Yandex Cloud API")
+                if self.storage.client:
+                    try:
+                        stats = await self._fetch_bucket_stats_via_s3()
+                    except Exception:
+                        logger.exception("Failed to fetch bucket stats from S3 fallback")
+                    else:
+                        message_parts.append(
+                            "Bucket stats are shown via S3 fallback because the Cloud API request failed."
+                        )
+                        return stats
+
+                message_parts.append("Bucket stats are temporarily unavailable.")
+                return {}
+
+        try:
+            return await self._fetch_bucket_stats_via_s3()
+        except Exception:
+            logger.exception("Failed to fetch bucket stats from S3 listing")
+            message_parts.append("Bucket stats are temporarily unavailable.")
+            return {}
 
     async def _fetch_bucket_stats_via_s3(self) -> dict[str, Any]:
         if not self.storage.client or not self.settings.s3_bucket_name:
@@ -273,9 +283,9 @@ class YandexStorageAnalyticsService:
                 buckets[day] = buckets.get(day, 0) + max(0, int(round(float(raw_value))))
         return buckets
 
-    async def _load_recent_log_entries(self) -> tuple[list[ParsedStorageLogEntry], str | None]:
+    async def _load_recent_log_entries(self) -> StorageLogSnapshot:
         if not self.storage.client or not self.settings.yandex_storage_log_bucket_name:
-            return [], None
+            return StorageLogSnapshot(entries=[], last_log_at=None)
 
         bucket = self.settings.yandex_storage_log_bucket_name
         prefix = self.settings.yandex_storage_log_object_prefix
@@ -323,7 +333,10 @@ class YandexStorageAnalyticsService:
                         last_log_at = entry.timestamp
 
         entries.sort(key=lambda item: item.timestamp)
-        return entries, last_log_at.isoformat().replace("+00:00", "Z") if last_log_at else None
+        return StorageLogSnapshot(
+            entries=entries,
+            last_log_at=last_log_at.isoformat().replace("+00:00", "Z") if last_log_at else None,
+        )
 
     async def _parse_log_object(self, *, bucket: str, key: str) -> list[ParsedStorageLogEntry]:
         if not self.storage.client:
@@ -491,6 +504,25 @@ class YandexStorageAnalyticsService:
             "traffic_timeline_from_logs": list(per_day.values()),
         }
 
+    def _merge_log_timeline_into_traffic(
+        self,
+        *,
+        traffic_points: list[StorageTrafficPoint],
+        log_timeline: list[StorageTrafficPoint],
+    ) -> None:
+        traffic_points_by_label = {point.label: point for point in traffic_points}
+        for log_point in log_timeline:
+            point = traffic_points_by_label.get(log_point.label)
+            if not point:
+                continue
+
+            point.requests = log_point.requests
+            point.read_requests = log_point.read_requests
+            point.write_requests = log_point.write_requests
+            if not self.settings.yandex_cloud_api_enabled:
+                point.incoming_bytes = log_point.incoming_bytes
+                point.outgoing_bytes = log_point.outgoing_bytes
+
     def _cloud_api_headers(self) -> dict[str, str]:
         if self.settings.yandex_cloud_iam_token:
             return {"Authorization": f"Bearer {self.settings.yandex_cloud_iam_token}"}
@@ -510,11 +542,8 @@ class YandexStorageAnalyticsService:
             return default
         try:
             return await task
-        except Exception as e:
-            import traceback
-            import sys
-            print(f"Analytics task failed: {failure_message}. Error: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        except Exception:
+            logger.exception("Analytics task failed: %s", failure_message)
             message_parts.append(failure_message)
             return default
 

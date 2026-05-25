@@ -109,3 +109,32 @@ def test_fetch_bucket_stats_via_s3_calculates_correctly() -> None:
     assert stats["object_count"] == 2
     assert stats["used_size_bytes"] == 600
     mock_client.list_objects_v2.assert_called_once_with(Bucket="dtdata", MaxKeys=1000)
+
+
+def test_get_snapshot_falls_back_to_s3_bucket_stats_when_cloud_api_fails() -> None:
+    import asyncio
+
+    service = build_service()
+    service.settings.yandex_cloud_folder_id = "folder-id"
+    service.settings.yandex_storage_log_bucket_name = None
+
+    async def fail_bucket_stats():
+        raise RuntimeError("cloud stats unavailable")
+
+    async def fallback_bucket_stats():
+        return {
+            "used_size_bytes": 2048,
+            "object_count": 12,
+            "public_read_enabled": None,
+            "public_list_enabled": None,
+        }
+
+    service._fetch_bucket_stats = fail_bucket_stats
+    service._fetch_bucket_stats_via_s3 = fallback_bucket_stats
+
+    snapshot = asyncio.run(service.get_snapshot())
+
+    assert snapshot.used_size_bytes == 2048
+    assert snapshot.object_count == 12
+    assert snapshot.message is not None
+    assert "S3 fallback" in snapshot.message
