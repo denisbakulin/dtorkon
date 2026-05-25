@@ -184,12 +184,27 @@ class TranscriptionService:
             )
 
         async with httpx.AsyncClient(timeout=600.0) as client:
-            response = await client.post(
-                f"{self.settings.groq_api_base.rstrip('/')}/audio/transcriptions",
-                headers=headers,
-                data=data,
-                files=files,
-            )
+            try:
+                response = await client.post(
+                    f"{self.settings.groq_api_base.rstrip('/')}/audio/transcriptions",
+                    headers=headers,
+                    data=data,
+                    files=files,
+                )
+            except httpx.TimeoutException as exc:
+                raise AppError(
+                    status_code=504,
+                    code="groq_timeout",
+                    message="Groq transcription request timed out",
+                    details={"mode": mode},
+                ) from exc
+            except httpx.HTTPError as exc:
+                raise AppError(
+                    status_code=502,
+                    code="groq_request_failed",
+                    message="Groq transcription request failed",
+                    details={"mode": mode, "reason": str(exc)},
+                ) from exc
 
             if response.is_error:
                 detail = response.text.strip()
@@ -205,7 +220,15 @@ class TranscriptionService:
                     details={"reason": detail, "mode": mode},
                 )
 
-            payload = response.json()
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise AppError(
+                    status_code=502,
+                    code="groq_invalid_response",
+                    message="Groq returned an invalid transcription response",
+                    details={"mode": mode},
+                ) from exc
             text = str(payload.get("text") or "").strip()
             if not text:
                 raise AppError(

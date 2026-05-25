@@ -82,6 +82,7 @@ Deletes the project record. Referenced uploaded assets remain in storage unless 
 - публичная часть API доступна без авторизации;
 - приватные admin-маршруты используют cookie `dtorkon_session`;
 - ошибки возвращаются в формате `error.code + error.message`;
+- неожиданные ошибки базы и upstream-интеграций нормализуются в contract-level коды вроде `database_unavailable`, `database_error`, `upstream_timeout`, `upstream_request_failed`;
 - backend errors дополнительно сохраняются в SQLite для просмотра в admin analytics;
 - публичные посты адресуются по `slug`, приватные author-маршруты по `id`;
 - `AttachmentKind` поддерживает `image | audio | video | file`;

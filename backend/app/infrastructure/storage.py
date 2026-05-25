@@ -66,14 +66,21 @@ class S3Storage:
                 message="Yandex Object Storage is not configured yet",
             )
 
-        await asyncio.to_thread(
-            self.client.put_object,
-            Bucket=self.settings.s3_bucket_name,
-            Key=key,
-            Body=content,
-            ContentType=mime_type,
-            ContentLength=len(content),
-        )
+        try:
+            await asyncio.to_thread(
+                self.client.put_object,
+                Bucket=self.settings.s3_bucket_name,
+                Key=key,
+                Body=content,
+                ContentType=mime_type,
+                ContentLength=len(content),
+            )
+        except Exception as exc:
+            raise AppError(
+                status_code=502,
+                code="storage_upload_failed",
+                message="Failed to upload object to storage",
+            ) from exc
 
     async def object_exists(self, key: str) -> bool:
         if not self.client or not self.settings.s3_bucket_name:
@@ -97,11 +104,18 @@ class S3Storage:
                 message="Yandex Object Storage is not configured yet",
             )
 
-        await asyncio.to_thread(
-            self.client.delete_object,
-            Bucket=self.settings.s3_bucket_name,
-            Key=key,
-        )
+        try:
+            await asyncio.to_thread(
+                self.client.delete_object,
+                Bucket=self.settings.s3_bucket_name,
+                Key=key,
+            )
+        except Exception as exc:
+            raise AppError(
+                status_code=502,
+                code="storage_delete_failed",
+                message="Failed to delete object from storage",
+            ) from exc
 
     async def download_object(self, key: str) -> bytes:
         if not self.client or not self.settings.s3_bucket_name:
@@ -111,10 +125,17 @@ class S3Storage:
                 message="Yandex Object Storage is not configured yet",
             )
 
-        response = await asyncio.to_thread(
-            self.client.get_object,
-            Bucket=self.settings.s3_bucket_name,
-            Key=key,
-        )
-        body = response["Body"]
-        return await asyncio.to_thread(body.read)
+        try:
+            response = await asyncio.to_thread(
+                self.client.get_object,
+                Bucket=self.settings.s3_bucket_name,
+                Key=key,
+            )
+            body = response["Body"]
+            return await asyncio.to_thread(body.read)
+        except Exception as exc:
+            raise AppError(
+                status_code=502,
+                code="storage_download_failed",
+                message="Failed to download object from storage",
+            ) from exc
