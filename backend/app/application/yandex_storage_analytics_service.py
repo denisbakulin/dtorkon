@@ -25,6 +25,8 @@ from app.infrastructure.storage import S3Storage
 READ_METHODS = {"GET", "HEAD", "OPTIONS", "LIST"}
 WRITE_METHODS = {"PUT", "POST", "DELETE"}
 DAY_WINDOW = 14
+MAX_LOG_OBJECTS = 96
+LOG_PARSE_CONCURRENCY = 4
 logger = logging.getLogger(__name__)
 
 
@@ -291,7 +293,7 @@ class YandexStorageAnalyticsService:
         prefix = self.settings.yandex_storage_log_object_prefix
         since = datetime.now(UTC) - timedelta(days=DAY_WINDOW + 1)
         continuation_token: str | None = None
-        object_keys: list[str] = []
+        candidate_objects: list[tuple[datetime, str]] = []
 
         while True:
             kwargs: dict[str, Any] = {
@@ -311,15 +313,27 @@ class YandexStorageAnalyticsService:
                 if modified_at and modified_at >= since:
                     key = item.get("Key")
                     if key:
-                        object_keys.append(key)
+                        candidate_objects.append((modified_at, key))
 
             if not response.get("IsTruncated"):
                 break
             continuation_token = response.get("NextContinuationToken")
 
-        object_keys = sorted(set(object_keys))
-        tasks = [self._parse_log_object(bucket=bucket, key=key) for key in object_keys]
-        parsed_objects = await asyncio.gather(*tasks, return_exceptions=True)
+        unique_by_key: dict[str, datetime] = {}
+        for modified_at, key in candidate_objects:
+            previous = unique_by_key.get(key)
+            if previous is None or modified_at > previous:
+                unique_by_key[key] = modified_at
+
+        recent_keys = [
+            key
+            for key, _ in sorted(
+                unique_by_key.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )[:MAX_LOG_OBJECTS]
+        ]
+        parsed_objects = await self._parse_log_objects(bucket=bucket, object_keys=recent_keys)
 
         entries: list[ParsedStorageLogEntry] = []
         last_log_at: datetime | None = None
@@ -337,6 +351,20 @@ class YandexStorageAnalyticsService:
             entries=entries,
             last_log_at=last_log_at.isoformat().replace("+00:00", "Z") if last_log_at else None,
         )
+
+    async def _parse_log_objects(
+        self,
+        *,
+        bucket: str,
+        object_keys: list[str],
+    ) -> list[list[ParsedStorageLogEntry] | Exception]:
+        semaphore = asyncio.Semaphore(LOG_PARSE_CONCURRENCY)
+
+        async def parse_one(key: str) -> list[ParsedStorageLogEntry]:
+            async with semaphore:
+                return await self._parse_log_object(bucket=bucket, key=key)
+
+        return await asyncio.gather(*(parse_one(key) for key in object_keys), return_exceptions=True)
 
     async def _parse_log_object(self, *, bucket: str, key: str) -> list[ParsedStorageLogEntry]:
         if not self.storage.client:

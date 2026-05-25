@@ -350,9 +350,11 @@ const ComposePanel = memo(function ComposePanel({
 });
 
 type OverviewPaneProps = {
+  activeTab: OverviewTab;
   analytics: AdminAnalytics | null;
   isLoadingAnalytics: boolean;
   isLoadingMeta: boolean;
+  onTabChange: (tab: OverviewTab) => void;
   onAuthExpired: () => void;
   onCreatePost: () => void;
   onSaveSiteProfile: (payload: UpdateSiteProfileRequest) => Promise<SiteProfile>;
@@ -928,16 +930,17 @@ function PostsSidebar({
 }
 
 function OverviewPane({
+  activeTab,
   analytics,
   isLoadingAnalytics,
   isLoadingMeta,
+  onTabChange,
   onAuthExpired,
   onCreatePost,
   onSaveSiteProfile,
   posts,
   siteProfile,
 }: OverviewPaneProps) {
-  const [activeTab, setActiveTab] = useState<OverviewTab>('dashboard');
   const [profileDraft, setProfileDraft] = useState<SiteProfileDraft | null>(
     siteProfile ? { ...siteProfile, links: normalizeProfileLinks(siteProfile) } : null,
   );
@@ -1102,7 +1105,7 @@ function OverviewPane({
       <Paper sx={{ p: { xs: 2, md: 2.5 } }}>
         <Tabs
           allowScrollButtonsMobile
-          onChange={(_, value: OverviewTab) => setActiveTab(value)}
+          onChange={(_, value: OverviewTab) => onTabChange(value)}
           scrollButtons="auto"
           sx={{
             '& .MuiTabs-flexContainer': {
@@ -3051,6 +3054,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   const [filter, setFilter] = useState<AdminPostStatusFilter>('all');
   const [searchInput, setSearchInput] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [overviewTab, setOverviewTab] = useState<OverviewTab>('projects');
   const deferredSearchInput = useDeferredValue(searchInput);
 
   const sortedPosts = useMemo(
@@ -3159,10 +3163,13 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   }, [isAuthenticated, mode, refreshKey]);
 
   useEffect(() => {
-    if (!isAuthenticated || mode !== 'overview') {
+    const analyticsTabIsActive = overviewTab === 'dashboard' || overviewTab === 'errors';
+
+    if (!isAuthenticated || mode !== 'overview' || !analyticsTabIsActive) {
       if (mode === 'overview') {
         setAnalytics(null);
       }
+      setIsRefreshingAnalytics(false);
       return;
     }
 
@@ -3192,7 +3199,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
       });
 
     return () => controller.abort();
-  }, [isAuthenticated, mode, refreshKey]);
+  }, [isAuthenticated, mode, overviewTab, refreshKey]);
 
   const handleLogout = async () => {
     await logout();
@@ -3248,12 +3255,14 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
 
                 {mode === 'overview' ? (
                   <OverviewPane
+                    activeTab={overviewTab}
                     analytics={analytics}
                     isLoadingAnalytics={isRefreshingAnalytics}
                     isLoadingMeta={isRefreshingMeta}
                     onAuthExpired={handleAuthExpired}
                     onCreatePost={() => navigate(getAdminCreatePostPath())}
                     onSaveSiteProfile={handleSaveSiteProfile}
+                    onTabChange={setOverviewTab}
                     posts={sortedPosts}
                     siteProfile={siteProfile}
                   />
