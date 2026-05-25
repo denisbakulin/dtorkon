@@ -1,5 +1,6 @@
 import type {
   AttachmentKind,
+  PaginationInfo,
   ProjectScreenshot,
   ProjectStatus,
   PostStatus,
@@ -34,6 +35,7 @@ export type AdminPostSummary = {
 
 export type AdminPostListResponse = {
   items: AdminPostSummary[];
+  pagination: PaginationInfo;
 };
 
 export type AdminPostDetail = {

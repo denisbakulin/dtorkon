@@ -103,6 +103,8 @@ class PostService:
         *,
         status_filter: PostStatus | str,
         query: str | None,
+        page: int,
+        page_size: int,
     ) -> AdminPostListResponse:
         allowed_values = {item.value for item in PostStatus} | {"all"}
         value = status_filter.value if isinstance(status_filter, PostStatus) else str(status_filter)
@@ -113,8 +115,16 @@ class PostService:
                 message="Недопустимый фильтр статуса",
             )
 
-        items = await self.posts.list_admin(status_filter=value, query=query.strip() if query else None)
-        return AdminPostListResponse(items=[to_admin_post_summary(post) for post in items])
+        items, total_items = await self.posts.list_admin(
+            status_filter=value,
+            query=query.strip() if query else None,
+            page=page,
+            page_size=page_size,
+        )
+        return AdminPostListResponse(
+            items=[to_admin_post_summary(post) for post in items],
+            pagination=build_pagination(page=page, page_size=page_size, total_items=total_items),
+        )
 
     async def get_admin_post(self, *, post_id: str) -> AdminPostDetail:
         post = await self.posts.get_by_id(post_id)

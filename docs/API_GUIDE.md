@@ -268,8 +268,18 @@ Query-параметры:
 
 Query-параметры:
 
+- `page >= 1`
+- `page_size = 1..50`
 - `status = all | draft | published`
 - `q`
+
+Ответ пагинируется и возвращает:
+
+- `items[]`
+- `pagination.page`
+- `pagination.pageSize`
+- `pagination.totalItems`
+- `pagination.totalPages`
 
 ### `GET /api/admin/posts/{post_id}`
 

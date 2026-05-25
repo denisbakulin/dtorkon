@@ -69,7 +69,7 @@ import type {
   UpdateSiteProfileRequest,
 } from '../../../shared/api/admin-contract';
 import { getApiErrorMessage, getApiErrorStatus } from '../../../shared/api/api-error';
-import type { AttachmentKind, PostStatus, PublicAsset } from '../../../shared/api/blog-contract';
+import type { AttachmentKind, PaginationInfo, PostStatus, PublicAsset } from '../../../shared/api/blog-contract';
 import {
   getAdminCreatePostPath,
   getAdminEditPostPath,
@@ -359,6 +359,7 @@ type OverviewPaneProps = {
   onCreatePost: () => void;
   onSaveSiteProfile: (payload: UpdateSiteProfileRequest) => Promise<SiteProfile>;
   posts: AdminPostSummary[];
+  postsPagination: PaginationInfo | null;
   siteProfile: SiteProfile | null;
 };
 
@@ -939,6 +940,7 @@ function OverviewPane({
   onCreatePost,
   onSaveSiteProfile,
   posts,
+  postsPagination,
   siteProfile,
 }: OverviewPaneProps) {
   const [profileDraft, setProfileDraft] = useState<SiteProfileDraft | null>(
@@ -1083,6 +1085,11 @@ function OverviewPane({
           <Typography color="text.secondary">
             Отдельная скрытая админка для контента, загрузок, настроек сайта и внутренней аналитики.
           </Typography>
+          {postsPagination ? (
+            <Typography color="text.secondary" variant="body2">
+              Loaded {posts.length} of {postsPagination.totalItems} posts for the admin index.
+            </Typography>
+          ) : null}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
             <Button onClick={onCreatePost} startIcon={<AddRoundedIcon />} variant="contained">
               New post
@@ -3045,6 +3052,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   const { setSiteProfile: setGlobalSiteProfile } = useSiteProfile();
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [posts, setPosts] = useState<AdminPostSummary[]>([]);
+  const [postsPagination, setPostsPagination] = useState<PaginationInfo | null>(null);
   const [siteProfile, setSiteProfile] = useState<SiteProfile | null>(null);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [metaError, setMetaError] = useState<string | null>(null);
@@ -3057,15 +3065,6 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   const [overviewTab, setOverviewTab] = useState<OverviewTab>('projects');
   const deferredSearchInput = useDeferredValue(searchInput);
 
-  const sortedPosts = useMemo(
-    () =>
-      [...posts].sort(
-        (left, right) =>
-          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
-      ),
-    [posts],
-  );
-
   const handleAuthExpired = () => {
     void refreshSession().finally(() => {
       navigate(getAdminLoginPath());
@@ -3075,6 +3074,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
   useEffect(() => {
     if (!isAuthenticated || mode !== 'overview') {
       setPosts([]);
+      setPostsPagination(null);
       setPostsError(null);
       setIsRefreshingPosts(false);
       return;
@@ -3086,6 +3086,8 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
     setPostsError(null);
 
     getAdminPosts({
+      page: 1,
+      pageSize: 20,
       query: deferredSearchInput,
       signal: controller.signal,
       status: filter,
@@ -3096,6 +3098,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
         }
 
         setPosts(response.items);
+        setPostsPagination(response.pagination);
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted || axios.isCancel(error)) {
@@ -3107,6 +3110,7 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
           return;
         }
 
+        setPostsPagination(null);
         setPostsError(getApiErrorMessage(error, 'Unable to load posts.'));
       })
       .finally(() => {
@@ -3263,7 +3267,8 @@ export function AdminWorkspace({ mode, postId }: AdminWorkspaceProps) {
                     onCreatePost={() => navigate(getAdminCreatePostPath())}
                     onSaveSiteProfile={handleSaveSiteProfile}
                     onTabChange={setOverviewTab}
-                    posts={sortedPosts}
+                    posts={posts}
+                    postsPagination={postsPagination}
                     siteProfile={siteProfile}
                   />
                 ) : (

@@ -28,12 +28,19 @@ router = APIRouter(prefix="/admin/posts", tags=["Admin Posts"])
 async def list_admin_posts(
     _: Annotated[SessionRecord, Depends(get_current_admin_session)],
     status_filter: Annotated[PostStatus | str, Query(alias="status")] = "all",
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=50)] = 20,
     q: str | None = None,
     session: Annotated[AsyncSession, Depends(get_db_session)] = None,
     settings: Annotated[Settings, Depends(get_settings)] = None,
 ) -> AdminPostListResponse:
     service = PostService(session=session, settings=settings)
-    return await service.list_admin_posts(status_filter=status_filter, query=q)
+    return await service.list_admin_posts(
+        status_filter=status_filter,
+        query=q,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get(

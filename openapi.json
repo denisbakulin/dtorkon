@@ -603,6 +603,29 @@
             }
           },
           {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
             "name": "q",
             "in": "query",
             "required": false,
@@ -2994,11 +3017,15 @@
             },
             "type": "array",
             "title": "Items"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
           }
         },
         "type": "object",
         "required": [
-          "items"
+          "items",
+          "pagination"
         ],
         "title": "AdminPostListResponse"
       },

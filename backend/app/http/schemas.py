@@ -304,6 +304,7 @@ class AdminPostSummary(CamelModel):
 
 class AdminPostListResponse(CamelModel):
     items: list[AdminPostSummary]
+    pagination: Pagination
 
 
 class AdminPostDetail(CamelModel):

@@ -29,6 +29,8 @@ type LoginAdminRequest = {
 };
 
 type ListAdminPostsOptions = {
+  page?: number;
+  pageSize?: number;
   status?: AdminPostStatusFilter;
   query?: string;
   signal?: AbortSignal;
@@ -49,12 +51,16 @@ export async function logoutAdmin() {
 }
 
 export async function getAdminPosts({
+  page = 1,
+  pageSize = 20,
   status = 'all',
   query,
   signal,
 }: ListAdminPostsOptions = {}) {
   const response = await httpClient.get<AdminPostListResponse>('/api/admin/posts', {
     params: {
+      page,
+      page_size: pageSize,
       status,
       q: query?.trim() ? query.trim() : undefined,
     },

@@ -488,12 +488,19 @@ class PostRepository:
         )
         return result.scalar_one_or_none()
 
-    async def list_admin(self, *, status_filter: str, query: str | None) -> list[Post]:
-        statement = select(Post).order_by(Post.updated_at.desc())
+    async def list_admin(
+        self,
+        *,
+        status_filter: str,
+        query: str | None,
+        page: int,
+        page_size: int,
+    ) -> tuple[list[Post], int]:
+        filters = []
         if status_filter != "all":
-            statement = statement.where(Post.status == PostStatus(status_filter))
+            filters.append(Post.status == PostStatus(status_filter))
         if query:
-            statement = statement.where(
+            filters.append(
                 or_(
                     Post.title.contains(query),
                     Post.slug.contains(query),
@@ -501,8 +508,14 @@ class PostRepository:
                 )
             )
 
+        count_result = await self.session.execute(select(func.count(Post.id)).where(*filters))
+        total_items = count_result.scalar_one()
+
+        statement = select(Post).where(*filters).order_by(Post.updated_at.desc())
+        statement = statement.offset((page - 1) * page_size).limit(page_size)
+
         result = await self.session.execute(statement)
-        return result.scalars().all()
+        return result.scalars().all(), total_items
 
     async def get_by_id(self, post_id: str) -> Post | None:
         result = await self.session.execute(

@@ -59,6 +59,7 @@ Backend — обязательный runtime-компонент продукта
 - `GET /api/admin/posts/{post_id}`
 - `POST /api/admin/posts`
 - `PATCH /api/admin/posts/{post_id}`
+- admin-индекс постов возвращается постранично через `page` / `page_size`, чтобы `/admin` не загружал весь список сразу
 - `POST /api/admin/uploads/presign`
 - `PUT /api/admin/uploads/{asset_id}/content`
 - `POST /api/admin/uploads/complete`
