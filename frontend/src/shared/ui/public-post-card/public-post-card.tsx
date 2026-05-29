@@ -19,15 +19,19 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
   return (
     <Paper
       sx={{
-        borderRadius: { xs: 0, sm: 2 },
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 2,
+        boxShadow: 'none',
         color: 'inherit',
         display: 'block',
         overflow: 'hidden',
         textDecoration: 'none',
-        transition: 'transform 180ms ease, box-shadow 180ms ease',
+        transition: 'border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease',
         '&:hover': {
-          boxShadow: '0 16px 34px rgba(89, 114, 139, 0.14)',
-          transform: 'translateY(-3px)',
+          borderColor: 'primary.main',
+          boxShadow: '0 14px 28px rgba(45, 62, 80, 0.08)',
+          transform: 'translateY(-2px)',
         },
       }}
     >
@@ -36,7 +40,7 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
         spacing={featured ? 2 : 1.5}
         sx={{
           color: 'inherit',
-          display: 'block',
+          display: 'flex',
           p: featured ? { xs: 2.25, md: 3 } : { xs: 2, md: 2.25 },
           textDecoration: 'none',
         }}
@@ -49,6 +53,7 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
             src={post.coverAsset.url}
             sx={{
               aspectRatio: featured ? '16 / 8.5' : '16 / 10',
+              borderRadius: 1,
               display: 'block',
               objectFit: 'cover',
               width: '100%',
@@ -57,8 +62,10 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
         ) : null}
 
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-          {featured ? <Chip color="primary" label="Fresh post" /> : null}
-          <Typography color="text.secondary">{formatDateLabel(post.publishedAt)}</Typography>
+          {featured ? <Chip color="primary" label="Новое" size="small" /> : null}
+          <Typography color="text.secondary" variant="body2">
+            {formatDateLabel(post.publishedAt)}
+          </Typography>
         </Stack>
 
         <Stack spacing={1}>
@@ -89,7 +96,7 @@ export function PublicPostCard({ post, featured = false }: PublicPostCardProps) 
 
         <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center' }}>
           <Typography color="primary.main" variant="body2">
-            Open article
+            Открыть статью
           </Typography>
           <ArrowOutwardRoundedIcon color="primary" fontSize="small" />
         </Stack>

@@ -26,7 +26,7 @@ import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 
 function ProjectSkeleton() {
   return (
-    <Paper sx={{ p: { xs: 3, md: 4 } }}>
+    <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
       <Stack spacing={2}>
         <Skeleton width="22%" />
         <Skeleton height={48} width="46%" />
@@ -111,8 +111,8 @@ export function ProjectPage() {
 
   return (
     <SiteShell>
-      <Box component="main" sx={{ pb: 10, pt: { xs: 3, md: 5 } }}>
-        <Container maxWidth="lg">
+      <Box component="main" sx={{ pb: 10, pt: { xs: 2.5, md: 5 } }}>
+        <Container maxWidth="md">
           <Stack spacing={2.5}>
             <Button component={RouterLink} size="small" startIcon={<ArrowBackRoundedIcon />} sx={{ alignSelf: 'flex-start' }} to="/projects" variant="text">
               Назад к проектам
@@ -120,7 +120,7 @@ export function ProjectPage() {
 
             {isLoading ? <ProjectSkeleton /> : null}
             {!isLoading && notFound ? (
-              <Paper sx={{ p: { xs: 3, md: 4 } }}>
+              <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
                 <Typography variant="h5">Проект не найден</Typography>
               </Paper>
             ) : null}
@@ -128,11 +128,11 @@ export function ProjectPage() {
 
             {project ? (
               <>
-                <Paper sx={{ p: { xs: 3, md: 4 } }}>
+                <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
                   <Stack spacing={2}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                       <Chip color="primary" label={formatDateLabel(project.publishedAt)} size="small" />
-                      <Chip label={`${project.screenshots.length} screenshots`} size="small" variant="outlined" />
+                      <Chip label={`${project.screenshots.length} скриншотов`} size="small" variant="outlined" />
                     </Stack>
 
                     <Stack spacing={1}>
@@ -174,7 +174,7 @@ export function ProjectPage() {
                 </Paper>
 
                 {project.readmeExcerpt ? (
-                  <Paper sx={{ p: { xs: 3, md: 4 } }}>
+                  <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
                     <Stack spacing={2}>
                       <Typography variant="h6">README.md</Typography>
                       <MarkdownRenderer content={project.readmeExcerpt} />
@@ -183,9 +183,9 @@ export function ProjectPage() {
                 ) : null}
 
                 {project.screenshots.length > 0 ? (
-                  <Paper sx={{ p: { xs: 3, md: 4 } }}>
+                  <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
                     <Stack spacing={2}>
-                      <Typography variant="h6">Screenshots</Typography>
+                      <Typography variant="h6">Скриншоты</Typography>
                       <Typography color="text.secondary" variant="body2">
                         Скриншоты можно открыть в полноэкранной галерее.
                       </Typography>

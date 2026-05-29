@@ -79,7 +79,7 @@ export function buildAppTheme(
         mode: 'dark',
         primary: { main: accent.main, light: accent.light, dark: accent.dark },
         secondary: { main: '#94a3b8', light: '#cbd5f1' },
-        background: { default: '#020617', paper: alpha('#0b1220', 0.88) },
+        background: { default: '#05070d', paper: alpha('#0b1220', 0.9) },
         text: { primary: '#e2e8f0', secondary: '#94a3b8' },
         divider: alpha('#94a3b8', 0.22),
       },
@@ -97,7 +97,8 @@ export function buildAppTheme(
             body:
               customBackground ??
               ({
-                backgroundImage: `radial-gradient(circle at top, ${alpha(accent.main, 0.22)}, transparent 34%), linear-gradient(180deg, #0b1220 0%, #020617 100%)`,
+                backgroundColor: '#05070d',
+                backgroundImage: 'none',
               } as const),
           },
         },
@@ -107,7 +108,7 @@ export function buildAppTheme(
               backdropFilter: 'blur(14px)',
               border: `1px solid ${alpha('#94a3b8', 0.18)}`,
               backgroundImage: 'none',
-              boxShadow: '0 14px 42px rgba(2, 6, 23, 0.55)',
+              boxShadow: '0 16px 34px rgba(2, 6, 23, 0.34)',
             },
           },
         },
@@ -152,7 +153,7 @@ export function buildAppTheme(
         mode: 'light',
         primary: { main: '#111111', light: '#333333', dark: '#000000' },
         secondary: { main: '#6b7280', light: '#9ca3af' },
-        background: { default: '#f5f5f5', paper: 'rgba(255, 255, 255, 0.92)' },
+        background: { default: '#f6f6f6', paper: 'rgba(255, 255, 255, 0.96)' },
         text: { primary: '#111111', secondary: '#4b5563' },
         divider: alpha('#111111', 0.14),
       },
@@ -170,8 +171,8 @@ export function buildAppTheme(
             body:
               customBackground ??
               ({
-                backgroundImage:
-                  'radial-gradient(circle at top, rgba(17, 17, 17, 0.06), transparent 34%), linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%)',
+                backgroundColor: '#f6f6f6',
+                backgroundImage: 'none',
               } as const),
           },
         },
@@ -181,7 +182,7 @@ export function buildAppTheme(
               backdropFilter: 'blur(12px)',
               border: `1px solid ${alpha('#111111', 0.12)}`,
               backgroundImage: 'none',
-              boxShadow: '0 10px 24px rgba(17, 17, 17, 0.06)',
+              boxShadow: '0 10px 24px rgba(17, 17, 17, 0.04)',
             },
           },
         },
@@ -245,8 +246,8 @@ export function buildAppTheme(
         light: '#8b99a8',
       },
       background: {
-        default: '#edf3f9',
-        paper: 'rgba(255, 255, 255, 0.92)',
+        default: '#f6f8fb',
+        paper: 'rgba(255, 255, 255, 0.96)',
       },
       text: {
         primary: '#1f2a36',
@@ -280,7 +281,8 @@ export function buildAppTheme(
           body:
             resolveBodyBackground('light') ??
             ({
-              backgroundImage: `radial-gradient(circle at top, ${accent.soft}, transparent 34%), linear-gradient(180deg, #eff4fa 0%, #e9f0f8 100%)`,
+              backgroundColor: '#f6f8fb',
+              backgroundImage: 'none',
             } as const),
         },
       },
@@ -288,9 +290,9 @@ export function buildAppTheme(
         styleOverrides: {
           root: {
             backdropFilter: 'blur(12px)',
-            border: `1px solid ${alpha('#9fb0c5', 0.26)}`,
+            border: `1px solid ${alpha('#9fb0c5', 0.22)}`,
             backgroundImage: 'none',
-            boxShadow: '0 10px 30px rgba(114, 137, 160, 0.08)',
+            boxShadow: '0 12px 28px rgba(45, 62, 80, 0.06)',
           },
         },
       },

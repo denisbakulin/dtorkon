@@ -16,9 +16,12 @@ const PAGE_SIZE = 12;
 
 function BlogListSkeleton() {
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1.5} sx={{ px: { xs: 1.5, sm: 0 } }}>
       {Array.from({ length: 6 }, (_, index) => (
-        <Paper key={index} sx={{ overflow: 'hidden', p: 2.25 }}>
+        <Paper
+          key={index}
+          sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', overflow: 'hidden', p: 2.25 }}
+        >
           <Stack spacing={1.5}>
             <Skeleton height={160} variant="rounded" />
             <Skeleton width="40%" />
@@ -242,13 +245,13 @@ export function BlogPage() {
           <Box
             sx={{
               display: 'flex',
-              flex: { xs: 1, lg: '0 1 50%' },
+              flex: { xs: 1, lg: '0 1 760px' },
               flexDirection: 'column',
-              maxWidth: { xs: '100%', lg: '50%' },
+              maxWidth: { xs: '100%', lg: 760 },
               minHeight: 0,
               minWidth: 0,
               overflow: 'hidden',
-              width: { xs: '100%', lg: '50%' },
+              width: '100%',
             }}
           >
             {errorMessage && items.length === 0 ? (
@@ -264,7 +267,7 @@ export function BlogPage() {
                   </Button>
                 }
                 severity="warning"
-                sx={{ mb: 2, mx: { xs: 2, sm: 0 } }}
+                sx={{ mb: 2, mx: { xs: 1.5, sm: 0 } }}
               >
                 {errorMessage}
               </Alert>
@@ -290,11 +293,11 @@ export function BlogPage() {
                   flex: 1,
                   minHeight: 0,
                   overflowY: 'auto',
-                  px: { xs: 0, md: 1 },
-                  py: { xs: 0.75, md: 1.25 },
+                  px: { xs: 1.5, md: 1 },
+                  py: { xs: 1, md: 1.25 },
                 }}
               >
-                <Stack spacing={2}>
+                <Stack spacing={1.5}>
                   <Box
                     ref={topSentinelRef}
                     sx={{
@@ -331,7 +334,7 @@ export function BlogPage() {
                         </Button>
                       }
                       severity="warning"
-                      sx={{ mx: { xs: 2, sm: 0 } }}
+                      sx={{ mx: { xs: 0, sm: 0 } }}
                     >
                       {errorMessage}
                     </Alert>
@@ -341,7 +344,7 @@ export function BlogPage() {
             ) : null}
 
             {isAuthenticated ? (
-              <Box sx={{ px: { xs: 2, sm: 0 }, pt: 1.25 }}>
+              <Box sx={{ px: { xs: 1.5, sm: 0 }, pt: 1.25 }}>
                 <Button component={RouterLink} to={getAdminCreatePostPath()} variant="outlined">
                   Новый пост
                 </Button>

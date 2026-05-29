@@ -28,7 +28,7 @@ function ProjectsSkeleton() {
   return (
     <Stack spacing={2}>
       {Array.from({ length: 3 }, (_, index) => (
-        <Paper key={index} sx={{ p: { xs: 2.5, md: 3 } }}>
+        <Paper key={index} sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 2.5, md: 3 } }}>
           <Stack spacing={2}>
             <Skeleton height={220} variant="rounded" />
             <Skeleton width="24%" />
@@ -44,7 +44,7 @@ function ProjectsSkeleton() {
 
 function ProjectCard({ project }: { project: PublicProjectListItem }) {
   return (
-    <Paper sx={{ overflow: 'hidden', p: { xs: 2.5, md: 3 } }}>
+    <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', overflow: 'hidden', p: { xs: 2.5, md: 3 } }}>
       <Stack spacing={2}>
         {project.coverAsset ? (
           <LightboxImage
@@ -129,7 +129,7 @@ export function ProjectsPage() {
       <Box component="main" sx={{ pb: 10, pt: { xs: 3, md: 5 } }}>
         <Container maxWidth="lg">
           <Stack spacing={2.5}>
-            <Paper sx={{ p: { xs: 3, md: 4 } }}>
+            <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
               <Stack spacing={1.25}>
                 <Typography sx={{ fontSize: { xs: '2rem', md: '3rem' }, fontWeight: 700, lineHeight: 1.03 }}>
                   Проекты
@@ -141,7 +141,7 @@ export function ProjectsPage() {
             </Paper>
 
             {isAuthenticated ? (
-              <Paper sx={{ p: { xs: 3, md: 4 } }}>
+              <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
                 <Stack spacing={2}>
                   <Box>
                     <Typography variant="h6">Управление проектами</Typography>
@@ -158,7 +158,7 @@ export function ProjectsPage() {
             {isLoading ? <ProjectsSkeleton /> : null}
 
             {!isLoading && projects.length === 0 ? (
-              <Paper sx={{ p: { xs: 3, md: 4 } }}>
+              <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 } }}>
                 <Typography color="text.secondary">Опубликованных проектов пока нет.</Typography>
               </Paper>
             ) : null}

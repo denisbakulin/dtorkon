@@ -70,6 +70,7 @@ export function SiteHeader() {
   const headerTagline = siteProfile?.siteTagline?.trim() || 'mini blog';
   const showBlogSearch = location.pathname.startsWith('/blog');
   const searchQuery = (searchParams.get('q') ?? '').trim();
+  const themeToggleLabel = activeThemePreset === 'dark' ? 'Светлая тема' : 'Темная тема';
 
   useEffect(() => {
     setIsMobileNavOpen(false);
@@ -129,52 +130,29 @@ export function SiteHeader() {
         sx={(theme) => ({
           backgroundColor: alpha(
             theme.palette.background.paper,
-            theme.palette.mode === 'dark' ? 0.5 : 0.72,
+            theme.palette.mode === 'dark' ? 0.72 : 0.86,
           ),
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: 'none',
-          borderBottom: `1px solid ${alpha(
-            theme.palette.divider,
-            theme.palette.mode === 'dark' ? 0.6 : 0.92,
-          )}`,
-          boxShadow:
-            theme.palette.mode === 'dark'
-              ? '0 14px 36px rgba(2, 6, 23, 0.44)'
-              : '0 14px 36px rgba(91, 114, 138, 0.12)',
-          overflow: 'hidden',
+          backdropFilter: 'blur(18px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+          border: 0,
+          borderBottom: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.5 : 0.85)}`,
+          boxShadow: 'none',
           top: 0,
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            background:
-              theme.palette.mode === 'dark'
-                ? `linear-gradient(180deg, ${alpha('#020617', 0.36)} 0%, ${alpha(
-                    theme.palette.primary.main,
-                    0.08,
-                  )} 100%)`
-                : `linear-gradient(180deg, ${alpha('#ffffff', 0.52)} 0%, ${alpha(
-                    theme.palette.primary.main,
-                    0.08,
-                  )} 100%)`,
-            pointerEvents: 'none',
-          },
         })}
       >
         <Box
           sx={{
             position: 'relative',
-            px: { xs: 2, sm: 3, md: 4, lg: 6, xl: 8 },
+            px: { xs: 1.5, sm: 3, md: 4, lg: 6, xl: 8 },
             width: '100%',
             zIndex: 1,
           }}
         >
-          <Toolbar disableGutters sx={{ gap: 2, minHeight: { xs: 64, md: 74 } }}>
+          <Toolbar disableGutters sx={{ gap: { xs: 1, md: 2 }, minHeight: { xs: 58, md: 68 } }}>
             <Stack
               component={RouterLink}
               direction="row"
-              spacing={1.5}
+              spacing={1.15}
               sx={{
                 alignItems: 'center',
                 color: 'inherit',
@@ -186,15 +164,13 @@ export function SiteHeader() {
             >
               <Box
                 sx={{
-                  
-                  
                   color: '#fff',
                   display: 'grid',
                   fontSize: '0.95rem',
                   fontWeight: 800,
-                  height: 38,
+                  height: 34,
                   placeItems: 'center',
-                  width: 38,
+                  width: 34,
                 }}
               >
                 <Box
@@ -203,15 +179,25 @@ export function SiteHeader() {
                   src="/favicon.ico"
                   sx={{
                     display: 'block',
-                    height: "100%",
-                    width: "100%",
-                    borderRadius: 1
+                    height: '100%',
+                    width: '100%',
+                    borderRadius: 1,
                   }}
                 />
               </Box>
-              <Stack spacing={0.1}>
-                <Typography variant="subtitle1">{headerTitle}</Typography>
-                <Typography color="text.secondary" variant="caption">
+              <Stack spacing={0} sx={{ minWidth: 0 }}>
+                <Typography
+                  noWrap
+                  sx={{ fontSize: { xs: '0.98rem', md: '1.02rem' }, fontWeight: 800, lineHeight: 1.15 }}
+                  variant="subtitle1"
+                >
+                  {headerTitle}
+                </Typography>
+                <Typography
+                  color="text.secondary"
+                  sx={{ display: { xs: 'none', sm: 'block' }, lineHeight: 1.2 }}
+                  variant="caption"
+                >
                   {headerTagline}
                 </Typography>
               </Stack>
@@ -234,12 +220,16 @@ export function SiteHeader() {
                     component={RouterLink}
                     key={item.to}
                     sx={(theme) => ({
-                      bgcolor: active ? alpha(theme.palette.primary.main, 0.14) : 'transparent',
+                      bgcolor: active ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                       borderRadius: 1,
                       color: active ? 'primary.main' : 'text.primary',
+                      fontSize: '0.88rem',
+                      minWidth: 0,
                       px: 1.8,
                       '&:hover': {
-                        bgcolor: active ? alpha(theme.palette.primary.main, 0.18) : alpha('#ffffff', 0.42),
+                        bgcolor: active
+                          ? alpha(theme.palette.primary.main, 0.14)
+                          : alpha(theme.palette.text.primary, 0.05),
                       },
                     })}
                     to={item.to}
@@ -258,6 +248,7 @@ export function SiteHeader() {
                     sx={(theme) => ({
                       borderRadius: 1,
                       color: 'primary.main',
+                      fontSize: '0.88rem',
                       px: 1.8,
                       '&:hover': {
                         bgcolor: alpha(theme.palette.primary.main, 0.14),
@@ -275,16 +266,16 @@ export function SiteHeader() {
             <Box sx={{ flexGrow: 1 }} />
 
             {showBlogSearch ? (
-              <Tooltip title="Search posts">
-                <IconButton aria-label="Search posts" color="inherit" onClick={() => setIsSearchOpen(true)}>
+              <Tooltip title="Поиск по постам">
+                <IconButton aria-label="Поиск по постам" color="inherit" onClick={() => setIsSearchOpen(true)}>
                   <SearchRoundedIcon />
                 </IconButton>
               </Tooltip>
             ) : null}
 
-            <Tooltip title={activeThemePreset === 'dark' ? 'Light theme' : 'Dark theme'}>
+            <Tooltip title={themeToggleLabel}>
               <IconButton
-                aria-label="Toggle theme"
+                aria-label={themeToggleLabel}
                 color="inherit"
                 onClick={handleToggleTheme}
                 sx={{ display: { xs: 'none', md: 'inline-flex' } }}
@@ -294,7 +285,7 @@ export function SiteHeader() {
             </Tooltip>
 
             <IconButton
-              aria-label="Open navigation"
+              aria-label="Открыть навигацию"
               color="inherit"
               onClick={() => setIsMobileNavOpen(true)}
               sx={{ display: { md: 'none' } }}
@@ -310,7 +301,7 @@ export function SiteHeader() {
           <Stack spacing={1.5} sx={{ px: 1.5, pb: 1.5 }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="subtitle1">Навигация</Typography>
-              <IconButton aria-label="Close navigation" onClick={() => setIsMobileNavOpen(false)} size="small">
+              <IconButton aria-label="Закрыть навигацию" onClick={() => setIsMobileNavOpen(false)} size="small">
                 <CloseRoundedIcon />
               </IconButton>
             </Stack>
@@ -320,11 +311,8 @@ export function SiteHeader() {
               sx={{ alignSelf: 'flex-start' }}
               variant="outlined"
             >
-              {activeThemePreset === 'dark' ? 'Light theme' : 'Dark theme'}
+              {themeToggleLabel}
             </Button>
-            <Typography color="text.secondary" variant="body2">
-              Публичная часть сайта.
-            </Typography>
           </Stack>
 
           <List disablePadding>

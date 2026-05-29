@@ -41,7 +41,7 @@ function MediaGridSkeleton() {
         display: 'grid',
         gap: 1.5,
         gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
-        px: { xs: 2, sm: 0 },
+        px: { xs: 0, sm: 0 },
       }}
     >
       {Array.from({ length: 8 }, (_, index) => (
@@ -53,7 +53,7 @@ function MediaGridSkeleton() {
 
 function MediaListSkeleton() {
   return (
-    <Stack spacing={1.5} sx={{ px: { xs: 2, sm: 0 } }}>
+    <Stack spacing={1.5} sx={{ px: { xs: 0, sm: 0 } }}>
       {Array.from({ length: 5 }, (_, index) => (
         <Paper key={index} sx={{ p: 2, borderRadius: { xs: 0, md: 2 } }} variant="outlined">
           <Stack spacing={1.25}>
@@ -122,10 +122,10 @@ export function MediaPage() {
 
   return (
     <SiteShell>
-      <Box component="main" sx={{ pb: 10, pt: { xs: 0, md: 5 } }}>
-        <Container disableGutters maxWidth={false} sx={{ px: { xs: 0, sm: 3, md: 4, lg: 6, xl: 8 } }}>
+      <Box component="main" sx={{ pb: 10, pt: { xs: 2.5, md: 5 } }}>
+        <Container disableGutters maxWidth={false} sx={{ px: { xs: 1.5, sm: 3, md: 4, lg: 6, xl: 8 } }}>
           <Stack spacing={2.5}>
-            <Paper sx={{ borderRadius: { xs: 0, md: 2 }, overflow: 'hidden' }} variant="outlined">
+            <Paper sx={{ borderRadius: 2, boxShadow: 'none', overflow: 'hidden' }} variant="outlined">
               <Tabs
                 onChange={(_, value) => setActiveKind(value)}
                 value={activeKind}
@@ -139,7 +139,7 @@ export function MediaPage() {
             </Paper>
 
             {errorMessage ? (
-              <Alert severity="warning" sx={{ mx: { xs: 2, sm: 0 } }}>
+              <Alert severity="warning" sx={{ mx: 0 }}>
                 {errorMessage}
               </Alert>
             ) : null}
@@ -147,7 +147,7 @@ export function MediaPage() {
             {isLoading ? (activeKind === 'image' ? <MediaGridSkeleton /> : <MediaListSkeleton />) : null}
 
             {!isLoading && (data?.items?.length ?? 0) === 0 ? (
-              <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+              <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 }, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Typography sx={{ fontWeight: 700 }}>Пока пусто</Typography>
                   <Typography color="text.secondary" variant="body2">
@@ -163,7 +163,7 @@ export function MediaPage() {
             {!isLoading
               ? grouped.map(([dateLabel, items]) => (
               <Stack key={dateLabel} spacing={1.25}>
-                <Typography sx={{ fontWeight: 800, px: { xs: 2, sm: 0 } }} variant="subtitle2">
+                <Typography sx={{ fontWeight: 800, px: 0 }} variant="subtitle2">
                   {dateLabel}
                 </Typography>
 
@@ -173,7 +173,7 @@ export function MediaPage() {
                       display: 'grid',
                       gap: 1.5,
                       gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
-                      px: { xs: 2, sm: 0 },
+                      px: 0,
                     }}
                   >
                     {items.map((item) => (
@@ -187,7 +187,7 @@ export function MediaPage() {
                     ))}
                   </Box>
                 ) : (
-                  <Stack spacing={1.5} sx={{ px: { xs: 2, sm: 0 } }}>
+                  <Stack spacing={1.5} sx={{ px: 0 }}>
                     {items.map((item) => (
                       <Paper key={item.id} sx={{ p: 2, borderRadius: { xs: 0, md: 2 } }} variant="outlined">
                         <Stack spacing={1}>

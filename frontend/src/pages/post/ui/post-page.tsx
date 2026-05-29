@@ -63,7 +63,7 @@ function extractMarkdownAudioTracks(content: string) {
 function PostSkeleton() {
   return (
     <Stack spacing={2.5}>
-      <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+      <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 }, borderRadius: 2 }}>
         <Stack spacing={1.5}>
           <Skeleton width="34%" />
           <Skeleton height={56} width="72%" />
@@ -71,7 +71,7 @@ function PostSkeleton() {
           <Skeleton width="63%" />
         </Stack>
       </Paper>
-      <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+      <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 }, borderRadius: 2 }}>
         <Stack spacing={1.5}>
           {Array.from({ length: 7 }, (_, index) => (
             <Skeleton
@@ -100,7 +100,7 @@ function AttachmentCard({
   if (isAudio || isVideo) {
     const primaryTitle = attachment.title?.trim() || prettifyMediaName(attachment.asset.originalName);
     return (
-      <Paper sx={{ p: 2, borderRadius: { xs: 0, md: 2 } }} variant="outlined">
+      <Paper sx={{ p: 2, borderRadius: 2 }} variant="outlined">
         <Stack spacing={1.25}>
           <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
             {isAudio ? <GraphicEqRoundedIcon color="primary" /> : <MovieRoundedIcon color="primary" />}
@@ -130,7 +130,7 @@ function AttachmentCard({
       href={isImage ? undefined : attachment.asset.url}
       rel={isImage ? undefined : 'noreferrer'}
       sx={{
-        borderRadius: { xs: 0, md: 2 },
+        borderRadius: 2,
         color: 'inherit',
         display: 'block',
         overflow: 'hidden',
@@ -369,28 +369,28 @@ export function PostPage() {
 
   return (
     <SiteShell>
-      <Box component="main" sx={{ pb: 10, pt: { xs: 0, md: 5 } }}>
+      <Box component="main" sx={{ pb: 10, pt: { xs: 2.5, md: 5 } }}>
         <Container
           disableGutters
           maxWidth={false}
           sx={{
             display: 'flex',
             justifyContent: 'center',
-            px: { xs: 0, sm: 3, md: 4, lg: 6, xl: 8 },
+            px: { xs: 1.5, sm: 3, md: 4, lg: 6, xl: 8 },
           }}
         >
           <Stack
-            spacing={{ xs: 0, md: 2.5 }}
+            spacing={{ xs: 1.5, md: 2.5 }}
             sx={{
-              maxWidth: { xs: '100%', lg: '50%' },
-              width: { xs: '100%', lg: '50%' },
+              maxWidth: { xs: '100%', lg: 760 },
+              width: '100%',
             }}
           >
             <Button
               component={RouterLink}
               size="small"
               startIcon={<ArrowBackRoundedIcon />}
-              sx={{ alignSelf: 'flex-start', px: { xs: 2, sm: 0 } }}
+              sx={{ alignSelf: 'flex-start', px: 0 }}
               to="/blog"
               variant="text"
             >
@@ -401,7 +401,7 @@ export function PostPage() {
               <Button
                 component={RouterLink}
                 size="small"
-                sx={{ alignSelf: 'flex-start', px: { xs: 2, sm: 0 } }}
+                sx={{ alignSelf: 'flex-start', px: 0 }}
                 to={getAdminEditPostPath(post.id)}
                 variant="outlined"
               >
@@ -412,7 +412,7 @@ export function PostPage() {
             {isLoading ? <PostSkeleton /> : null}
 
             {!isLoading && notFound ? (
-              <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+              <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 3, md: 4 }, borderRadius: 2 }}>
                 <Stack spacing={1.25}>
                   <Typography variant="h5">Статья не найдена</Typography>
                   <Typography color="text.secondary">
@@ -426,7 +426,16 @@ export function PostPage() {
 
             {post ? (
               <>
-                <Paper sx={{ overflow: 'hidden', p: { xs: 2, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+                <Paper
+                  sx={{
+                    border: 1,
+                    borderColor: 'divider',
+                    boxShadow: 'none',
+                    overflow: 'hidden',
+                    p: { xs: 2, md: 4 },
+                    borderRadius: 2,
+                  }}
+                >
                   <Stack spacing={2.25}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                       <Chip color="primary" label={formatDateLabel(post.publishedAt)} size="small" />
@@ -465,7 +474,7 @@ export function PostPage() {
                   </Stack>
                 </Paper>
 
-                <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+                <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 2, md: 4 }, borderRadius: 2 }}>
                   <MarkdownRenderer
                     audioCollection={markdownAudioCollection}
                     content={post.bodyMarkdown}
@@ -475,7 +484,7 @@ export function PostPage() {
                 </Paper>
 
                 {post.attachments.length > 0 ? (
-                  <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: { xs: 0, md: 2 } }}>
+                  <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 2, md: 4 }, borderRadius: 2 }}>
                     <Stack spacing={2}>
                       <Typography variant="h6">Вложения</Typography>
                       <MediaPlaylist

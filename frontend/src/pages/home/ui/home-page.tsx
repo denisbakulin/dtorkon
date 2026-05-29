@@ -1,7 +1,5 @@
-import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
 import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
-import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
 import WorkspacesRoundedIcon from '@mui/icons-material/WorkspacesRounded';
 import {
   Alert,
@@ -26,7 +24,7 @@ import { SiteShell } from '../../../shared/ui/site-shell/site-shell';
 
 function HomeHeroSkeleton() {
   return (
-    <Paper sx={{ overflow: 'hidden', p: { xs: 3, md: 4 } }}>
+    <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', overflow: 'hidden', p: { xs: 3, md: 4 } }}>
       <Stack spacing={3}>
         <Stack spacing={1.5}>
           <Skeleton height={68} width="52%" />
@@ -51,7 +49,7 @@ function HomeQuickLinksSkeleton() {
       }}
     >
       {Array.from({ length: 3 }, (_, index) => (
-        <Paper key={index} sx={{ p: 2.5 }}>
+        <Paper key={index} sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: 2.5 }}>
           <Stack spacing={2}>
             <Skeleton height={24} variant="circular" width={24} />
             <Stack spacing={0.75}>
@@ -79,7 +77,7 @@ function HomeLatestPostsSkeleton() {
       }}
     >
       {Array.from({ length: 3 }, (_, index) => (
-        <Paper key={index} sx={{ p: 2.25 }}>
+        <Paper key={index} sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: 2.25 }}>
           <Stack spacing={1.5}>
             <Skeleton height={160} variant="rounded" />
             <Skeleton width="38%" />
@@ -135,9 +133,9 @@ export function HomePage() {
 
   return (
     <SiteShell>
-      <Box component="main" sx={{ pb: 10, pt: { xs: 3, md: 5 } }}>
+      <Box component="main" sx={{ pb: 10, pt: { xs: 2.5, md: 4 } }}>
         <Container maxWidth="lg">
-          <Stack spacing={3.5}>
+          <Stack spacing={{ xs: 2.5, md: 3 }}>
             {isLoading ? (
               <>
                 <HomeHeroSkeleton />
@@ -145,16 +143,29 @@ export function HomePage() {
               </>
             ) : (
               <>
-                <Paper sx={{ overflow: 'hidden', p: { xs: 3, md: 4 } }}>
+                <Paper
+                  sx={{
+                    border: 1,
+                    borderColor: 'divider',
+                    boxShadow: 'none',
+                    overflow: 'hidden',
+                    p: { xs: 3, md: 4.5 },
+                  }}
+                >
                   <Stack spacing={3}>
                     <Stack spacing={1.5}>
                       <Typography
-                        sx={{ fontSize: { xs: '2.35rem', md: '3.7rem' }, fontWeight: 700, lineHeight: 1.05, maxWidth: 760 }}
+                        sx={{
+                          fontSize: { xs: '2.25rem', md: '3.45rem' },
+                          fontWeight: 800,
+                          lineHeight: 1.03,
+                          maxWidth: 760,
+                        }}
                         variant="h1"
                       >
                         {siteProfile?.authorName || 'dtorkon'}
                       </Typography>
-                      <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
+                      <Typography color="text.secondary" sx={{ fontSize: { md: '1.05rem' }, lineHeight: 1.75, maxWidth: 680 }}>
                         {siteProfile?.authorBio || 'Мини-блог с публичной витриной, поиском по постам и отдельной закрытой админкой.'}
                       </Typography>
                     </Stack>
@@ -167,7 +178,7 @@ export function HomePage() {
                     gap: 2,
                     gridTemplateColumns: {
                       xs: '1fr',
-                      md: 'repeat(2, minmax(0, 1fr))',
+                      md: 'repeat(3, minmax(0, 1fr))',
                     },
                   }}
                 >
@@ -195,19 +206,35 @@ export function HomePage() {
                       component={RouterLink}
                       key={card.title}
                       sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        boxShadow: 'none',
                         color: 'inherit',
                         p: 2.5,
                         textDecoration: 'none',
-                        transition: 'transform 160ms ease, box-shadow 160ms ease',
+                        transition: 'border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease',
                         '&:hover': {
-                          boxShadow: '0 14px 34px rgba(98, 122, 148, 0.12)',
+                          borderColor: 'primary.main',
+                          boxShadow: '0 14px 28px rgba(45, 62, 80, 0.08)',
                           transform: 'translateY(-2px)',
                         },
                       }}
                       to={card.to}
                     >
                       <Stack spacing={2}>
-                        <Box>{card.icon}</Box>
+                        <Box
+                          sx={{
+                            alignItems: 'center',
+                            bgcolor: 'action.hover',
+                            borderRadius: 1,
+                            display: 'inline-flex',
+                            height: 38,
+                            justifyContent: 'center',
+                            width: 38,
+                          }}
+                        >
+                          {card.icon}
+                        </Box>
                         <Stack spacing={0.75}>
                           <Typography variant="h6">{card.title}</Typography>
                           <Typography color="text.secondary" variant="body2">
@@ -221,7 +248,7 @@ export function HomePage() {
               </>
             )}
 
-            <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
+            <Paper sx={{ border: 1, borderColor: 'divider', boxShadow: 'none', p: { xs: 2.5, md: 3 } }}>
               <Stack spacing={2}>
                 <Stack
                   direction={{ xs: 'column', sm: 'row' }}

@@ -165,10 +165,6 @@ export function ContactPage() {
                 <Typography sx={{ fontSize: { xs: '2rem', md: '2.8rem' } }} variant="h3">
                   Связь
                 </Typography>
-                
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ pt: 0.5 }}>
-                 
-                </Stack>
               </Stack>
 
               {errorMessage ? <Alert severity="warning">{errorMessage}</Alert> : null}
@@ -219,7 +215,7 @@ export function ContactPage() {
                                 startIcon={<ContentCopyRoundedIcon />}
                                 variant="text"
                               >
-                                Copy
+                                Скопировать
                               </Button>
                             </Stack>
                           </Stack>
@@ -229,7 +225,7 @@ export function ContactPage() {
                   ) : (
                     <Paper sx={{ p: 2.25 }} variant="outlined">
                       <Typography color="text.secondary" variant="body2">
-                        No contacts yet.
+                        Контакты пока не заполнены.
                       </Typography>
                     </Paper>
                   )}
