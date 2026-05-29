@@ -3,9 +3,9 @@
 ## Режимы запуска
 
 - локальный запуск на `localhost`;
-- глобальный запуск на реальном домене с двумя host-ами:
-  - публичный `denisbakulin.ru`;
-  - приватный `/admin` на том же домене.
+- глобальный запуск на реальном домене:
+  - публичный сайт доступен по `denisbakulin.ru` и `www.denisbakulin.ru`;
+  - приватный `/admin` доступен на тех же host-ах.
 
 ## Локальный runtime
 
@@ -72,7 +72,7 @@ GitHub Actions deploy workflow для ветки `master` использует �
 - в локальном режиме поднимает Node + Vite dev server;
 - отдает frontend с hot reload;
 - проксирует `/api/*` в `api` через Vite proxy;
-- в global runtime обслуживается через Caddy и один SPA-бандл для public/admin host-ов.
+- в global runtime обслуживается через Caddy и один SPA-бандл для apex/`www` host-ов.
 
 ### `api`
 
@@ -102,7 +102,7 @@ GitHub Actions deploy workflow для ветки `master` использует �
 - `LOCAL_HTTP_PORT`
 - `GLOBAL_HTTP_PORT`
 - `GLOBAL_HTTPS_PORT`
-- `PUBLIC_DOMAIN`
+- `PUBLIC_DOMAIN` — apex-домен; Caddy также принимает `www.<PUBLIC_DOMAIN>`
 - `LETSENCRYPT_EMAIL`
 - `PUBLIC_APP_ORIGIN`
 - `ADMIN_APP_ORIGIN`
@@ -137,12 +137,12 @@ GitHub Actions deploy workflow для ветки `master` использует �
 
 1. Скопировать проект на VPS.
 2. Подготовить `.env`.
-3. Проверить DNS для `denisbakulin.ru`.
+3. Проверить DNS для `denisbakulin.ru` и `www.denisbakulin.ru`.
 4. Поднять `docker compose -f docker-compose.global.yml up -d --build`.
 5. Проверить логи `web` и `api`.
 6. Убедиться, что:
-   - публичный сайт открывается по `https://denisbakulin.ru`;
-   - админка открывается по `https://denisbakulin.ru/admin`;
+   - публичный сайт открывается по `https://denisbakulin.ru` и `https://www.denisbakulin.ru`;
+   - админка открывается по `https://denisbakulin.ru/admin` и `https://www.denisbakulin.ru/admin`;
    - `/api/health` отвечает;
    - `/status` открывается и показывает хотя бы backend status;
    - admin login работает;
